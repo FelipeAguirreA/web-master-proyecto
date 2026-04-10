@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  COMPANY
+}
+
+enum Modality {
+  REMOTE
+  ONSITE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         Role
+  image        String?
+  provider     String?
+  providerId   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  companyProfile CompanyProfile?
+  applications   Application[]
+
+  @@map("users")
+}
+
+model StudentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  university String?
+  career    String?
+  semester  Int?
+  skills    String[]
+  bio       String?
+  cvUrl     String?
+  cvText    String?
+  embedding Float[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("student_profiles")
+}
+
+model CompanyProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  industry    String?
+  website     String?
+  logo        String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  internships Internship[]
+
+  @@map("company_profiles")
+}
+
+model Internship {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      CompanyProfile @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  area         String
+  location     String
+  modality     Modality
+  duration     String
+  requirements String[]
+  skills       String[]
+  embedding    Float[]
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  applications Application[]
+
+  @@map("internships")
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  studentId    String
+  student      User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  internshipId String
+  internship   Internship        @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  status       ApplicationStatus @default(PENDING)
+  matchScore   Float?
+  coverLetter  String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([studentId, internshipId])
+  @@map("applications")
+}
