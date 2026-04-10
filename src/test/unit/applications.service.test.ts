@@ -19,6 +19,11 @@ const mockInternship = {
   companyId: "cp-1",
   title: "Practicante Frontend",
   isActive: true,
+  embedding: [],
+  company: {
+    companyName: "TechCorp",
+    user: { email: "empresa@example.com", name: "TechCorp" },
+  },
 };
 
 const mockApplication = {
@@ -30,6 +35,8 @@ const mockApplication = {
   coverLetter: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  internship: { title: "Practicante Frontend" },
+  student: { email: "estudiante@example.com", name: "Juan Pérez" },
 };
 
 describe("applyToInternship", () => {
@@ -65,6 +72,8 @@ describe("applyToInternship", () => {
 
   it("crea la postulación correctamente cuando todo es válido", async () => {
     prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue({ embedding: [] });
+    prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
     prismaMock.application.create.mockResolvedValue(mockApplication);
 
     const result = await applyToInternship("user-1", "int-1", "Mi carta");
