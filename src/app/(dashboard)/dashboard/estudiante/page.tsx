@@ -9,6 +9,10 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  MapPin,
+  Briefcase,
+  Calendar,
+  X,
 } from "lucide-react";
 import InternshipCard from "@/components/ui/InternshipCard";
 import type { Internship, Application } from "@/types";
@@ -18,11 +22,21 @@ type InternshipWithCompany = Internship & {
   matchScore?: number | null;
 };
 
+type InternshipDetail = {
+  id: string;
+  title: string;
+  description: string;
+  area: string;
+  location: string;
+  modality: "REMOTE" | "ONSITE" | "HYBRID";
+  duration: string;
+  requirements: string[];
+  skills: string[];
+  company: { companyName: string; logo: string | null };
+};
+
 type ApplicationWithInternship = Application & {
-  internship: {
-    title: string;
-    company: { companyName: string };
-  };
+  internship: InternshipDetail;
 };
 
 type UserWithProfile = {
@@ -73,6 +87,8 @@ export default function StudentDashboard() {
   const [deleting, setDeleting] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [tab, setTab] = useState<Tab>("recommendations");
+  const [selectedApplication, setSelectedApplication] =
+    useState<ApplicationWithInternship | null>(null);
 
   const loadRecommendations = async () => {
     try {
@@ -160,189 +176,333 @@ export default function StudentDashboard() {
   const hasCv = !!user?.studentProfile?.cvUrl;
   const name = session?.user?.name?.split(" ")[0] ?? "estudiante";
 
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Hola, {name} 👋</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Encuentra prácticas que se ajusten a tu perfil
-        </p>
-      </div>
+  const MODALITY_LABEL: Record<string, string> = {
+    REMOTE: "Remoto",
+    ONSITE: "Presencial",
+    HYBRID: "Híbrido",
+  };
 
-      {/* Sección CV */}
-      <div className="mb-8">
-        {!hasCv ? (
-          <div className="space-y-2">
-            <div className="bg-brand-50 border border-brand-100 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
-                <Upload className="w-6 h-6 text-brand-700" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-brand-900">
-                  Sube tu CV para activar el matching IA
+  return (
+    <>
+      {selectedApplication && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setSelectedApplication(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between gap-4 rounded-t-2xl">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {selectedApplication.internship.title}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {selectedApplication.internship.company.companyName}
                 </p>
-                <p className="text-sm text-brand-700 mt-0.5">
-                  Analizamos tu perfil y te mostramos las prácticas con mayor
-                  afinidad
-                </p>
               </div>
-              <label className="bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg cursor-pointer hover:bg-brand-700 transition-colors shrink-0">
-                {uploading ? "Procesando..." : "Subir CV (PDF o DOCX)"}
-                <input
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleCVUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-              </label>
-            </div>
-            {uploadError && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
-                {uploadError}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center gap-4">
-            <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-green-900">
-                CV procesado correctamente
-              </p>
-              <p className="text-xs text-green-700 mt-0.5">
-                El matching IA está activo
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-green-700 underline cursor-pointer hover:text-green-900 transition-colors">
-                Actualizar CV
-                <input
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleCVUpload}
-                  className="hidden"
-                  disabled={uploading || deleting}
-                />
-              </label>
               <button
-                onClick={handleCVDelete}
-                disabled={deleting || uploading}
-                className="text-sm text-red-500 underline hover:text-red-700 transition-colors disabled:opacity-50"
+                onClick={() => setSelectedApplication(null)}
+                className="shrink-0 p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                {deleting ? "Eliminando..." : "Eliminar CV"}
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Badges de estado y match */}
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const st = STATUS_CONFIG[selectedApplication.status];
+                  const Icon = st.icon;
+                  return (
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg ${st.color}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {st.label}
+                    </span>
+                  );
+                })()}
+                {selectedApplication.matchScore != null &&
+                  selectedApplication.matchScore > 0 && (
+                    <span className="inline-flex items-center text-xs font-semibold bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg">
+                      {Math.round(selectedApplication.matchScore)}%
+                      compatibilidad
+                    </span>
+                  )}
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Postulado el{" "}
+                  {new Date(selectedApplication.createdAt).toLocaleDateString(
+                    "es-CL",
+                    { day: "numeric", month: "long", year: "numeric" },
+                  )}
+                </span>
+              </div>
+
+              {/* Metadata */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                  {selectedApplication.internship.location}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
+                  {MODALITY_LABEL[selectedApplication.internship.modality]}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                  {selectedApplication.internship.area}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                  {selectedApplication.internship.duration}
+                </div>
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                  Descripción
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                  {selectedApplication.internship.description}
+                </p>
+              </div>
+
+              {/* Requisitos */}
+              {selectedApplication.internship.requirements.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    Requisitos
+                  </h3>
+                  <ul className="space-y-1">
+                    {selectedApplication.internship.requirements.map(
+                      (req, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-gray-600"
+                        >
+                          <span className="text-brand-500 font-bold mt-0.5 shrink-0">
+                            ·
+                          </span>
+                          {req}
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Skills */}
+              {selectedApplication.internship.skills.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    Habilidades requeridas
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedApplication.internship.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-lg font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+      )}
+      <div className="max-w-6xl mx-auto px-6 py-10">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Hola, {name} 👋</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Encuentra prácticas que se ajusten a tu perfil
+          </p>
+        </div>
+
+        {/* Sección CV */}
+        <div className="mb-8">
+          {!hasCv ? (
+            <div className="space-y-2">
+              <div className="bg-brand-50 border border-brand-100 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Upload className="w-6 h-6 text-brand-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-brand-900">
+                    Sube tu CV para activar el matching IA
+                  </p>
+                  <p className="text-sm text-brand-700 mt-0.5">
+                    Analizamos tu perfil y te mostramos las prácticas con mayor
+                    afinidad
+                  </p>
+                </div>
+                <label className="bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg cursor-pointer hover:bg-brand-700 transition-colors shrink-0">
+                  {uploading ? "Procesando..." : "Subir CV (PDF o DOCX)"}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx"
+                    onChange={handleCVUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+              {uploadError && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+                  {uploadError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center gap-4">
+              <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-900">
+                  CV procesado correctamente
+                </p>
+                <p className="text-xs text-green-700 mt-0.5">
+                  El matching IA está activo
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-green-700 underline cursor-pointer hover:text-green-900 transition-colors">
+                  Actualizar CV
+                  <input
+                    type="file"
+                    accept=".pdf,.docx"
+                    onChange={handleCVUpload}
+                    className="hidden"
+                    disabled={uploading || deleting}
+                  />
+                </label>
+                <button
+                  onClick={handleCVDelete}
+                  disabled={deleting || uploading}
+                  className="text-sm text-red-500 underline hover:text-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar CV"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-8">
+          <button
+            onClick={() => setTab("recommendations")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              tab === "recommendations"
+                ? "bg-white shadow-sm text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Recomendadas ({recommendations.length})
+          </button>
+          <button
+            onClick={() => setTab("applications")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              tab === "applications"
+                ? "bg-white shadow-sm text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Mis postulaciones ({applications.length})
+          </button>
+        </div>
+
+        {/* Contenido tabs */}
+        {tab === "recommendations" && (
+          <>
+            {recommendations.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {recommendations.map((internship) => (
+                  <InternshipCard key={internship.id} internship={internship} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium text-gray-500">
+                  Sube tu CV para ver recomendaciones
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  La IA analizará tu perfil y encontrará las mejores prácticas
+                  para vos
+                </p>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === "applications" && (
+          <>
+            {applications.length > 0 ? (
+              <div className="space-y-3">
+                {applications.map((application) => {
+                  const status =
+                    STATUS_CONFIG[
+                      application.status as keyof typeof STATUS_CONFIG
+                    ];
+                  const StatusIcon = status.icon;
+
+                  return (
+                    <button
+                      key={application.id}
+                      onClick={() => setSelectedApplication(application)}
+                      className="w-full bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 hover:border-brand-200 hover:shadow-sm transition-all text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {application.internship.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {application.internship.company.companyName}
+                        </p>
+                      </div>
+
+                      {application.matchScore != null &&
+                        application.matchScore > 0 && (
+                          <span className="text-xs font-semibold bg-amber-50 text-amber-700 px-2 py-1 rounded-lg shrink-0">
+                            {Math.round(application.matchScore)}% match
+                          </span>
+                        )}
+
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg shrink-0 ${status.color}`}
+                      >
+                        <StatusIcon className="w-3.5 h-3.5" />
+                        {status.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium text-gray-500">
+                  Aún no tenés postulaciones
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Explorá las prácticas disponibles y postulate
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-8">
-        <button
-          onClick={() => setTab("recommendations")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            tab === "recommendations"
-              ? "bg-white shadow-sm text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          Recomendadas ({recommendations.length})
-        </button>
-        <button
-          onClick={() => setTab("applications")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            tab === "applications"
-              ? "bg-white shadow-sm text-gray-900"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          Mis postulaciones ({applications.length})
-        </button>
-      </div>
-
-      {/* Contenido tabs */}
-      {tab === "recommendations" && (
-        <>
-          {recommendations.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {recommendations.map((internship) => (
-                <InternshipCard key={internship.id} internship={internship} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-gray-500">
-                Sube tu CV para ver recomendaciones
-              </p>
-              <p className="text-sm text-gray-400 mt-1">
-                La IA analizará tu perfil y encontrará las mejores prácticas
-                para vos
-              </p>
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === "applications" && (
-        <>
-          {applications.length > 0 ? (
-            <div className="space-y-3">
-              {applications.map((application) => {
-                const status =
-                  STATUS_CONFIG[
-                    application.status as keyof typeof STATUS_CONFIG
-                  ];
-                const StatusIcon = status.icon;
-
-                return (
-                  <div
-                    key={application.id}
-                    className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {application.internship.title}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {application.internship.company.companyName}
-                      </p>
-                    </div>
-
-                    {application.matchScore != null &&
-                      application.matchScore > 0 && (
-                        <span className="text-xs font-semibold bg-amber-50 text-amber-700 px-2 py-1 rounded-lg shrink-0">
-                          {Math.round(application.matchScore)}% match
-                        </span>
-                      )}
-
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg shrink-0 ${status.color}`}
-                    >
-                      <StatusIcon className="w-3.5 h-3.5" />
-                      {status.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium text-gray-500">
-                Aún no tenés postulaciones
-              </p>
-              <p className="text-sm text-gray-400 mt-1">
-                Explorá las prácticas disponibles y postulate
-              </p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    </>
   );
 }

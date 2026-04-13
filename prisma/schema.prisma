@@ -28,6 +28,9 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   name         String
+  lastName     String?
+  rut          String?  @unique
+  phone        String?
   role         Role
   image        String?
   provider     String?

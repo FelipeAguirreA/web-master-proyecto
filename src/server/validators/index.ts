@@ -1,5 +1,69 @@
 import { z } from "zod";
 
+function validarRUT(rut: string): boolean {
+  const limpio = rut.replace(/[.\s]/g, "").toUpperCase();
+  const match = limpio.match(/^(\d{7,8})-?([0-9K])$/);
+  if (!match) return false;
+  const cuerpo = match[1];
+  const dv = match[2];
+  let suma = 0;
+  let multiplo = 2;
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += parseInt(cuerpo[i]) * multiplo;
+    multiplo = multiplo === 7 ? 2 : multiplo + 1;
+  }
+  const resto = 11 - (suma % 11);
+  const dvEsperado = resto === 11 ? "0" : resto === 10 ? "K" : String(resto);
+  return dv === dvEsperado;
+}
+
+function validarTelefono(tel: string): boolean {
+  const limpio = tel.replace(/[\s\-]/g, "");
+  return /^(\+56)?9\d{8}$/.test(limpio);
+}
+
+export function normalizarRUT(rut: string): string {
+  const limpio = rut.replace(/[.\s]/g, "").toUpperCase();
+  const match = limpio.match(/^(\d{7,8})-?([0-9K])$/);
+  if (!match) return rut;
+  return `${match[1]}-${match[2]}`;
+}
+
+export const registrationSchema = z
+  .object({
+    name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
+    rut: z.string().min(1, "El documento es obligatorio"),
+    documentType: z.enum(["rut", "passport"]).default("rut"),
+    phone: z.string().min(1, "El teléfono es obligatorio"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.documentType === "rut" && !validarRUT(data.rut)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "RUT chileno inválido",
+        path: ["rut"],
+      });
+    }
+    if (
+      data.documentType === "passport" &&
+      !/^[A-Z0-9]{6,20}$/i.test(data.rut.trim())
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Documento inválido (6–20 caracteres alfanuméricos)",
+        path: ["rut"],
+      });
+    }
+    if (!validarTelefono(data.phone)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Teléfono inválido",
+        path: ["phone"],
+      });
+    }
+  });
+
 export const registerSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2),

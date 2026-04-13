@@ -8,6 +8,16 @@ import type {
 type StudentProfileInput = z.infer<typeof studentProfileSchema>;
 type CompanyProfileInput = z.infer<typeof companyProfileSchema>;
 
+export async function completeStudentRegistration(
+  userId: string,
+  data: { name: string; lastName: string; rut: string; phone: string },
+) {
+  return prisma.user.update({
+    where: { id: userId },
+    data,
+  });
+}
+
 export async function getUserWithProfile(userId: string) {
   return prisma.user.findUnique({
     where: { id: userId },

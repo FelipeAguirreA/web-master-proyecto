@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
       }
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email! },
@@ -51,7 +51,18 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
+          // COMPANY users skip registration; STUDENT needs rut to be complete
+          token.registrationCompleted =
+            dbUser.role === "COMPANY" ? true : !!dbUser.rut;
         }
+      }
+
+      // Called when useSession().update() is invoked from the frontend
+      if (
+        trigger === "update" &&
+        session?.registrationCompleted !== undefined
+      ) {
+        token.registrationCompleted = session.registrationCompleted as boolean;
       }
 
       return token;
@@ -61,6 +72,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.registrationCompleted =
+          (token.registrationCompleted as boolean) ?? true;
       }
 
       return session;

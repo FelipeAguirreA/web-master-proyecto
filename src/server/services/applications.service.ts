@@ -8,7 +8,7 @@ import {
 export async function applyToInternship(
   studentUserId: string,
   internshipId: string,
-  coverLetter?: string
+  coverLetter?: string,
 ) {
   const internship = await prisma.internship.findUnique({
     where: { id: internshipId },
@@ -48,7 +48,7 @@ export async function applyToInternship(
       internship.company.user.email,
       internship.company.companyName,
       studentUser?.name ?? "Un estudiante",
-      internship.title
+      internship.title,
     ).catch(console.error);
 
     return application;
@@ -70,7 +70,18 @@ export async function getMyApplications(studentUserId: string) {
     where: { studentId: studentUserId },
     include: {
       internship: {
-        include: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          area: true,
+          location: true,
+          modality: true,
+          duration: true,
+          requirements: true,
+          skills: true,
+          isActive: true,
+          createdAt: true,
           company: { select: { companyName: true, logo: true } },
         },
       },
@@ -81,7 +92,7 @@ export async function getMyApplications(studentUserId: string) {
 
 export async function getApplicantsByInternship(
   internshipId: string,
-  companyUserId: string
+  companyUserId: string,
 ) {
   const company = await prisma.companyProfile.findUnique({
     where: { userId: companyUserId },
@@ -113,7 +124,7 @@ export async function getApplicantsByInternship(
 
 export async function updateApplicationStatus(
   applicationId: string,
-  status: string
+  status: string,
 ) {
   const existing = await prisma.application.findUnique({
     where: { id: applicationId },
@@ -127,14 +138,16 @@ export async function updateApplicationStatus(
 
   const updated = await prisma.application.update({
     where: { id: applicationId },
-    data: { status: status as "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED" },
+    data: {
+      status: status as "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED",
+    },
   });
 
   sendStatusUpdateEmail(
     existing.student.email,
     existing.student.name,
     existing.internship.title,
-    status
+    status,
   ).catch(console.error);
 
   return updated;

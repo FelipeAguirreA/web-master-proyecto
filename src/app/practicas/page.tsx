@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import InternshipCard from "@/components/ui/InternshipCard";
 import type { Internship } from "@/types";
@@ -48,6 +49,7 @@ function SkeletonCard() {
 }
 
 export default function PracticasPage() {
+  const { data: session } = useSession();
   const [internships, setInternships] = useState<InternshipWithCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -94,12 +96,21 @@ export default function PracticasPage() {
             <span className="text-brand-700">Practi</span>
             <span className="text-accent-500">X</span>
           </Link>
-          <Link
-            href="/login"
-            className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-          >
-            Iniciar sesión
-          </Link>
+          {session ? (
+            <Link
+              href="/dashboard/estudiante"
+              className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            >
+              Mi Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            >
+              Iniciar sesión
+            </Link>
+          )}
         </div>
       </header>
 

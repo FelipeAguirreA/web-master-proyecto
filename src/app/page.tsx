@@ -7,8 +7,10 @@ import {
   Brain,
   GraduationCap,
 } from "lucide-react";
+import { getAuthSession } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getAuthSession();
   return (
     <div className="flex flex-col min-h-screen">
       {/* NAVBAR */}
@@ -25,12 +27,21 @@ export default function Home() {
             >
               Explorar
             </Link>
-            <Link
-              href="/login"
-              className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-            >
-              Iniciar sesión
-            </Link>
+            {session ? (
+              <Link
+                href="/dashboard/estudiante"
+                className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                Mi Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+              >
+                Iniciar sesión
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -51,8 +62,8 @@ export default function Home() {
 
             <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-10">
               PractiX analiza tu CV con inteligencia artificial y te conecta con
-              las prácticas que mejor se adaptan a tu perfil. Sin filtrar manualmente,
-              sin perder tiempo.
+              las prácticas que mejor se adaptan a tu perfil. Sin filtrar
+              manualmente, sin perder tiempo.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -98,12 +109,17 @@ export default function Home() {
                   desc: "Ves las prácticas ordenadas por afinidad con tu perfil. Las más relevantes primero, siempre.",
                 },
               ].map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="flex flex-col items-center text-center gap-4">
+                <div
+                  key={title}
+                  className="flex flex-col items-center text-center gap-4"
+                >
                   <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-brand-600" />
                   </div>
                   <h3 className="font-semibold text-gray-900">{title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -115,7 +131,9 @@ export default function Home() {
           <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
               <GraduationCap className="w-10 h-10 text-brand-600 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Para Estudiantes</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Para Estudiantes
+              </h3>
               <ul className="space-y-3 text-sm text-gray-600">
                 {[
                   "Matching basado en tu CV real",
@@ -134,7 +152,9 @@ export default function Home() {
 
             <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
               <Building2 className="w-10 h-10 text-accent-500 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Para Empresas</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Para Empresas
+              </h3>
               <ul className="space-y-3 text-sm text-gray-600">
                 {[
                   "Publica prácticas en minutos",
@@ -156,10 +176,12 @@ export default function Home() {
         {/* CTA FINAL */}
         <section className="py-20 bg-brand-700 text-white text-center px-6">
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold mb-4">Comienza ahora — es gratis</h2>
+            <h2 className="text-3xl font-bold mb-4">
+              Comienza ahora — es gratis
+            </h2>
             <p className="text-brand-200 mb-8 text-lg">
-              Creá tu cuenta en segundos con Google y empezá a descubrir prácticas
-              que se adaptan a tu perfil.
+              Creá tu cuenta en segundos con Google y empezá a descubrir
+              prácticas que se adaptan a tu perfil.
             </p>
             <Link
               href="/login"
