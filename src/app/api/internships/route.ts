@@ -9,6 +9,9 @@ import {
   filterInternshipSchema,
   createInternshipSchema,
 } from "@/server/validators";
+import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
+
+const HOUR_MS = 60 * 60 * 1000;
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,10 +23,13 @@ export async function GET(request: NextRequest) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -34,6 +40,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
+    const rl = rateLimit(`internships-post:${auth.user.id}`, 10, HOUR_MS);
+    if (!rl.success) return rateLimitResponse(rl.resetAt);
+
     const body = await request.json();
     const data = createInternshipSchema.parse(body);
     const internship = await createInternship(auth.user.id, data);
@@ -42,12 +51,15 @@ export async function POST(request: NextRequest) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

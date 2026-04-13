@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { processCV, deleteCV } from "@/server/services/matching.service";
+import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [
@@ -9,12 +10,17 @@ const ALLOWED_TYPES = [
   "application/msword",
 ];
 
+const HOUR_MS = 60 * 60 * 1000;
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth("STUDENT");
     if ("error" in auth) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const rl = rateLimit(`upload-cv:${auth.user.id}`, 5, HOUR_MS);
+    if (!rl.success) return rateLimitResponse(rl.resetAt);
 
     const formData = await request.formData();
     const file = formData.get("cv") as File | null;

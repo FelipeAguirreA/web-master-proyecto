@@ -3,8 +3,19 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request });
+  const response = NextResponse.next();
+
+  // Add X-Request-ID to every response for Sentry tracing
+  response.headers.set("x-request-id", crypto.randomUUID());
+
   const { pathname } = request.nextUrl;
+
+  // Only enforce auth on dashboard routes
+  if (!pathname.startsWith("/dashboard")) {
+    return response;
+  }
+
+  const token = await getToken({ req: request });
 
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -20,9 +31,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard/empresa", request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/health|api/auth).*)",
+  ],
 };
