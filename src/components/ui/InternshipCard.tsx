@@ -31,10 +31,20 @@ export default function InternshipCard({
           <h3 className="font-semibold text-gray-900 group-hover:text-brand-700 transition-colors truncate">
             {internship.title}
           </h3>
-          <p className="text-sm text-gray-500">{internship.company.companyName}</p>
+          <p className="text-sm text-gray-500">
+            {internship.company.companyName}
+          </p>
         </div>
         {internship.matchScore != null && internship.matchScore > 0 && (
-          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-lg px-2 py-1 shrink-0">
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-semibold rounded-lg px-2 py-1 shrink-0 ${
+              internship.matchScore >= 70
+                ? "bg-green-50 text-green-700"
+                : internship.matchScore >= 40
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-red-50 text-red-600"
+            }`}
+          >
             <Sparkles className="w-3 h-3" />
             {Math.round(internship.matchScore)}%
           </span>
@@ -69,7 +79,9 @@ export default function InternshipCard({
           {internship.duration}
         </span>
         {modality && (
-          <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${modality.className}`}>
+          <span
+            className={`px-2 py-0.5 rounded-md text-xs font-medium ${modality.className}`}
+          >
             {modality.label}
           </span>
         )}

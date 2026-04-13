@@ -1,6 +1,7 @@
 # Módulo 12: Notificaciones + Deploy + Observabilidad
 
 ## Resultado Final
+
 Emails transaccionales con Brevo + Sentry para monitoreo de errores + Dockerfile multi-stage + GitHub Actions CI/CD + security headers + deploy en Vercel.
 
 ---
@@ -22,6 +23,7 @@ Emails transaccionales con Brevo + Sentry para monitoreo de errores + Dockerfile
 ## Paso 2: Servicio de Email
 
 **Prompt para la IA:**
+
 ```
 Crea un servicio de email usando la API HTTP de Brevo.
 
@@ -70,6 +72,7 @@ Exportar todas las funciones.
 ## Paso 3: Integrar Emails en Services
 
 **Prompt para la IA:**
+
 ```
 Integra el envío de emails en los services existentes.
 
@@ -85,7 +88,7 @@ Integra el envío de emails en los services existentes.
    - Llamar sendStatusUpdateEmail (fire-and-forget)
    - .catch(console.error)
 
-IMPORTANTE: 
+IMPORTANTE:
 - No usar await → no bloquear el response esperando al email
 - No lanzar error si falla → los emails son best-effort
 
@@ -97,6 +100,7 @@ Importar las funciones de '@/server/lib/mail'.
 ## Paso 4: Sentry — Monitoreo de Errores
 
 **Prompt para la IA:**
+
 ```
 Configura Sentry para monitoreo de errores en PractiX (Next.js 14).
 
@@ -136,6 +140,7 @@ Configura Sentry para monitoreo de errores en PractiX (Next.js 14).
 ## Paso 5: Health Check Endpoint
 
 **Prompt para la IA:**
+
 ```
 Crea un endpoint de health check para PractiX.
 
@@ -163,6 +168,7 @@ Debe:
 ## Paso 6: Security Headers
 
 **Prompt para la IA:**
+
 ```
 Agrega security headers de producción a next.config.js en PractiX.
 
@@ -182,7 +188,7 @@ con los siguientes headers HTTP:
   font-src 'self' https://fonts.gstatic.com;
   img-src 'self' data: https://*.supabase.co https://lh3.googleusercontent.com;
   connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io
-               https://api-inference.huggingface.co https://api.brevo.com;
+               https://router.huggingface.co https://api.brevo.com;
   frame-ancestors 'none';
 
 Mantener la configuración existente de images.remotePatterns.
@@ -193,6 +199,7 @@ Mantener la configuración existente de images.remotePatterns.
 ## Paso 7: Dockerfile Multi-Stage para Producción
 
 **Prompt para la IA:**
+
 ```
 Crea un Dockerfile multi-stage optimizado para producción de PractiX (Next.js 14).
 
@@ -221,6 +228,7 @@ En producción actual usamos Vercel directamente.
 ## Paso 8: GitHub Actions — CI/CD
 
 **Prompt para la IA:**
+
 ```
 Crea el pipeline de CI/CD con GitHub Actions para PractiX.
 
@@ -266,13 +274,14 @@ Secrets necesarios en GitHub:
 ## Paso 9: Preparar para Producción
 
 **Prompt para la IA:**
+
 ```
 Revisa y prepara el proyecto PractiX para deploy en producción.
 
 Checklist:
 
 1. Verificar que NO hay URLs hardcoded a localhost en el código
-   - Todas las API calls del frontend deben usar rutas relativas: 
+   - Todas las API calls del frontend deben usar rutas relativas:
      fetch('/api/...') NO fetch('http://localhost:3000/api/...')
 
 2. Verificar next.config.js:
@@ -287,7 +296,7 @@ Checklist:
 
 5. Verificar que pnpm build pasa sin errores
 
-6. Revisar que no haya console.log innecesarios 
+6. Revisar que no haya console.log innecesarios
    (mantener los warns/errors del servicio de email y embeddings)
 
 Dame los archivos que necesitan cambios.
@@ -339,6 +348,7 @@ Dame los archivos que necesitan cambios.
 ## Paso 11: Generar Prisma Client en Build
 
 **Prompt para la IA:**
+
 ```
 Vercel necesita generar el Prisma Client durante el build.
 
@@ -401,6 +411,7 @@ Checklist completo:
 ## Paso 15: CHANGELOG + Versión Inicial
 
 **Prompt para la IA:**
+
 ```
 Crea los archivos de versionado inicial para PractiX.
 
@@ -427,6 +438,7 @@ Crea los archivos de versionado inicial para PractiX.
 ## Paso 16: README
 
 **Prompt para la IA:**
+
 ```
 Genera un README.md completo para el repo de PractiX.
 
@@ -450,6 +462,7 @@ Secciones:
 ## Checkpoint Final
 
 Al final del módulo tienes:
+
 - ✅ Emails transaccionales con Brevo
 - ✅ Sentry configurado (monitoreo de errores en producción)
 - ✅ Health check endpoint en /api/health
@@ -498,6 +511,7 @@ Al final del módulo tienes:
 ## ¡Felicitaciones! 🎉
 
 Has construido un MVP completo con:
+
 - ✅ Full-stack unificado (Next.js 14)
 - ✅ Clean Architecture (separación de capas)
 - ✅ Base de datos relacional (Prisma + PostgreSQL)

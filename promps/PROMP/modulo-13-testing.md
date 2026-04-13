@@ -1,6 +1,7 @@
 # Módulo 13: Tests E2E con Playwright
 
 ## Resultado Final
+
 Suite de tests E2E con Playwright cubriendo los flujos principales de la aplicación.
 
 > **Nota sobre unit tests**: Los unit tests de cada service ya fueron escritos en sus respectivos módulos (4, 5, 6 y 11) siguiendo TDD. Este módulo cubre exclusivamente los tests E2E que requieren la app corriendo completa.
@@ -10,6 +11,7 @@ Suite de tests E2E con Playwright cubriendo los flujos principales de la aplicac
 ## Estado de Tests al llegar a este módulo
 
 A esta altura ya tenés:
+
 - ✅ `src/test/unit/users.service.test.ts` (módulo 4)
 - ✅ `src/test/unit/internships.service.test.ts` (módulo 5)
 - ✅ `src/test/unit/applications.service.test.ts` (módulo 6)
@@ -38,6 +40,7 @@ Pirámide de tests para PractiX:
 ## Paso 1: Tests E2E — Landing y Navegación
 
 **Prompt para la IA:**
+
 ```
 Crea los tests E2E de landing para PractiX con Playwright.
 
@@ -57,6 +60,7 @@ describe("Landing Page"):
 ## Paso 2: Tests E2E — Autenticación
 
 **Prompt para la IA:**
+
 ```
 Crea los tests E2E de autenticación para PractiX con Playwright.
 
@@ -79,6 +83,7 @@ test.skip con comentario explicativo.
 ## Paso 3: Tests E2E — Listado de Prácticas
 
 **Prompt para la IA:**
+
 ```
 Crea los tests E2E para el listado de prácticas de PractiX con Playwright.
 
@@ -105,6 +110,7 @@ expect(page).toHaveURL(), page.waitForLoadState().
 ## Paso 4: Tests E2E — Componente InternshipCard
 
 **Prompt para la IA:**
+
 ```
 Crea tests de componente para InternshipCard de PractiX.
 
@@ -117,12 +123,19 @@ Tests a implementar:
 describe("InternshipCard"):
 - "renderiza el título de la práctica"
 - "renderiza el nombre de la empresa"
-- "muestra el matchScore cuando se provee"
+- "muestra el matchScore cuando se provee y es mayor a 0"
+- "muestra el score redondeado al entero más cercano"
 - "no muestra el matchScore cuando es undefined"
-- "aplica clase de color según el rango del score:
-    score >= 70 → verde
-    score >= 40 → amarillo
-    score < 40  → rojo"
+- "no muestra el matchScore cuando es null"
+- "no muestra el matchScore cuando es 0"
+- "aplica color verde para score >= 70"
+- "aplica color amarillo para score entre 40 y 69"
+- "aplica color rojo para score menor a 40"
+- "renderiza las skills de la práctica"
+- "muestra la etiqueta de modalidad correcta (Remoto / Presencial / Híbrido)"
+
+Para testear las clases del badge usar: screen.getByText("70%").closest("span")
+No usar .parentElement — sube un nivel de más al div contenedor.
 
 Usar Testing Library: render(), screen.getByText(), screen.getByRole(),
 expect(...).toBeInTheDocument().
@@ -152,6 +165,7 @@ npx playwright show-report
 ## Checkpoint
 
 Al final del módulo tienes:
+
 - ✅ E2E: landing y navegación
 - ✅ E2E: auth redirect (sin sesión → login)
 - ✅ E2E: listado de prácticas con filtros y paginación

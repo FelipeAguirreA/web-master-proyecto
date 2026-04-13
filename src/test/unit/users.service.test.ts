@@ -8,7 +8,9 @@ import {
 
 beforeEach(() => {
   Object.values(prismaMock).forEach((model) =>
-    Object.values(model).forEach((fn) => (fn as ReturnType<typeof vi.fn>).mockReset())
+    Object.values(model).forEach((fn) =>
+      (fn as ReturnType<typeof vi.fn>).mockReset(),
+    ),
   );
 });
 
@@ -76,7 +78,7 @@ describe("updateStudentProfile", () => {
       embedding: [],
     };
 
-    prismaMock.studentProfile.update.mockResolvedValue(updatedProfile);
+    prismaMock.studentProfile.upsert.mockResolvedValue(updatedProfile);
 
     const result = await updateStudentProfile("user-1", {
       university: "UBA",
@@ -87,19 +89,23 @@ describe("updateStudentProfile", () => {
     });
 
     expect(result).toEqual(updatedProfile);
-    expect(prismaMock.studentProfile.update).toHaveBeenCalledWith({
+    expect(prismaMock.studentProfile.upsert).toHaveBeenCalledWith({
       where: { userId: "user-1" },
-      data: expect.objectContaining({ university: "UBA" }),
+      update: expect.objectContaining({ university: "UBA" }),
+      create: expect.objectContaining({ userId: "user-1", university: "UBA" }),
     });
   });
 
   it("solo actualiza el perfil del userId provisto", async () => {
-    prismaMock.studentProfile.update.mockResolvedValue({ id: "sp-2", userId: "user-2" });
+    prismaMock.studentProfile.upsert.mockResolvedValue({
+      id: "sp-2",
+      userId: "user-2",
+    });
 
     await updateStudentProfile("user-2", { bio: "Mi bio" });
 
-    expect(prismaMock.studentProfile.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-2" } })
+    expect(prismaMock.studentProfile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-2" } }),
     );
   });
 });
@@ -132,12 +138,15 @@ describe("updateCompanyProfile", () => {
   });
 
   it("solo actualiza el perfil del userId provisto", async () => {
-    prismaMock.companyProfile.update.mockResolvedValue({ id: "cp-2", userId: "user-4" });
+    prismaMock.companyProfile.update.mockResolvedValue({
+      id: "cp-2",
+      userId: "user-4",
+    });
 
     await updateCompanyProfile("user-4", { companyName: "Otra Empresa" });
 
     expect(prismaMock.companyProfile.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-4" } })
+      expect.objectContaining({ where: { userId: "user-4" } }),
     );
   });
 });
