@@ -7,7 +7,6 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/msword",
 ];
 
 const HOUR_MS = 60 * 60 * 1000;

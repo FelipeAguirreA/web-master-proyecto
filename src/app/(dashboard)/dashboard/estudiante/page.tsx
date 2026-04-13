@@ -188,10 +188,10 @@ export default function StudentDashboard() {
                 </p>
               </div>
               <label className="bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg cursor-pointer hover:bg-brand-700 transition-colors shrink-0">
-                {uploading ? "Procesando..." : "Subir CV (PDF o Word)"}
+                {uploading ? "Procesando..." : "Subir CV (PDF o DOCX)"}
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.docx"
                   onChange={handleCVUpload}
                   className="hidden"
                   disabled={uploading}
@@ -220,7 +220,7 @@ export default function StudentDashboard() {
                 Actualizar CV
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.docx"
                   onChange={handleCVUpload}
                   className="hidden"
                   disabled={uploading || deleting}
