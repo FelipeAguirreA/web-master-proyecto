@@ -12,7 +12,9 @@ const HUGGINGFACE_URL =
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   if (!env.HUGGINGFACE_API_KEY) {
-    console.warn("[embeddings] HUGGINGFACE_API_KEY no configurada — retornando embedding vacío");
+    console.warn(
+      "[embeddings] HUGGINGFACE_API_KEY no configurada — retornando embedding vacío",
+    );
     return [];
   }
 
@@ -54,7 +56,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export function calculateMatchScore(
   embeddingA: number[],
-  embeddingB: number[]
+  embeddingB: number[],
 ): number {
   if (!embeddingA.length || !embeddingB.length) return 0;
   if (embeddingA.length !== embeddingB.length) return 0;
@@ -73,5 +75,5 @@ export function calculateMatchScore(
   if (denominator === 0) return 0;
 
   const cosine = dotProduct / denominator;
-  return Math.round(((cosine + 1) / 2) * 100);
+  return Math.max(0, Math.round(cosine * 100));
 }
