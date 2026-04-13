@@ -1,12 +1,13 @@
 import { env } from "@/lib/env";
 
-// BAAI/bge-small-en-v1.5 — feature-extraction, 384 dims, free tier
+// paraphrase-multilingual-MiniLM-L12-v2 — multilingüe (50+ idiomas), 384 dims, free tier
 const HUGGINGFACE_URL =
-  "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5";
+  "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
 
 /**
  * Genera un embedding de 384 dimensiones para el texto dado.
- * Usa el modelo BAAI/bge-small-en-v1.5 vía HuggingFace Inference API.
+ * Usa el modelo paraphrase-multilingual-MiniLM-L12-v2 vía HuggingFace Inference API.
+ * Soporta más de 50 idiomas incluyendo español.
  *
  * Si no hay API key o la API falla, retorna [] sin romper la app.
  */
