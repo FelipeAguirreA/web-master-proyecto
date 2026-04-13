@@ -1,6 +1,7 @@
 # Módulo 14: Seguridad
 
 ## Resultado Final
+
 Rate limiting en endpoints críticos, validación estricta en todos los API routes, auditoría de dependencias automatizada, y checklist OWASP aplicado al proyecto.
 
 > Los security headers y el npm audit en CI ya están implementados en el módulo 12.
@@ -11,6 +12,7 @@ Rate limiting en endpoints críticos, validación estricta en todos los API rout
 ## Paso 1: Rate Limiting
 
 **Prompt para la IA:**
+
 ```
 Implementa rate limiting en PractiX usando middleware de Next.js.
 
@@ -49,6 +51,7 @@ Si el rate limit se supera, retornar:
 ## Paso 2: Validación Estricta en Todos los Endpoints
 
 **Prompt para la IA:**
+
 ```
 Audita todos los API routes de PractiX y verifica que cada uno valide
 su input con Zod antes de procesarlo.
@@ -70,10 +73,13 @@ Recorrer todos los archivos en src/app/api/**/route.ts y verificar:
    if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
 4. Los endpoints que requieren rol específico verifican el rol:
-   if (session.user.role !== "COMPANY") 
+   if (session.user.role !== "COMPANY")
      return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
 
 Reportar los endpoints que están incompletos para corregirlos.
+
+> **Resultado de la auditoría**: todos los endpoints ya tenían validación Zod completa
+> desde sus módulos respectivos. No hubo correcciones necesarias en este paso.
 ```
 
 ---
@@ -81,6 +87,7 @@ Reportar los endpoints que están incompletos para corregirlos.
 ## Paso 3: Protección de Rutas con Middleware Global
 
 **Prompt para la IA:**
+
 ```
 Crea o actualiza el middleware de Next.js para PractiX.
 
@@ -115,6 +122,7 @@ Importar getToken de "next-auth/jwt" para leer la sesión en el middleware
 Revisión de cada punto aplicado al proyecto:
 
 ### A01 — Broken Access Control
+
 ```
 ✅ Middleware protege rutas del dashboard por rol
 ✅ Cada API route verifica sesión con getServerSession
@@ -125,6 +133,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A02 — Cryptographic Failures
+
 ```
 ✅ HTTPS forzado en Vercel (automático)
 ✅ Contraseñas no usadas (solo OAuth con Google)
@@ -134,6 +143,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A03 — Injection
+
 ```
 ✅ Prisma usa queries parametrizadas (no SQL crudo)
 ✅ Zod valida y sanitiza todos los inputs
@@ -143,6 +153,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A05 — Security Misconfiguration
+
 ```
 ✅ Security headers configurados en next.config.js (módulo 12)
 ✅ Variables de entorno nunca en el cliente (salvo NEXT_PUBLIC_*)
@@ -152,6 +163,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A06 — Vulnerable and Outdated Components
+
 ```
 ✅ pnpm audit en GitHub Actions (módulo 12)
 → Acción: activar Dependabot en el repositorio de GitHub:
@@ -160,6 +172,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A07 — Identification and Authentication Failures
+
 ```
 ✅ Autenticación delegada a Google OAuth (no manejamos passwords)
 ✅ NextAuth maneja tokens de sesión seguros
@@ -168,6 +181,7 @@ Revisión de cada punto aplicado al proyecto:
 ```
 
 ### A09 — Logging and Monitoring Failures
+
 ```
 ✅ Sentry captura errores en producción (módulo 12)
 ✅ Health check endpoint para monitoreo externo
@@ -205,6 +219,7 @@ updates:
 ## Paso 6: Verificación Final de Seguridad
 
 **Prompt para la IA:**
+
 ```
 Ejecuta una revisión de seguridad sobre el código de PractiX.
 
@@ -236,9 +251,11 @@ Reportar cualquier issue encontrado con su severidad: CRITICAL / HIGH / MEDIUM.
 ## Checkpoint
 
 Al final del módulo tienes:
-- ✅ Rate limiting en endpoints costosos (upload-cv, recommendations)
-- ✅ Validación estricta con Zod en todos los endpoints
-- ✅ Middleware global protegiendo rutas por rol
+
+- ✅ Rate limiting en endpoints costosos (upload-cv 5/h, recommendations 20/h, internships POST 10/h)
+- ✅ Validación estricta con Zod en todos los endpoints (ya estaba completa desde módulos anteriores)
+- ✅ Middleware global con X-Request-ID en todas las respuestas y protección de rutas por rol
+- ✅ session.maxAge configurado en 24h en authOptions
 - ✅ Checklist OWASP Top 10 revisado y aplicado
-- ✅ Dependabot configurado para actualizaciones de seguridad
+- ✅ Dependabot configurado para actualizaciones semanales de npm (ignora major versions)
 - ✅ Revisión de seguridad completa del proyecto
