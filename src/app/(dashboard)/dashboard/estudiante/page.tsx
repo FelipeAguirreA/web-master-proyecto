@@ -67,9 +67,10 @@ export default function StudentDashboard() {
     InternshipWithCompany[]
   >([]);
   const [applications, setApplications] = useState<ApplicationWithInternship[]>(
-    []
+    [],
   );
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [tab, setTab] = useState<Tab>("recommendations");
 
@@ -127,7 +128,9 @@ export default function StudentDashboard() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setUploadError(data.error ?? "Error al procesar el CV. Intentá de nuevo.");
+        setUploadError(
+          data.error ?? "Error al procesar el CV. Intentá de nuevo.",
+        );
         return;
       }
 
@@ -137,6 +140,20 @@ export default function StudentDashboard() {
     } finally {
       setUploading(false);
       e.target.value = "";
+    }
+  };
+
+  const handleCVDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/matching/upload-cv", { method: "DELETE" });
+      if (res.ok) {
+        await Promise.all([loadUser(), loadRecommendations()]);
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -157,35 +174,35 @@ export default function StudentDashboard() {
       <div className="mb-8">
         {!hasCv ? (
           <div className="space-y-2">
-          <div className="bg-brand-50 border border-brand-100 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
-              <Upload className="w-6 h-6 text-brand-700" />
+            <div className="bg-brand-50 border border-brand-100 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                <Upload className="w-6 h-6 text-brand-700" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-brand-900">
+                  Sube tu CV para activar el matching IA
+                </p>
+                <p className="text-sm text-brand-700 mt-0.5">
+                  Analizamos tu perfil y te mostramos las prácticas con mayor
+                  afinidad
+                </p>
+              </div>
+              <label className="bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg cursor-pointer hover:bg-brand-700 transition-colors shrink-0">
+                {uploading ? "Procesando..." : "Subir CV (PDF o Word)"}
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleCVUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
+              </label>
             </div>
-            <div className="flex-1">
-              <p className="font-semibold text-brand-900">
-                Sube tu CV para activar el matching IA
+            {uploadError && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+                {uploadError}
               </p>
-              <p className="text-sm text-brand-700 mt-0.5">
-                Analizamos tu perfil y te mostramos las prácticas con mayor
-                afinidad
-              </p>
-            </div>
-            <label className="bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg cursor-pointer hover:bg-brand-700 transition-colors shrink-0">
-              {uploading ? "Procesando..." : "Subir CV (PDF o Word)"}
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleCVUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          </div>
-          {uploadError && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
-              {uploadError}
-            </p>
-          )}
+            )}
           </div>
         ) : (
           <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center gap-4">
@@ -198,16 +215,25 @@ export default function StudentDashboard() {
                 El matching IA está activo
               </p>
             </div>
-            <label className="text-sm text-green-700 underline cursor-pointer hover:text-green-900 transition-colors">
-              Actualizar CV
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleCVUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-green-700 underline cursor-pointer hover:text-green-900 transition-colors">
+                Actualizar CV
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleCVUpload}
+                  className="hidden"
+                  disabled={uploading || deleting}
+                />
+              </label>
+              <button
+                onClick={handleCVDelete}
+                disabled={deleting || uploading}
+                className="text-sm text-red-500 underline hover:text-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Eliminando..." : "Eliminar CV"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -268,7 +294,9 @@ export default function StudentDashboard() {
             <div className="space-y-3">
               {applications.map((application) => {
                 const status =
-                  STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG];
+                  STATUS_CONFIG[
+                    application.status as keyof typeof STATUS_CONFIG
+                  ];
                 const StatusIcon = status.icon;
 
                 return (

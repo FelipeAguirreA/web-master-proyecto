@@ -1,7 +1,10 @@
 import { prisma } from "@/server/lib/db";
 import { uploadFile } from "@/server/lib/storage";
 import { extractTextFromCV } from "@/server/lib/cv-parser";
-import { generateEmbedding, calculateMatchScore } from "@/server/lib/embeddings";
+import {
+  generateEmbedding,
+  calculateMatchScore,
+} from "@/server/lib/embeddings";
 
 /**
  * Procesa un CV subido por el estudiante:
@@ -14,7 +17,7 @@ export async function processCV(
   userId: string,
   fileBuffer: Buffer,
   mimetype: string,
-  originalName: string
+  originalName: string,
 ): Promise<{ cvUrl: string; embeddingSize: number }> {
   const timestamp = Date.now();
   const path = `cvs/${userId}/${timestamp}-${originalName}`;
@@ -31,6 +34,17 @@ export async function processCV(
   });
 
   return { cvUrl, embeddingSize: embedding.length };
+}
+
+/**
+ * Elimina el CV del estudiante: limpia cvUrl, cvText y embedding del perfil.
+ * El archivo en Supabase Storage no se elimina (puede quedar como backup).
+ */
+export async function deleteCV(userId: string): Promise<void> {
+  await prisma.studentProfile.update({
+    where: { userId },
+    data: { cvUrl: null, cvText: null, embedding: [] },
+  });
 }
 
 /**

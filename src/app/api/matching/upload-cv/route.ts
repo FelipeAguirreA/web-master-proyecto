@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/lib/auth-guard";
-import { processCV } from "@/server/services/matching.service";
+import { processCV, deleteCV } from "@/server/services/matching.service";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = [
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: "Only PDF and Word files are supported" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
         { error: "File too large (max 5MB)" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -42,7 +42,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  try {
+    const auth = await requireAuth("STUDENT");
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    await deleteCV(auth.user.id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
