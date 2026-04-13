@@ -50,7 +50,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * Fórmula:
  *   dotProduct = Σ(A[i] × B[i])
  *   cosine     = dotProduct / (√Σ(A[i]²) × √Σ(B[i]²))
- *   score      = Math.round(((cosine + 1) / 2) × 100)
+ *   score      = Math.max(0, Math.round(cosine × 100))
  *
  * Retorna 0 en casos borde: embeddings vacíos, longitudes distintas, denominador cero.
  */
