@@ -17,17 +17,18 @@ export async function getUserWithProfile(userId: string) {
 
 export async function updateStudentProfile(
   userId: string,
-  data: StudentProfileInput
+  data: StudentProfileInput,
 ) {
-  return prisma.studentProfile.update({
+  return prisma.studentProfile.upsert({
     where: { userId },
-    data,
+    update: data,
+    create: { userId, ...data },
   });
 }
 
 export async function updateCompanyProfile(
   userId: string,
-  data: CompanyProfileInput
+  data: CompanyProfileInput,
 ) {
   return prisma.companyProfile.update({
     where: { userId },

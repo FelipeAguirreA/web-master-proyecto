@@ -23,7 +23,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
   }
   try {
     const res = await fetch(
-      "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-small",
       {
         method: "POST",
         headers: {

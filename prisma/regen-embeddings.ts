@@ -27,7 +27,7 @@ const pool = new Pool({
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const HUGGINGFACE_URL =
-  "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2";
+  "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5";
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
@@ -39,7 +39,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ inputs: text.slice(0, 512) }),
+    body: JSON.stringify({ inputs: text.slice(0, 2000) }),
   });
 
   if (!res.ok) {

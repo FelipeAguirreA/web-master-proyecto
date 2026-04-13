@@ -28,9 +28,10 @@ export async function processCV(
 
   const embedding = await generateEmbedding(cvText);
 
-  await prisma.studentProfile.update({
+  await prisma.studentProfile.upsert({
     where: { userId },
-    data: { cvUrl, cvText, embedding },
+    update: { cvUrl, cvText, embedding },
+    create: { userId, cvUrl, cvText, embedding },
   });
 
   return { cvUrl, embeddingSize: embedding.length };
@@ -41,9 +42,10 @@ export async function processCV(
  * El archivo en Supabase Storage no se elimina (puede quedar como backup).
  */
 export async function deleteCV(userId: string): Promise<void> {
-  await prisma.studentProfile.update({
+  await prisma.studentProfile.upsert({
     where: { userId },
-    data: { cvUrl: null, cvText: null, embedding: [] },
+    update: { cvUrl: null, cvText: null, embedding: [] },
+    create: { userId },
   });
 }
 
