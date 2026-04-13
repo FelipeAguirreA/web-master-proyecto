@@ -58,7 +58,7 @@ export async function getRecommendations(userId: string) {
   });
 
   if (!student || !student.embedding.length) {
-    throw new Error("Upload your CV first");
+    return [];
   }
 
   const internships = await prisma.internship.findMany({

@@ -11,10 +11,10 @@ export async function GET() {
 
     const recommendations = await getRecommendations(auth.user.id);
     return NextResponse.json(recommendations);
-  } catch (error) {
-    if (error instanceof Error && error.message === "Upload your CV first") {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  } catch {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

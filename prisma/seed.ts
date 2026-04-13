@@ -23,7 +23,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
   }
   try {
     const res = await fetch(
-      "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5",
+      "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
       {
         method: "POST",
         headers: {
@@ -31,7 +31,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ inputs: text.slice(0, 512) }),
-      }
+      },
     );
     if (!res.ok) {
       console.warn("[seed] HuggingFace error:", await res.text());
@@ -118,7 +118,10 @@ async function main() {
       location: "Santiago",
       modality: "REMOTE" as const,
       duration: "3 meses",
-      requirements: ["Estudiante de último año de carrera afín", "Conocimientos básicos de Git"],
+      requirements: [
+        "Estudiante de último año de carrera afín",
+        "Conocimientos básicos de Git",
+      ],
       skills: ["React", "TypeScript", "TailwindCSS"],
     },
     {
@@ -157,7 +160,10 @@ async function main() {
       location: "Santiago",
       modality: "REMOTE" as const,
       duration: "3 meses",
-      requirements: ["Conocimientos básicos de marketing digital", "Excel intermedio"],
+      requirements: [
+        "Conocimientos básicos de marketing digital",
+        "Excel intermedio",
+      ],
       skills: ["Google Ads", "Meta Ads", "Analytics", "SEO"],
     },
     {
@@ -170,7 +176,10 @@ async function main() {
       location: "Concepción",
       modality: "REMOTE" as const,
       duration: "6 meses",
-      requirements: ["Conocimientos en Node.js o similar", "Fundamentos de bases de datos"],
+      requirements: [
+        "Conocimientos en Node.js o similar",
+        "Fundamentos de bases de datos",
+      ],
       skills: ["Node.js", "PostgreSQL", "Docker", "APIs REST"],
     },
     {
@@ -183,7 +192,10 @@ async function main() {
       location: "Santiago",
       modality: "ONSITE" as const,
       duration: "3 meses",
-      requirements: ["Estudiante de Ingeniería Comercial o afín", "Excel avanzado"],
+      requirements: [
+        "Estudiante de Ingeniería Comercial o afín",
+        "Excel avanzado",
+      ],
       skills: ["Excel avanzado", "Python", "Análisis financiero"],
     },
   ];

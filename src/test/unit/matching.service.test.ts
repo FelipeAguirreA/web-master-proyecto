@@ -76,16 +76,15 @@ describe("getRecommendations", () => {
     vi.clearAllMocks();
   });
 
-  it("lanza error si el estudiante no tiene embedding", async () => {
+  it("retorna lista vacía si el estudiante no tiene embedding", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       id: "sp-1",
       userId: "user-1",
       embedding: [],
     });
 
-    await expect(getRecommendations("user-1")).rejects.toThrow(
-      "Upload your CV first"
-    );
+    const result = await getRecommendations("user-1");
+    expect(result).toEqual([]);
   });
 
   it("retorna lista vacía si no hay prácticas activas con embedding", async () => {
@@ -105,9 +104,24 @@ describe("getRecommendations", () => {
     });
 
     prismaMock.internship.findMany.mockResolvedValue([
-      { id: "int-1", title: "A", embedding: [0.5, 0.5, 0], company: { companyName: "Co" } },
-      { id: "int-2", title: "B", embedding: [1, 0, 0], company: { companyName: "Co" } },
-      { id: "int-3", title: "C", embedding: [0.1, 0.9, 0], company: { companyName: "Co" } },
+      {
+        id: "int-1",
+        title: "A",
+        embedding: [0.5, 0.5, 0],
+        company: { companyName: "Co" },
+      },
+      {
+        id: "int-2",
+        title: "B",
+        embedding: [1, 0, 0],
+        company: { companyName: "Co" },
+      },
+      {
+        id: "int-3",
+        title: "C",
+        embedding: [0.1, 0.9, 0],
+        company: { companyName: "Co" },
+      },
     ]);
 
     vi.mocked(calculateMatchScore)
@@ -128,7 +142,12 @@ describe("getRecommendations", () => {
     });
 
     prismaMock.internship.findMany.mockResolvedValue([
-      { id: "int-1", title: "A", embedding: [1, 0, 0], company: { companyName: "Co" } },
+      {
+        id: "int-1",
+        title: "A",
+        embedding: [1, 0, 0],
+        company: { companyName: "Co" },
+      },
     ]);
 
     vi.mocked(calculateMatchScore).mockReturnValue(80);
