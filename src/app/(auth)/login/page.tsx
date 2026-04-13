@@ -10,9 +10,7 @@ function LoginContent() {
   const role = searchParams.get("role") ?? "student";
   const isCompany = role === "company";
 
-  const callbackUrl = isCompany
-    ? "/dashboard/empresa"
-    : "/dashboard/estudiante";
+  const callbackUrl = "/dashboard";
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
@@ -59,7 +57,8 @@ function LoginContent() {
         </button>
 
         <p className="text-xs text-gray-400 text-center mt-4">
-          Al continuar aceptás nuestros términos de uso y política de privacidad.
+          Al continuar aceptás nuestros términos de uso y política de
+          privacidad.
         </p>
       </div>
 
@@ -67,14 +66,20 @@ function LoginContent() {
         {isCompany ? (
           <>
             ¿Sos estudiante?{" "}
-            <Link href="/login?role=student" className="text-brand-600 hover:underline">
+            <Link
+              href="/login?role=student"
+              className="text-brand-600 hover:underline"
+            >
               Ingresá aquí
             </Link>
           </>
         ) : (
           <>
             ¿Sos empresa?{" "}
-            <Link href="/login?role=company" className="text-brand-600 hover:underline">
+            <Link
+              href="/login?role=company"
+              className="text-brand-600 hover:underline"
+            >
               Ingresá aquí
             </Link>
           </>
