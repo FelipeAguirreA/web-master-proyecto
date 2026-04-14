@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { ADMIN_EMAIL } from "@/lib/constants";
 
-export default function DashboardLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -15,10 +15,11 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
+    if (status === "loading") return;
+    if (!session || session.user.email !== ADMIN_EMAIL) {
+      router.replace("/login");
     }
-  }, [status, router]);
+  }, [session, status, router]);
 
   if (status === "loading") {
     return (
@@ -28,13 +29,10 @@ export default function DashboardLayout({
     );
   }
 
-  if (!session) return null;
-
-  const name = session.user.name ?? "";
-  const initial = name.charAt(0).toUpperCase();
+  if (!session || session.user.email !== ADMIN_EMAIL) return null;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -42,35 +40,12 @@ export default function DashboardLayout({
               <span className="text-brand-700">Practi</span>
               <span className="text-accent-500">X</span>
             </Link>
-            <Link
-              href="/practicas"
-              className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Explorar
-            </Link>
+            <span className="text-xs font-semibold bg-red-100 text-red-700 px-2.5 py-1 rounded-full">
+              Admin
+            </span>
           </div>
-
           <div className="flex items-center gap-4">
-            {session.user.email === ADMIN_EMAIL && (
-              <Link
-                href="/admin/empresas"
-                className="text-xs font-semibold bg-red-100 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-200 transition-colors"
-              >
-                Admin
-              </Link>
-            )}
-            <span className="text-sm text-gray-700">{name}</span>
-            {session.user.image ? (
-              <img
-                src={session.user.image}
-                alt={name}
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-semibold">
-                {initial}
-              </div>
-            )}
+            <span className="text-sm text-gray-500">{session.user.email}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
@@ -80,7 +55,6 @@ export default function DashboardLayout({
           </div>
         </div>
       </header>
-
       <main className="flex-1">{children}</main>
     </div>
   );

@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 async function sendEmail(
   to: { email: string; name: string },
   subject: string,
-  htmlContent: string
+  htmlContent: string,
 ): Promise<void> {
   if (!env.BREVO_API_KEY) {
     console.warn("[mail] BREVO_API_KEY no configurada — email omitido");
@@ -11,7 +11,10 @@ async function sendEmail(
   }
 
   const body = {
-    sender: { email: env.BREVO_SENDER_EMAIL ?? "noreply@practix.com", name: "PractiX" },
+    sender: {
+      email: env.BREVO_SENDER_EMAIL ?? "noreply@practix.com",
+      name: "PractiX",
+    },
     to: [{ email: to.email, name: to.name }],
     subject,
     htmlContent,
@@ -29,11 +32,53 @@ async function sendEmail(
   console.log(`[mail] ${subject} → ${to.email} | status: ${res.status}`);
 }
 
+export function sendCompanyStatusEmail(
+  companyEmail: string,
+  companyName: string,
+  status: "APPROVED" | "REJECTED",
+): Promise<void> {
+  const approved = status === "APPROVED";
+  const subject = approved
+    ? "¡Tu empresa fue aprobada en PractiX!"
+    : "Actualización sobre tu cuenta en PractiX";
+  const htmlContent = approved
+    ? `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h2 style="color:#1d4ed8">¡Bienvenida, ${companyName}!</h2>
+      <p style="font-size:16px;color:#374151">
+        Tu empresa fue <strong>aprobada</strong>. A partir de ahora tus prácticas
+        publicadas serán visibles para todos los estudiantes en PractiX.
+      </p>
+      <a href="${env.NEXTAUTH_URL}/dashboard/empresa"
+         style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+        Ir a mi panel
+      </a>
+      <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
+    </div>
+  `
+    : `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h2 style="color:#374151">Hola ${companyName}</h2>
+      <p style="font-size:16px;color:#374151">
+        Luego de revisar tu solicitud, tu empresa no pudo ser aprobada en esta
+        oportunidad. Si creés que es un error o querés más información, escribinos a
+        <a href="mailto:soporte@practix.cl">soporte@practix.cl</a>.
+      </p>
+      <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
+    </div>
+  `;
+  return sendEmail(
+    { email: companyEmail, name: companyName },
+    subject,
+    htmlContent,
+  );
+}
+
 export function sendNewApplicationEmail(
   companyEmail: string,
   companyName: string,
   studentName: string,
-  internshipTitle: string
+  internshipTitle: string,
 ): Promise<void> {
   const subject = `Nueva postulación: ${internshipTitle}`;
   const htmlContent = `
@@ -50,14 +95,18 @@ export function sendNewApplicationEmail(
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
     </div>
   `;
-  return sendEmail({ email: companyEmail, name: companyName }, subject, htmlContent);
+  return sendEmail(
+    { email: companyEmail, name: companyName },
+    subject,
+    htmlContent,
+  );
 }
 
 export function sendStatusUpdateEmail(
   studentEmail: string,
   studentName: string,
   internshipTitle: string,
-  status: string
+  status: string,
 ): Promise<void> {
   const statusMessages: Record<string, string> = {
     REVIEWED: "Tu postulación está siendo revisada",
@@ -81,14 +130,18 @@ export function sendStatusUpdateEmail(
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
     </div>
   `;
-  return sendEmail({ email: studentEmail, name: studentName }, subject, htmlContent);
+  return sendEmail(
+    { email: studentEmail, name: studentName },
+    subject,
+    htmlContent,
+  );
 }
 
 export function sendRecommendationEmail(
   studentEmail: string,
   studentName: string,
   internshipTitle: string,
-  matchScore: number
+  matchScore: number,
 ): Promise<void> {
   const subject = `Práctica con ${matchScore}% de afinidad para ti`;
   const htmlContent = `
@@ -108,5 +161,9 @@ export function sendRecommendationEmail(
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
     </div>
   `;
-  return sendEmail({ email: studentEmail, name: studentName }, subject, htmlContent);
+  return sendEmail(
+    { email: studentEmail, name: studentName },
+    subject,
+    htmlContent,
+  );
 }

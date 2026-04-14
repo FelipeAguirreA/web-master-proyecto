@@ -143,12 +143,49 @@ export async function updateApplicationStatus(
     },
   });
 
-  sendStatusUpdateEmail(
-    existing.student.email,
-    existing.student.name,
-    existing.internship.title,
-    status,
-  ).catch(console.error);
+  // Emails de ACCEPTED y REJECTED los dispara la empresa manualmente
 
   return updated;
+}
+
+export async function notifyRejectedApplication(applicationId: string) {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      internship: { select: { title: true } },
+      student: { select: { email: true, name: true } },
+    },
+  });
+
+  if (!app) throw new Error("Application not found");
+  if (app.status !== "REJECTED")
+    throw new Error("La postulación no está rechazada");
+
+  await sendStatusUpdateEmail(
+    app.student.email,
+    app.student.name,
+    app.internship.title,
+    "REJECTED",
+  );
+}
+
+export async function notifyAcceptedApplication(applicationId: string) {
+  const app = await prisma.application.findUnique({
+    where: { id: applicationId },
+    include: {
+      internship: { select: { title: true } },
+      student: { select: { email: true, name: true } },
+    },
+  });
+
+  if (!app) throw new Error("Application not found");
+  if (app.status !== "ACCEPTED")
+    throw new Error("La postulación no está aceptada");
+
+  await sendStatusUpdateEmail(
+    app.student.email,
+    app.student.name,
+    app.internship.title,
+    "ACCEPTED",
+  );
 }

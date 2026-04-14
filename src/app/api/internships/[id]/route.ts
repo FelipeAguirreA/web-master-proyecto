@@ -19,7 +19,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     }
     return NextResponse.json(internship);
   } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -39,13 +42,39 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const auth = await requireAuth("COMPANY");
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const { id } = await params;
+    const { isActive } = (await request.json()) as { isActive: boolean };
+
+    const internship = await updateInternship(id, auth.user.id, { isActive });
+    return NextResponse.json(internship);
+  } catch (error) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -63,6 +92,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

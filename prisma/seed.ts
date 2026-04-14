@@ -58,6 +58,7 @@ async function main() {
       companyProfile: {
         create: {
           companyName: "TechCorp",
+          companyStatus: "APPROVED",
           industry: "Tecnología",
           website: "https://techcorp.cl",
         },
@@ -76,6 +77,7 @@ async function main() {
       companyProfile: {
         create: {
           companyName: "StartupX",
+          companyStatus: "APPROVED",
           industry: "Fintech",
           website: "https://startupx.cl",
         },

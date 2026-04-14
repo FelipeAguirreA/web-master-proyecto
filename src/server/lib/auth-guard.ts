@@ -1,4 +1,5 @@
 import { getAuthSession } from "@/lib/auth";
+import { ADMIN_EMAIL } from "@/lib/auth";
 
 type RequiredRole = "STUDENT" | "COMPANY";
 
@@ -22,6 +23,27 @@ export async function requireAuth(
   }
 
   if (requiredRole && session.user.role !== requiredRole) {
+    return { error: "Forbidden", status: 403 };
+  }
+
+  return {
+    session,
+    user: {
+      id: session.user.id,
+      role: session.user.role,
+      email: session.user.email,
+    },
+  };
+}
+
+export async function requireAdmin(): Promise<AuthSuccess | AuthError> {
+  const session = await getAuthSession();
+
+  if (!session) {
+    return { error: "Unauthorized", status: 401 };
+  }
+
+  if (session.user.email !== ADMIN_EMAIL) {
     return { error: "Forbidden", status: 403 };
   }
 

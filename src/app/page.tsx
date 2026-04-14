@@ -7,7 +7,7 @@ import {
   Brain,
   GraduationCap,
 } from "lucide-react";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession, ADMIN_EMAIL } from "@/lib/auth";
 
 export default async function Home() {
   const session = await getAuthSession();
@@ -28,12 +28,22 @@ export default async function Home() {
               Explorar
             </Link>
             {session ? (
-              <Link
-                href="/dashboard/estudiante"
-                className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
-              >
-                Mi Dashboard
-              </Link>
+              <>
+                {session.user.email === ADMIN_EMAIL && (
+                  <Link
+                    href="/admin/empresas"
+                    className="text-xs font-semibold bg-red-100 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-200 transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard"
+                  className="text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+                >
+                  Mi Dashboard
+                </Link>
+              </>
             ) : (
               <Link
                 href="/login"

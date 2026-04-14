@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+const BLOCKED_DOMAINS = [
+  "gmail.com",
+  "hotmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "live.com",
+  "icloud.com",
+  "mail.com",
+  "protonmail.com",
+  "tutanota.com",
+];
+
+function isCorporateEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return domain ? !BLOCKED_DOMAINS.includes(domain) : false;
+}
+
 function validarRUT(rut: string): boolean {
   const limpio = rut.replace(/[.\s]/g, "").toUpperCase();
   const match = limpio.match(/^(\d{7,8})-?([0-9K])$/);
@@ -115,4 +132,71 @@ export const applySchema = z.object({
 
 export const updateStatusSchema = z.object({
   status: z.enum(["REVIEWED", "ACCEPTED", "REJECTED"]),
+});
+
+export const companyRegisterSchema = z
+  .object({
+    name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
+    phone: z.string().min(1, "El teléfono es obligatorio"),
+    companyName: z
+      .string()
+      .min(2, "El nombre de la empresa debe tener al menos 2 caracteres"),
+    empresaRut: z.string().min(1, "El RUT o DNI de la empresa es obligatorio"),
+    industry: z.string().optional(),
+    website: z
+      .string()
+      .url("URL inválida (debe empezar con https://)")
+      .optional()
+      .or(z.literal("")),
+    documentType: z.enum(["rut", "passport"]).default("rut"),
+    email: z.string().email("Correo electrónico inválido"),
+    password: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .regex(/[A-Z]/, "Debe incluir al menos una mayúscula")
+      .regex(/[a-z]/, "Debe incluir al menos una minúscula")
+      .regex(/[0-9]/, "Debe incluir al menos un número")
+      .regex(/[^A-Za-z0-9]/, "Debe incluir al menos un símbolo"),
+    confirmPassword: z.string(),
+    allowGenericEmail: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.documentType === "rut" && !validarRUT(data.empresaRut)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "RUT de empresa inválido. Verificá el dígito verificador",
+        path: ["empresaRut"],
+      });
+    }
+    if (
+      data.documentType === "passport" &&
+      !/^[A-Z0-9]{6,20}$/i.test(data.empresaRut.trim())
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "DNI inválido (6–20 caracteres alfanuméricos)",
+        path: ["empresaRut"],
+      });
+    }
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Las contraseñas no coinciden",
+        path: ["confirmPassword"],
+      });
+    }
+    if (!data.allowGenericEmail && !isCorporateEmail(data.email)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Usá un correo corporativo. Si tu empresa usa Gmail u otro servicio genérico, marcá la casilla correspondiente",
+        path: ["email"],
+      });
+    }
+  });
+
+export const companyLoginSchema = z.object({
+  email: z.string().email("Correo electrónico inválido"),
+  password: z.string().min(1, "La contraseña es obligatoria"),
 });

@@ -24,6 +24,12 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum CompanyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -35,6 +41,7 @@ model User {
   image        String?
   provider     String?
   providerId   String?
+  passwordHash String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -67,11 +74,13 @@ model CompanyProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyName String
-  industry    String?
-  website     String?
-  logo        String?
-  description String?
+  companyName   String
+  empresaRut    String?
+  companyStatus CompanyStatus @default(PENDING)
+  industry      String?
+  website       String?
+  logo          String?
+  description   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

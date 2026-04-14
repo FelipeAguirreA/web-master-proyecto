@@ -12,7 +12,10 @@ type InternshipData = z.infer<typeof createInternshipSchema>;
 export async function listInternships(filters: ListFilters) {
   const { area, location, modality, search, page, limit } = filters;
 
-  const where: Record<string, unknown> = { isActive: true };
+  const where: Record<string, unknown> = {
+    isActive: true,
+    company: { companyStatus: "APPROVED" },
+  };
 
   if (area) where.area = area;
   if (location) where.location = { contains: location, mode: "insensitive" };
@@ -61,7 +64,7 @@ export async function getInternshipById(id: string) {
 
 export async function createInternship(
   companyUserId: string,
-  data: InternshipData
+  data: InternshipData,
 ) {
   const company = await prisma.companyProfile.findUnique({
     where: { userId: companyUserId },
@@ -84,7 +87,7 @@ export async function createInternship(
 export async function updateInternship(
   internshipId: string,
   companyUserId: string,
-  data: Partial<InternshipData>
+  data: Partial<InternshipData> & { isActive?: boolean },
 ) {
   const company = await prisma.companyProfile.findUnique({
     where: { userId: companyUserId },
@@ -106,7 +109,7 @@ export async function updateInternship(
 
 export async function deleteInternship(
   internshipId: string,
-  companyUserId: string
+  companyUserId: string,
 ) {
   const company = await prisma.companyProfile.findUnique({
     where: { userId: companyUserId },
@@ -120,9 +123,8 @@ export async function deleteInternship(
 
   if (!existing) throw new Error("Not found or not authorized");
 
-  await prisma.internship.update({
+  await prisma.internship.delete({
     where: { id: internshipId },
-    data: { isActive: false },
   });
 
   return { success: true };

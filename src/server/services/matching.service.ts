@@ -64,7 +64,7 @@ export async function getRecommendations(userId: string) {
   }
 
   const internships = await prisma.internship.findMany({
-    where: { isActive: true },
+    where: { isActive: true, company: { companyStatus: "APPROVED" } },
     include: {
       company: { select: { companyName: true, logo: true } },
     },
