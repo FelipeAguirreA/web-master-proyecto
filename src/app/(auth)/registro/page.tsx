@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 
 // ── Países ───────────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -25,6 +26,7 @@ const COUNTRIES = [
 ];
 
 type DocType = "rut" | "passport";
+type FormFields = "name" | "lastName" | "document" | "phone";
 
 // ── Validaciones ─────────────────────────────────────────────────────────────
 function validarRUT(rut: string): boolean {
@@ -61,8 +63,8 @@ function formatRUT(value: string): string {
   return cuerpo.length > 0 ? `${conPuntos}-${dv}` : dv;
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
-type FormFields = "name" | "lastName" | "document" | "phone";
+// ── Pasos ─────────────────────────────────────────────────────────────────────
+const STEPS = ["Tu cuenta", "Tu perfil", "Listo"];
 
 export default function RegistroPage() {
   const { data: session, update } = useSession();
@@ -93,13 +95,10 @@ export default function RegistroPage() {
 
   const validate = (): Partial<Record<FormFields, string>> => {
     const errs: Partial<Record<FormFields, string>> = {};
-
     if (!form.name.trim() || form.name.trim().length < 2)
       errs.name = "El nombre debe tener al menos 2 caracteres";
-
     if (!form.lastName.trim() || form.lastName.trim().length < 2)
       errs.lastName = "El apellido debe tener al menos 2 caracteres";
-
     if (!form.document.trim()) {
       errs.document =
         docType === "rut"
@@ -110,13 +109,11 @@ export default function RegistroPage() {
     } else if (docType === "passport" && !validarPasaporte(form.document)) {
       errs.document = "Ingresá entre 6 y 20 caracteres alfanuméricos";
     }
-
     if (!form.phone.trim()) {
       errs.phone = "El teléfono es obligatorio";
     } else if (!validarTelefono(form.phone)) {
       errs.phone = "Ingresá solo dígitos (7–15 caracteres)";
     }
-
     return errs;
   };
 
@@ -155,7 +152,6 @@ export default function RegistroPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError("");
-
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
@@ -209,104 +205,150 @@ export default function RegistroPage() {
     }
   };
 
-  const inputClass = (field: FormFields) =>
-    `w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-colors ${
+  const inputCls = (field: FormFields) =>
+    `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors ${
       errors[field]
-        ? "border-red-400 bg-red-50 focus:border-red-500"
-        : "border-gray-200 focus:border-brand-400"
+        ? "border-red-300 bg-red-50 focus:border-red-400"
+        : "border-gray-200 bg-gray-50 focus:border-brand-400 focus:bg-white"
     }`;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-      <Link href="/" className="font-bold text-2xl tracking-tight mb-8">
+    <div className="min-h-screen bg-[#eeeef8] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Decoraciones de fondo */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-brand-100/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-accent-400/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Logo */}
+      <Link
+        href="/"
+        className="font-black text-3xl tracking-tighter mb-1 relative"
+      >
         <span className="text-brand-700">Practi</span>
         <span className="text-accent-500">X</span>
       </Link>
+      <p className="text-sm text-gray-400 mb-8 relative">
+        Intelligence for Professional Growth
+      </p>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
+      {/* Step indicator */}
+      <div className="flex items-center gap-0 mb-8 relative">
+        {STEPS.map((step, i) => (
+          <div key={step} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all ${
+                  i === 0
+                    ? "bg-gray-300 text-gray-500"
+                    : i === 1
+                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/25"
+                      : "bg-gray-100 text-gray-300"
+                }`}
+              >
+                {i + 1}
+              </div>
+              <span
+                className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${
+                  i === 1 ? "text-brand-600" : "text-gray-300"
+                }`}
+              >
+                {step}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={`w-16 h-px mx-2 mb-5 ${i === 0 ? "bg-gray-200" : "bg-gray-200"}`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md relative">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
             Completá tu perfil
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-400 mt-1">
             Solo necesitamos estos datos una vez para activar tu cuenta.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Nombre + Apellido */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={handleChange("name")}
-                placeholder="Juan"
-                className={inputClass("name")}
-              />
-              {errors.name && (
-                <p className="text-xs text-red-600 mt-1">{errors.name}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Apellidos <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.lastName}
-                onChange={handleChange("lastName")}
-                placeholder="Pérez García"
-                className={inputClass("lastName")}
-              />
-              {errors.lastName && (
-                <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>
-              )}
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              Nombre completo
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={handleChange("name")}
+                  placeholder="Ej. Alex"
+                  className={inputCls("name")}
+                />
+                {errors.name && (
+                  <p className="text-xs text-red-600 mt-1">{errors.name}</p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={form.lastName}
+                  onChange={handleChange("lastName")}
+                  placeholder="Ej. Martínez"
+                  className={inputCls("lastName")}
+                />
+                {errors.lastName && (
+                  <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Documento de identidad */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Documento de identidad <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              Seleccioná tu rol
             </label>
-
-            {/* Toggle RUT / Pasaporte */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden mb-2 w-fit">
+            <div className="grid grid-cols-2 gap-3 mb-3">
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("rut")}
-                className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
                   docType === "rut"
-                    ? "bg-brand-600 text-white"
-                    : "bg-white text-gray-500 hover:bg-gray-50"
+                    ? "border-brand-600 bg-brand-50 text-brand-700"
+                    : "border-gray-200 text-gray-400 hover:border-gray-300"
                 }`}
               >
-                RUT
+                <span className="text-2xl">🎓</span>
+                <span className="text-sm font-bold">Soy Estudiante</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("passport")}
-                className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${
+                className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
                   docType === "passport"
-                    ? "bg-brand-600 text-white"
-                    : "bg-white text-gray-500 hover:bg-gray-50"
+                    ? "border-brand-600 bg-brand-50 text-brand-700"
+                    : "border-gray-200 text-gray-400 hover:border-gray-300"
                 }`}
               >
-                Pasaporte / DNI
+                <span className="text-2xl">🏢</span>
+                <span className="text-sm font-bold">Soy Empresa</span>
               </button>
             </div>
-
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              Documento de identidad
+            </label>
             <input
               type="text"
               value={form.document}
               onChange={handleDocumentChange}
               placeholder={docType === "rut" ? "12.345.678-9" : "AB123456"}
               maxLength={docType === "rut" ? 12 : 20}
-              className={inputClass("document")}
+              className={inputCls("document")}
             />
             {errors.document ? (
               <p className="text-xs text-red-600 mt-1">{errors.document}</p>
@@ -314,33 +356,27 @@ export default function RegistroPage() {
               <p className="text-xs text-gray-400 mt-1">
                 {docType === "rut"
                   ? "Formato: 12.345.678-9"
-                  : "Número de pasaporte o documento nacional (6–20 caracteres)"}
+                  : "Número de pasaporte o documento (6–20 caracteres)"}
               </p>
             )}
           </div>
 
           {/* Teléfono */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
+              Teléfono
             </label>
             <div
-              className={`flex rounded-lg border overflow-hidden transition-colors ${
-                errors.phone ? "border-red-400" : "border-gray-200"
-              }`}
+              className={`flex rounded-xl border overflow-hidden transition-colors ${errors.phone ? "border-red-300" : "border-gray-200"}`}
             >
               <select
                 value={country.code}
                 onChange={handleCountryChange}
-                className={`pl-3 pr-2 py-2.5 text-sm cursor-pointer focus:outline-none border-r transition-colors ${
-                  errors.phone
-                    ? "bg-red-50 border-red-400 text-gray-700"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
+                className={`pl-3 pr-2 py-3 text-sm cursor-pointer focus:outline-none border-r transition-colors ${errors.phone ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-200"}`}
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
-                    {c.name} ({c.dialCode})
+                    {c.flag} {c.dialCode}
                   </option>
                 ))}
               </select>
@@ -349,9 +385,7 @@ export default function RegistroPage() {
                 value={form.phone}
                 onChange={handleChange("phone")}
                 placeholder="912345678"
-                className={`flex-1 px-3 py-2.5 text-sm focus:outline-none ${
-                  errors.phone ? "bg-red-50" : "bg-white"
-                }`}
+                className={`flex-1 px-4 py-3 text-sm focus:outline-none ${errors.phone ? "bg-red-50" : "bg-white"}`}
               />
             </div>
             {errors.phone && (
@@ -360,7 +394,7 @@ export default function RegistroPage() {
           </div>
 
           {serverError && (
-            <div className="bg-red-50 border border-red-100 rounded-lg px-4 py-3 text-sm text-red-700">
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700">
               {serverError}
             </div>
           )}
@@ -368,11 +402,59 @@ export default function RegistroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {loading ? "Guardando..." : "Continuar al dashboard →"}
+            {loading ? (
+              "Guardando..."
+            ) : (
+              <>
+                Continuar <span className="text-brand-200">→</span>
+              </>
+            )}
           </button>
+
+          <p className="text-center text-sm text-gray-400">
+            ¿Ya tenés una cuenta?{" "}
+            <Link
+              href="/login"
+              className="text-brand-600 font-bold hover:underline"
+            >
+              Iniciar sesión
+            </Link>
+          </p>
         </form>
+      </div>
+
+      {/* PractiX Insight */}
+      <div className="mt-6 w-full max-w-md bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex gap-3 relative">
+        <div className="w-8 h-8 rounded-xl bg-amber-200 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-amber-700" />
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-amber-700 mb-1">
+            PractiX Insight
+          </p>
+          <p className="text-xs text-amber-700 leading-relaxed">
+            Completá tu perfil para que nuestra IA pueda recomendarte prácticas
+            que se ajusten a tus habilidades únicas en menos de 24 horas.
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-xs text-gray-400 text-center">
+        © {new Date().getFullYear()} PractiX ·{" "}
+        <Link href="#" className="hover:underline">
+          Privacidad
+        </Link>{" "}
+        ·{" "}
+        <Link href="#" className="hover:underline">
+          Términos
+        </Link>{" "}
+        ·{" "}
+        <Link href="#" className="hover:underline">
+          Contacto
+        </Link>
       </div>
     </div>
   );

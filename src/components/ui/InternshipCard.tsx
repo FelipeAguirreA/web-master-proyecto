@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Clock, Sparkles } from "lucide-react";
+import { MapPin, Clock, ArrowRight, Sparkles } from "lucide-react";
 import type { Internship } from "@/types";
 
 type InternshipWithCompany = Internship & {
@@ -18,73 +18,83 @@ export default function InternshipCard({
 }: {
   internship: InternshipWithCompany;
 }) {
-  const modality = MODALITY_LABELS[internship.modality];
+  const modality = MODALITY_LABELS[internship.modality] ?? null;
+  const initial = internship.company.companyName.charAt(0).toUpperCase();
 
   return (
     <Link
       href={`/practicas/${internship.id}`}
-      className="group block bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md hover:border-brand-200 transition-all"
+      className="group flex flex-col gap-5 bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:shadow-indigo-500/5 transition-all"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 group-hover:text-brand-700 transition-colors truncate">
-            {internship.title}
-          </h3>
-          <p className="text-sm text-gray-500">
-            {internship.company.companyName}
-          </p>
+      {/* Header: logo + title + match badge */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-xl font-black text-brand-600 shrink-0 overflow-hidden">
+            {internship.company.logo ? (
+              <img
+                src={internship.company.logo}
+                alt={internship.company.companyName}
+                className="w-full h-full object-contain p-2"
+              />
+            ) : (
+              initial
+            )}
+          </div>
+          <div>
+            <h4 className="font-extrabold text-gray-900 text-base leading-snug group-hover:text-brand-700 transition-colors">
+              {internship.title}
+            </h4>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {internship.company.companyName}
+            </p>
+          </div>
         </div>
+
         {internship.matchScore != null && internship.matchScore > 0 && (
-          <span
-            className={`inline-flex items-center gap-1 text-xs font-semibold rounded-lg px-2 py-1 shrink-0 ${
-              internship.matchScore >= 70
-                ? "bg-green-50 text-green-700"
-                : internship.matchScore >= 40
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-red-50 text-red-600"
-            }`}
-          >
+          <span className="shrink-0 inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full">
             <Sparkles className="w-3 h-3" />
-            {Math.round(internship.matchScore)}%
+            {Math.round(internship.matchScore)}% Match IA
           </span>
         )}
       </div>
 
       {/* Descripción */}
-      <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+      <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed -mt-1">
         {internship.description}
       </p>
 
       {/* Skills */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-wrap gap-1.5">
         {internship.skills.slice(0, 4).map((skill) => (
           <span
             key={skill}
-            className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md"
+            className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg"
           >
             {skill}
           </span>
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-        <span className="flex items-center gap-1">
+      {/* Footer: location · duration · modality */}
+      <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap pt-2 border-t border-gray-100 mt-auto">
+        <span className="inline-flex items-center gap-1">
           <MapPin className="w-3.5 h-3.5" />
           {internship.location}
         </span>
-        <span className="flex items-center gap-1">
+        <span className="inline-flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />
           {internship.duration}
         </span>
         {modality && (
           <span
-            className={`px-2 py-0.5 rounded-md text-xs font-medium ${modality.className}`}
+            className={`px-2 py-0.5 rounded-md font-medium ${modality.className}`}
           >
             {modality.label}
           </span>
         )}
+        <span className="ml-auto inline-flex items-center gap-1 font-bold text-brand-600 group-hover:gap-2 transition-all">
+          Ver detalles <ArrowRight className="w-3.5 h-3.5" />
+        </span>
       </div>
     </Link>
   );

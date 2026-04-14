@@ -302,6 +302,351 @@ pnpm dev
 
 ---
 
+## Paso 8: Rediseño Visual con Stitch — Landing Page
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/page.tsx` para que coincida con el diseño Stitch de la Landing Page.
+
+Navbar:
+
+- Logo PractiX en `text-2xl font-black tracking-tighter`, igual que el dashboard
+- Links: Explorar prácticas (apunta a /practicas), Recursos, Precios
+- Botones: Login como texto y Contacto como botón naranja (`accent-500`)
+- Mostrar link de Admin si el usuario es el ADMIN_EMAIL
+- Glassmorphism: `bg-white/80 backdrop-blur-md`
+
+Hero — split layout de dos columnas:
+
+- Columna izquierda: badge IA, titular grande, subtítulo, dos botones: Soy Estudiante (naranja sólido, `/login?role=student`) y Soy Empresa (outline blanco, `/login?role=company`)
+- Columna derecha: tarjeta mock UI con tres cards de match (98%, 94%, 89%) y dos badges flotantes ("CV analizado en 3 segundos" y "+200 prácticas")
+- Fondo con gradiente cálido: `from-[#faf8f5] via-[#fef3e8] to-[#fde8cc]`
+
+Sección Cómo funciona:
+
+- Cards con número de paso grande en esquina superior derecha (01, 02, 03)
+- Fondo `bg-[#faf8f5]` con hover shadow
+- Ícono en box naranja (`bg-orange-100`)
+
+Sección Para quién:
+
+- Dos cards (Estudiantes / Empresas) con lista de features y link al pie de cada una
+- Checks con círculos de color en lugar de texto plano
+
+CTA final:
+
+- Card oscura `bg-gray-900` redondeada con decorador naranja borroso
+- Botón naranja "Empezar gratis"
+
+Footer:
+
+- Tres columnas: logo | links (Explorar, Cómo funciona, Iniciar sesión) | copyright
+
+---
+
+## Paso 9: Rediseño Visual con Stitch — Dashboard Layout
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/(dashboard)/layout.tsx` para que coincida con el diseño Stitch.
+
+Navbar:
+
+- Fondo `bg-[#f9f9ff]/80 backdrop-blur-xl`, altura `h-20`
+- Logo en `font-black text-2xl tracking-tighter`
+- Links de navegación con estado activo usando `usePathname`: Dashboard y Explorar prácticas
+- Link activo: `text-brand-700 border-b-2 border-brand-700`
+- Link inactivo: `text-gray-400 hover:text-gray-700`
+- Ícono de campana (`Bell`) sin funcionalidad
+- Separador vertical antes del bloque de usuario
+- Bloque de usuario: nombre en negrita + badge de rol (`ESTUDIANTE` / `EMPRESA`) en `text-[10px] uppercase tracking-widest` + avatar (imagen de Google o inicial en círculo)
+- Botón "Salir" como texto minimalista
+
+Fondo general de la app en `bg-[#f9f9ff]`
+
+---
+
+## Paso 10: Rediseño Visual con Stitch — Dashboard Estudiante
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/(dashboard)/dashboard/estudiante/page.tsx` manteniendo toda la lógica existente.
+
+Sección de bienvenida:
+
+- Titular en `text-5xl font-extrabold tracking-tighter`
+- Subtítulo dinámico: muestra cantidad de recomendaciones o invita a subir CV
+- Badge ámbar "Perfil X% completado" con ícono `Star`
+
+Banner de CV (sin CV subido):
+
+- Fondo `bg-brand-50`, decorador circular borroso en esquina
+- Ícono en box brand, texto descriptivo, botón primario a la derecha
+- Error de upload debajo del botón
+
+Banner de CV (ya subido):
+
+- Fondo verde, ícono check, links de Actualizar y Eliminar CV
+
+Tabs:
+
+- Estilo underline con `border-b-2 border-brand-600` en la activa
+- Tabs: Recomendadas (con ícono Sparkles) y Mis postulaciones (con ícono FileText)
+
+Grid de recomendaciones:
+
+- Dos columnas usando el componente `InternshipCard`
+
+Sección Actividad Reciente:
+
+- Aparece en el tab Recomendadas cuando ya hay postulaciones
+- Tabla con avatar de letra, título, empresa, columna de compatibilidad y columna de estado
+- Badge de estado con color según tipo (pendiente, revisión, aceptada, rechazada)
+- Ícono kebab (`MoreVertical`) al final de cada fila
+- Link "Ver todo el historial" que cambia al tab de postulaciones
+
+Tab Mis postulaciones:
+
+- Misma tabla que Actividad Reciente pero con todas las postulaciones
+- Click en fila abre el modal de detalle existente
+
+---
+
+## Paso 11: Rediseño Visual con Stitch — Dashboard Empresa
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/(dashboard)/dashboard/empresa/page.tsx` manteniendo toda la lógica existente.
+
+Banner de estado:
+
+- PENDING: barra ámbar sólida full-width con ícono de alerta
+- REJECTED: barra roja sólida
+
+Header:
+
+- Titular `text-4xl font-extrabold tracking-tighter` + subtítulo
+- Botón "+ Nueva práctica" con shadow a la derecha
+
+Layout split `lg:grid-cols-3`:
+
+- Izquierda (2 columnas): lista de prácticas como tabla
+- Derecha (1 columna): panel de postulantes siempre visible (no modal)
+
+Filas de prácticas:
+
+- Ícono `Briefcase` en box brand + título + meta compacta (modalidad, área, duración)
+- Borde izquierdo activo `border-l-4 border-brand-600` al seleccionar
+- Botones: Postulantes (cambia a azul sólido cuando seleccionado), Completada, ícono papelera
+
+Panel derecho de postulantes:
+
+- Header con nombre de la práctica seleccionada y contador total
+- Estado vacío con mensaje guía
+- Tarjetas de candidato: avatar (imagen o inicial), nombre, email, badge de match ámbar, badge de estado, botones Aprobar / Rechazar / Ver CV / Emails de notificación
+- Link "Ver todos los postulantes" al pie
+
+Modales existentes (detalle práctica, crear práctica, confirmar eliminación) conservados con mejoras visuales menores: inputs con `rounded-xl`, labels en `uppercase tracking-widest`.
+
+---
+
+## Paso 12: Rediseño Visual con Stitch — Listado de Prácticas
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/practicas/page.tsx` manteniendo toda la lógica existente.
+
+Navbar:
+
+- Mismo estilo glassmorphism del dashboard layout
+- Links: Explorar prácticas (activo con underline) sin el link secundario de Prácticas
+- Botón session-aware: "Mi Dashboard" si hay sesión, "Explorar →" si no
+
+Hero banner:
+
+- Fondo `from-[#f9f9ff] via-[#f0f3ff] to-[#e7eefe]` con decorador borroso
+- Titular `text-5xl font-extrabold tracking-tighter`
+- Subtítulo diferente si hay sesión (menciona recomendaciones) o no
+
+Filtros:
+
+- Inputs con `rounded-xl bg-gray-50` y foco con `border-brand-300 bg-white`
+- Botón adicional "Filtros" con ícono `SlidersHorizontal`
+
+Skeleton de carga:
+
+- Actualizado para reflejar el nuevo layout de InternshipCard con avatar
+
+Paginación:
+
+- Botones con `rounded-xl`, página activa con `shadow-sm shadow-brand-600/25`
+
+---
+
+## Paso 13: Rediseño Visual con Stitch — InternshipCard
+
+**Prompt para la IA:**
+
+Rediseñar `src/components/ui/InternshipCard.tsx`.
+
+Estructura:
+
+- Avatar de empresa: cuadrado `w-14 h-14 rounded-xl` con inicial o logo si existe
+- Header: avatar + título (`font-extrabold`) + empresa, con badge de match IA a la derecha (`bg-amber-100 text-amber-700`, ícono `Sparkles`, texto "X% Match IA")
+- Descripción: `line-clamp-2 text-sm text-gray-500`
+- Skills: hasta 4 tags con `bg-gray-100 text-gray-600`
+- Footer (separado por `border-t`): ubicación con `MapPin`, duración con `Clock`, modalidad con color propio, y "Ver detalles →" que anima el gap al hover
+
+Colores de modalidad:
+
+- Remoto: `bg-green-50 text-green-700`
+- Presencial: `bg-blue-50 text-blue-700`
+- Híbrido: `bg-purple-50 text-purple-700`
+
+Hover del card: `hover:shadow-xl hover:shadow-indigo-500/5`
+
+---
+
+## Paso 14: Rediseño Visual con Stitch — Login
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/(auth)/login/page.tsx` manteniendo toda la lógica existente.
+
+Fondo: `bg-[#eeeef8]` (lavanda claro) con `relative` para posicionar el link de volver.
+
+Link "← Volver al inicio":
+
+- Posición `absolute top-6 left-6`
+- Ícono `ArrowLeft` + texto "Volver al inicio"
+- Link a `/`
+
+Logo + subtítulo "Iniciar sesión" centrados
+
+Toggle único Soy Estudiante / Soy Empresa:
+
+- Pill con fondo `bg-gray-100` y opción activa `bg-brand-600 text-white shadow-sm`
+- Controla si se muestra el flujo de estudiante o empresa
+
+Flujo estudiante:
+
+- Botón "Continuar con Google" con ícono Google SVG y `cursor-pointer`
+- Divider "o" entre el botón y los campos
+- Campos email/password deshabilitados visualmente (`opacity-40 pointer-events-none`) — comunicar que el login es solo con Google
+- Sin link "¿No tenés cuenta? Registrate" ya que el registro se dispara automáticamente vía Google
+
+Flujo empresa:
+
+- Tabs secundarios Iniciar sesión / Crear cuenta con mismo estilo pill
+- Formulario de login con labels `text-[10px] uppercase tracking-widest`
+- "Olvidé mi contraseña" debajo del input de contraseña (no al lado del label)
+- Formulario de registro completo con strength bar de contraseña
+
+Inputs: `rounded-xl bg-gray-50 border-gray-200 focus:bg-white`
+
+Footer minimalista con copyright y links de Privacidad, Términos, Ayuda
+
+---
+
+## Paso 15: Rediseño Visual con Stitch — Registro
+
+**Prompt para la IA:**
+
+Rediseñar `src/app/(auth)/registro/page.tsx` manteniendo toda la lógica existente.
+
+Fondo: `bg-[#eeeef8]` con decoradores circulares borrosos en esquinas opuestas (`bg-brand-100/30` arriba-izquierda, `bg-accent-400/10` abajo-derecha).
+
+Logo + subtítulo "Intelligence for Professional Growth" centrados.
+
+Indicador de 3 pasos:
+
+- Paso 1 "Tu cuenta" → gris (ya completado vía Google)
+- Paso 2 "Tu perfil" → azul activo con shadow (`bg-brand-600 shadow-brand-600/25`)
+- Paso 3 "Listo" → gris claro
+- Conectados con líneas horizontales
+
+Card blanca `rounded-2xl`:
+
+- Titular "Completá tu perfil" + subtítulo explicativo
+- Label "Nombre completo" con dos inputs en grid (nombre y apellido)
+- Selector de rol visual con dos cards (Soy Estudiante / Soy Empresa) con íconos emoji, borde `border-2` activo en brand, doble función como selector de tipo de documento
+- Input de documento según selección
+- Teléfono con selector de país `bg-gray-50` y input al lado
+
+Botón "Continuar →" en brand
+Link "¿Ya tenés una cuenta? Iniciar sesión" debajo del botón
+
+Caja "PractiX Insight" debajo del card:
+
+- Fondo `bg-amber-50 border-amber-200`
+- Ícono `Sparkles` en box ámbar
+- Título en `uppercase tracking-widest text-amber-700`
+- Descripción del beneficio de completar el perfil
+
+Footer minimalista con copyright y links
+
+---
+
+## Paso 16: Verificación del Rediseño Visual
+
+```bash
+pnpm dev
+
+# Landing
+# ✅ Hero split layout: texto izquierda, mock UI derecha
+# ✅ Botones Soy Estudiante y Soy Empresa en hero
+# ✅ Fondo con gradiente cálido naranja/crema
+# ✅ Logo PractiX mismo tamaño en landing y dashboard
+# ✅ Link "Explorar prácticas" visible para usuarios no autenticados
+
+# Login
+# ✅ Fondo lavanda, flecha "← Volver al inicio" top-left
+# ✅ Toggle Soy Estudiante / Soy Empresa funcional
+# ✅ Botón Google con cursor-pointer
+# ✅ Campos email/password deshabilitados para estudiante
+# ✅ "Olvidé mi contraseña" debajo del input de contraseña
+# ✅ Sin "¿No tenés cuenta? Registrate" en tab estudiante
+
+# Registro
+# ✅ Indicador de 3 pasos con paso 2 activo
+# ✅ Cards de rol (Soy Estudiante / Soy Empresa) con íconos
+# ✅ Caja PractiX Insight al pie del card
+
+# Dashboard layout
+# ✅ Navbar h-20 con glassmorphism
+# ✅ Links Dashboard y Explorar prácticas con estado activo por pathname
+# ✅ Badge de rol del usuario (ESTUDIANTE / EMPRESA)
+# ✅ Campana de notificaciones
+
+# Dashboard estudiante
+# ✅ Titular grande con greeting y contador de recomendaciones
+# ✅ Badge "Perfil X% completado"
+# ✅ Banner de CV con diseño Stitch
+# ✅ Tabs con underline activo
+# ✅ Sección Actividad Reciente con tabla y estados coloreados
+
+# Dashboard empresa
+# ✅ Split layout: lista izquierda + panel postulantes siempre visible
+# ✅ Banner de estado ámbar/rojo full-width
+# ✅ Fila seleccionada con borde izquierdo azul
+# ✅ Botones Aprobar/Rechazar en panel derecho
+
+# Listado de prácticas
+# ✅ Hero banner con gradiente y titular grande
+# ✅ Filtros con inputs redondeados
+# ✅ Solo "Explorar prácticas" en navbar (sin link duplicado)
+
+# InternshipCard
+# ✅ Avatar de empresa con inicial o logo
+# ✅ Badge "X% Match IA" en ámbar con ícono sparkle
+# ✅ Descripción line-clamp-2 visible
+# ✅ Skills hasta 4 en gris
+# ✅ Modalidad con color: verde/azul/violeta
+# ✅ "Ver detalles →" anima gap al hover
+```
+
+---
+
 ## Checkpoint
 
 Al final del módulo tenés:
@@ -317,3 +662,11 @@ Al final del módulo tenés:
 - ✅ Postulaciones clickeables con modal de detalle completo
 - ✅ Sanitización de bytes nulos en texto extraído de PDFs
 - ✅ Soporte `.doc` eliminado — solo PDF y DOCX
+- ✅ Landing Page rediseñada con hero split layout, gradiente cálido y mock UI
+- ✅ Dashboard layout con glassmorphism, campana, badge de rol y nav activo por pathname
+- ✅ Dashboard estudiante con greeting grande, badge de perfil, tabs underline y Actividad Reciente
+- ✅ Dashboard empresa con split layout y panel de postulantes siempre visible
+- ✅ Listado de prácticas con hero banner y filtros rediseñados
+- ✅ InternshipCard con avatar, badge Match IA, descripción, skills y modalidad con color
+- ✅ Login con fondo lavanda, toggle de rol, Google con cursor-pointer, "Volver al inicio"
+- ✅ Registro con indicador de 3 pasos y caja PractiX Insight

@@ -7,7 +7,6 @@ import {
   Users,
   Briefcase,
   X,
-  Clock,
   XCircle,
   MapPin,
   Calendar,
@@ -16,6 +15,7 @@ import {
   ClipboardList,
   CheckCircle2,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 type Internship = {
@@ -40,9 +40,7 @@ type Applicant = {
     name: string;
     email: string;
     image?: string | null;
-    studentProfile?: {
-      cvUrl?: string | null;
-    } | null;
+    studentProfile?: { cvUrl?: string | null } | null;
   };
 };
 
@@ -71,6 +69,19 @@ const EMPTY_FORM = {
   duration: "",
   skills: "",
   requirements: "",
+};
+
+const MODALITY_LABEL: Record<string, string> = {
+  REMOTE: "Remoto",
+  ONSITE: "Presencial",
+  HYBRID: "Híbrido",
+};
+
+const STATUS_CONFIG = {
+  PENDING: { label: "Pendiente", cls: "bg-amber-100 text-amber-700" },
+  REVIEWED: { label: "En revisión", cls: "bg-blue-100 text-blue-700" },
+  ACCEPTED: { label: "Aprobado", cls: "bg-green-100 text-green-700" },
+  REJECTED: { label: "Rechazado", cls: "bg-red-100 text-red-600" },
 };
 
 export default function CompanyDashboard() {
@@ -126,21 +137,17 @@ export default function CompanyDashboard() {
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
-
     const errs = validateForm();
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
       return;
     }
-
     setSubmitting(true);
-
     const toArray = (str: string) =>
       str
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-
     try {
       const res = await fetch("/api/internships", {
         method: "POST",
@@ -151,7 +158,6 @@ export default function CompanyDashboard() {
           requirements: toArray(form.requirements),
         }),
       });
-
       if (res.ok) {
         setShowForm(false);
         setForm(EMPTY_FORM);
@@ -195,6 +201,7 @@ export default function CompanyDashboard() {
       if (res.ok) {
         setInternships((prev) => prev.filter((i) => i.id !== confirmDeleteId));
         if (detailInternship?.id === confirmDeleteId) setDetailInternship(null);
+        if (selectedInternship === confirmDeleteId) setSelectedInternship(null);
       }
     } finally {
       setProcessing(null);
@@ -223,13 +230,12 @@ export default function CompanyDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) {
+      if (res.ok)
         setApplicants((prev) =>
           prev.map((a) => (a.id === applicationId ? { ...a, status } : a)),
         );
-      }
     } catch {
-      // silencioso — el estado visual no cambia si falla
+      /* silencioso */
     }
   };
 
@@ -243,21 +249,17 @@ export default function CompanyDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type }),
       });
-      if (res.ok) {
-        setEmailSentIds((prev) => new Set(prev).add(applicationId));
-      }
+      if (res.ok) setEmailSentIds((prev) => new Set(prev).add(applicationId));
     } catch {
-      // silencioso
+      /* silencioso */
     }
   };
 
   const handleViewCV = async (applicationId: string, cvUrl: string) => {
     window.open(cvUrl, "_blank", "noopener noreferrer");
-    // Si está PENDING, lo pasamos a REVIEWED automáticamente
     const applicant = applicants.find((a) => a.id === applicationId);
-    if (applicant?.status === "PENDING") {
+    if (applicant?.status === "PENDING")
       await updateApplicantStatus(applicationId, "REVIEWED");
-    }
   };
 
   const field = (key: keyof typeof form) => ({
@@ -273,156 +275,299 @@ export default function CompanyDashboard() {
   });
 
   const inputClass = (hasError?: boolean) =>
-    `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors ${
+    `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-colors ${
       hasError
         ? "border-red-400 bg-red-50 focus:border-red-500"
-        : "border-gray-200 focus:border-brand-400"
+        : "border-gray-200 focus:border-brand-400 bg-white"
     }`;
 
+  const selectedName = selectedInternship
+    ? internships.find((i) => i.id === selectedInternship)?.title
+    : null;
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* Banner estado de empresa */}
+    <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-6">
+      {/* Banner estado */}
       {companyStatus === "PENDING" && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6">
-          <Clock className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">
-              Tu cuenta está en revisión
-            </p>
-            <p className="text-sm text-amber-700 mt-0.5">
-              Podés crear y gestionar prácticas, pero no serán visibles para
-              estudiantes hasta que aprobemos tu empresa. Te avisamos por correo
-              cuando esté listo.
-            </p>
-          </div>
+        <div className="flex items-center justify-center gap-3 bg-amber-400 text-white px-5 py-3 rounded-2xl text-sm font-semibold -mx-8 px-8">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          Tu cuenta está en revisión — las prácticas no serán visibles hasta su
+          aprobación.
         </div>
       )}
       {companyStatus === "REJECTED" && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-6">
-          <XCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-red-800">
-              Cuenta rechazada
-            </p>
-            <p className="text-sm text-red-700 mt-0.5">
-              Tu empresa no fue aprobada. Contactanos a{" "}
-              <a
-                href="mailto:soporte@practix.cl"
-                className="underline font-medium"
-              >
-                soporte@practix.cl
-              </a>{" "}
-              para más información.
-            </p>
-          </div>
+        <div className="flex items-center justify-center gap-3 bg-red-500 text-white px-5 py-3 rounded-2xl text-sm font-semibold">
+          <XCircle className="w-4 h-4 shrink-0" />
+          Cuenta rechazada. Contactá a soporte@practix.cl para más información.
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Panel de Empresa</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Gestioná tus prácticas y revisá los postulantes
+          <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900">
+            Panel de Empresa
+          </h1>
+          <p className="text-gray-400 mt-1">
+            Gestioná tus vacantes y encontrá el mejor talento joven.
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-brand-700 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-600/20"
         >
           <Plus className="w-4 h-4" />
           Nueva práctica
         </button>
       </div>
 
-      {/* Lista de prácticas */}
-      {internships.length === 0 ? (
-        <div className="text-center py-20">
-          <Briefcase className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-lg font-medium text-gray-500">
-            Aún no publicaste prácticas
-          </p>
-          <p className="text-sm text-gray-400 mt-1">
-            Creá tu primera oferta y empezá a recibir postulantes
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {internships.map((internship) => (
-            <div
-              key={internship.id}
-              onClick={() => setDetailInternship(internship)}
-              className={`bg-white rounded-xl border p-5 flex items-center gap-4 cursor-pointer hover:shadow-sm transition-all group ${
-                internship.isActive
-                  ? "border-gray-100 hover:border-brand-200"
-                  : "border-gray-200 bg-gray-50 opacity-75"
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p
-                    className={`font-medium truncate group-hover:text-brand-700 transition-colors ${internship.isActive ? "text-gray-900" : "text-gray-500"}`}
-                  >
-                    {internship.title}
-                  </p>
-                  {!internship.isActive && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Completada
-                    </span>
-                  )}
+      {/* Split layout */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Lista de prácticas */}
+        <div className="lg:col-span-2 flex flex-col gap-px bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
+          {internships.length === 0 ? (
+            <div className="bg-white text-center py-20 rounded-2xl">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-7 h-7 text-gray-300" />
+              </div>
+              <p className="text-lg font-bold text-gray-500">
+                Aún no publicaste prácticas
+              </p>
+              <p className="text-sm text-gray-400 mt-1">
+                Creá tu primera oferta y empezá a recibir postulantes
+              </p>
+            </div>
+          ) : (
+            internships.map((internship) => (
+              <div
+                key={internship.id}
+                onClick={() => setDetailInternship(internship)}
+                className={`bg-white px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  selectedInternship === internship.id
+                    ? "border-l-4 border-brand-600"
+                    : ""
+                }`}
+              >
+                {/* Icon + info */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                    <Briefcase className="w-5 h-5 text-brand-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-gray-900 truncate text-sm">
+                        {internship.title}
+                      </p>
+                      {!internship.isActive && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-green-100 text-green-700 px-2.5 py-1 rounded-full shrink-0">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Completada
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {MODALITY_LABEL[internship.modality]}
+                      </span>
+                      <span>·</span>
+                      <span>{internship.area}</span>
+                      <span>·</span>
+                      <span>{internship.duration}</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500">
-                  {internship.area} · {internship.location} ·{" "}
-                  {internship.modality === "REMOTE"
-                    ? "Remoto"
-                    : internship.modality === "ONSITE"
-                      ? "Presencial"
-                      : "Híbrido"}
+
+                {/* Acciones */}
+                <div
+                  className="flex items-center gap-2 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => viewApplicants(internship.id)}
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
+                      selectedInternship === internship.id
+                        ? "bg-brand-600 text-white border-brand-600"
+                        : "text-brand-600 border-brand-200 hover:bg-brand-600 hover:text-white"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Postulantes
+                  </button>
+                  {internship.isActive && (
+                    <button
+                      onClick={() => handleComplete(internship.id)}
+                      disabled={processing === internship.id}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Completada
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setConfirmDeleteId(internship.id)}
+                    disabled={processing === internship.id}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Panel postulantes (siempre visible) */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Postulantes
+              </p>
+              <p className="text-sm font-bold text-gray-900 mt-0.5 truncate max-w-[180px]">
+                {selectedName ?? "Seleccioná una práctica"}
+              </p>
+            </div>
+            {applicants.length > 0 && (
+              <span className="text-xs font-black bg-brand-600 text-white px-2.5 py-1 rounded-full">
+                {applicants.length} Total
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+            {!selectedInternship ? (
+              <div className="text-center py-16 px-4">
+                <Users className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">
+                  Hacé click en &quot;Postulantes&quot; de una práctica para ver
+                  los candidatos
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    viewApplicants(internship.id);
-                  }}
-                  className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:text-white hover:bg-brand-600 font-medium border border-brand-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Users className="w-4 h-4" />
-                  Postulantes
-                </button>
-                {internship.isActive && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleComplete(internship.id);
-                    }}
-                    disabled={processing === internship.id}
-                    title="Marcar como completada"
-                    className="inline-flex items-center gap-1.5 text-sm text-green-700 hover:text-white hover:bg-green-600 font-medium border border-green-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Completada
-                  </button>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDeleteId(internship.id);
-                  }}
-                  disabled={processing === internship.id}
-                  title="Eliminar práctica"
-                  className="inline-flex items-center gap-1.5 text-sm text-red-600 hover:text-white hover:bg-red-500 font-medium border border-red-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar
-                </button>
+            ) : applicants.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <Users className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">Sin postulaciones aún</p>
               </div>
+            ) : (
+              applicants.map((app) => {
+                const initial = app.student.name.charAt(0).toUpperCase();
+                const statusCfg =
+                  STATUS_CONFIG[app.status] ?? STATUS_CONFIG.PENDING;
+
+                return (
+                  <div key={app.id} className="px-5 py-4 flex flex-col gap-3">
+                    {/* Cabecera candidato */}
+                    <div className="flex items-center gap-3">
+                      {app.student.image ? (
+                        <img
+                          src={app.student.image}
+                          alt={app.student.name}
+                          className="w-10 h-10 rounded-full border-2 border-gray-100 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold shrink-0">
+                          {initial}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {app.student.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {app.student.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Match + estado */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {app.matchScore != null && app.matchScore > 0 && (
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
+                          {Math.round(app.matchScore)}% MATCH IA
+                        </span>
+                      )}
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${statusCfg.cls}`}
+                      >
+                        {statusCfg.label}
+                      </span>
+                    </div>
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-2 flex-wrap">
+                      {app.student.studentProfile?.cvUrl && (
+                        <button
+                          onClick={() =>
+                            handleViewCV(
+                              app.id,
+                              app.student.studentProfile!.cvUrl!,
+                            )
+                          }
+                          className="text-xs font-bold text-brand-600 border border-brand-200 hover:bg-brand-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Ver CV →
+                        </button>
+                      )}
+                      {app.status !== "ACCEPTED" &&
+                        app.status !== "REJECTED" && (
+                          <>
+                            <button
+                              onClick={() =>
+                                updateApplicantStatus(app.id, "ACCEPTED")
+                              }
+                              className="flex-1 text-xs font-bold bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition-colors"
+                            >
+                              Aprobar
+                            </button>
+                            <button
+                              onClick={() =>
+                                updateApplicantStatus(app.id, "REJECTED")
+                              }
+                              className="flex-1 text-xs font-bold bg-white text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              Rechazar
+                            </button>
+                          </>
+                        )}
+                      {app.status === "ACCEPTED" &&
+                        !emailSentIds.has(app.id) && (
+                          <button
+                            onClick={() =>
+                              sendNotificationEmail(app.id, "accepted")
+                            }
+                            className="w-full text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Enviar email de aceptación
+                          </button>
+                        )}
+                      {app.status === "REJECTED" &&
+                        !emailSentIds.has(app.id) && (
+                          <button
+                            onClick={() =>
+                              sendNotificationEmail(app.id, "rejected")
+                            }
+                            className="w-full text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Enviar email de rechazo
+                          </button>
+                        )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {applicants.length > 0 && (
+            <div className="px-5 py-3 border-t border-gray-100">
+              <button className="w-full text-xs font-bold text-brand-600 hover:underline">
+                Ver todos los postulantes
+              </button>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
 
       {/* Modal detalle práctica */}
       {detailInternship && (
@@ -434,62 +579,51 @@ export default function CompanyDashboard() {
             className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-start justify-between p-6 border-b border-gray-100">
               <div className="flex-1 min-w-0 pr-4">
-                <h2 className="text-lg font-semibold text-gray-900 leading-snug">
+                <h2 className="text-lg font-bold text-gray-900 leading-snug">
                   {detailInternship.title}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-400 mt-1">
                   {detailInternship.area}
                 </p>
               </div>
               <button
                 onClick={() => setDetailInternship(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 cursor-pointer"
+                className="text-gray-300 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-6 space-y-5">
-              {/* Badges de info */}
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
                   <MapPin className="w-3.5 h-3.5" />
                   {detailInternship.location}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
                   <Layers className="w-3.5 h-3.5" />
-                  {detailInternship.modality === "REMOTE"
-                    ? "Remoto"
-                    : detailInternship.modality === "ONSITE"
-                      ? "Presencial"
-                      : "Híbrido"}
+                  {MODALITY_LABEL[detailInternship.modality]}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
                   <Calendar className="w-3.5 h-3.5" />
                   {detailInternship.duration}
                 </span>
               </div>
-
-              {/* Descripción */}
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">
                   Descripción
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                   {detailInternship.description}
                 </p>
               </div>
-
-              {/* Skills */}
               {detailInternship.skills?.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
                     <Tag className="w-3.5 h-3.5" />
-                    Skills requeridas
+                    Skills
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {detailInternship.skills.map((s) => (
@@ -503,11 +637,9 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
               )}
-
-              {/* Requisitos */}
               {detailInternship.requirements?.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
                     <ClipboardList className="w-3.5 h-3.5" />
                     Requisitos
                   </p>
@@ -524,29 +656,22 @@ export default function CompanyDashboard() {
                   </ul>
                 </div>
               )}
-
-              {/* Fecha */}
               <p className="text-xs text-gray-400">
                 Publicada el{" "}
                 {new Date(detailInternship.createdAt).toLocaleDateString(
                   "es-CL",
-                  {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  },
+                  { day: "numeric", month: "long", year: "numeric" },
                 )}
               </p>
             </div>
 
-            {/* Footer */}
             <div className="px-6 pb-6">
               <button
                 onClick={() => {
                   setDetailInternship(null);
                   viewApplicants(detailInternship.id);
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 text-white font-medium py-2.5 rounded-xl hover:bg-brand-700 transition-colors text-sm cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors text-sm"
               >
                 <Users className="w-4 h-4" />
                 Ver postulantes
@@ -570,7 +695,7 @@ export default function CompanyDashboard() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900">
                 Crear práctica
               </h2>
               <button
@@ -578,7 +703,7 @@ export default function CompanyDashboard() {
                   setShowForm(false);
                   setFormErrors({});
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className="text-gray-300 hover:text-gray-600"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -586,8 +711,8 @@ export default function CompanyDashboard() {
 
             <form onSubmit={handleCreate} className="space-y-4" noValidate>
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">
-                  Título <span className="text-red-500">*</span>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                  Título *
                 </label>
                 <input
                   type="text"
@@ -601,10 +726,9 @@ export default function CompanyDashboard() {
                   </p>
                 )}
               </div>
-
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">
-                  Descripción <span className="text-red-500">*</span>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                  Descripción *
                 </label>
                 <textarea
                   rows={4}
@@ -618,10 +742,9 @@ export default function CompanyDashboard() {
                   </p>
                 )}
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
                     Área
                   </label>
                   <select className={inputClass()} {...field("area")}>
@@ -633,7 +756,7 @@ export default function CompanyDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
                     Modalidad
                   </label>
                   <select className={inputClass()} {...field("modality")}>
@@ -645,11 +768,10 @@ export default function CompanyDashboard() {
                   </select>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
-                    Ubicación <span className="text-red-500">*</span>
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                    Ubicación *
                   </label>
                   <input
                     type="text"
@@ -664,8 +786,8 @@ export default function CompanyDashboard() {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1 block">
-                    Duración <span className="text-red-500">*</span>
+                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                    Duración *
                   </label>
                   <input
                     type="text"
@@ -680,10 +802,9 @@ export default function CompanyDashboard() {
                   )}
                 </div>
               </div>
-
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">
-                  Skills requeridas <span className="text-red-500">*</span>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                  Skills requeridas *
                 </label>
                 <input
                   type="text"
@@ -697,10 +818,9 @@ export default function CompanyDashboard() {
                   </p>
                 )}
               </div>
-
               <div>
-                <label className="text-xs font-medium text-gray-600 mb-1 block">
-                  Requisitos <span className="text-red-500">*</span>
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
+                  Requisitos *
                 </label>
                 <input
                   type="text"
@@ -714,11 +834,10 @@ export default function CompanyDashboard() {
                   </p>
                 )}
               </div>
-
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-brand-600 text-white font-medium py-2.5 rounded-lg hover:bg-brand-700 transition-colors text-sm disabled:opacity-60 cursor-pointer"
+                className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors text-sm disabled:opacity-60"
               >
                 {submitting ? "Publicando..." : "Publicar práctica"}
               </button>
@@ -740,7 +859,7 @@ export default function CompanyDashboard() {
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-600" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 text-center mb-2">
+            <h2 className="text-lg font-bold text-gray-900 text-center mb-2">
               Eliminar práctica
             </h2>
             <p className="text-sm text-gray-500 text-center mb-6">
@@ -751,191 +870,18 @@ export default function CompanyDashboard() {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm cursor-pointer"
+                className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDelete}
                 disabled={processing === confirmDeleteId}
-                className="flex-1 bg-red-600 text-white font-medium py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm disabled:opacity-60 cursor-pointer"
+                className="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm disabled:opacity-60"
               >
                 {processing === confirmDeleteId ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Panel postulantes */}
-      {selectedInternship && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex justify-end"
-          onClick={() => setSelectedInternship(null)}
-        >
-          <div
-            className="bg-white w-full max-w-md h-full overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Postulantes
-              </h2>
-              <button
-                onClick={() => setSelectedInternship(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {applicants.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-12">
-                Sin postulaciones aún
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {applicants.map((app) => {
-                  const initial = app.student.name.charAt(0).toUpperCase();
-                  const statusConfig = {
-                    PENDING: {
-                      label: "Pendiente",
-                      cls: "bg-gray-100 text-gray-600",
-                    },
-                    REVIEWED: {
-                      label: "En revisión",
-                      cls: "bg-blue-50 text-blue-700",
-                    },
-                    ACCEPTED: {
-                      label: "Aprobado",
-                      cls: "bg-green-100 text-green-700",
-                    },
-                    REJECTED: {
-                      label: "Rechazado",
-                      cls: "bg-red-100 text-red-600",
-                    },
-                  }[app.status] ?? {
-                    label: app.status,
-                    cls: "bg-gray-100 text-gray-600",
-                  };
-
-                  return (
-                    <div
-                      key={app.id}
-                      className="border border-gray-100 rounded-xl p-4 space-y-3"
-                    >
-                      {/* Cabecera */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-semibold shrink-0">
-                          {initial}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {app.student.name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {app.student.email}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {app.matchScore != null && app.matchScore > 0 && (
-                            <span className="text-xs font-semibold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg">
-                              {Math.round(app.matchScore)}%
-                            </span>
-                          )}
-                          <span
-                            className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${statusConfig.cls}`}
-                          >
-                            {statusConfig.label}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Acciones */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {app.student.studentProfile?.cvUrl && (
-                          <button
-                            onClick={() =>
-                              handleViewCV(
-                                app.id,
-                                app.student.studentProfile!.cvUrl!,
-                              )
-                            }
-                            className="text-xs font-medium text-brand-600 hover:text-brand-800 border border-brand-200 hover:border-brand-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                          >
-                            Ver CV →
-                          </button>
-                        )}
-                        {app.status !== "ACCEPTED" &&
-                          app.status !== "REJECTED" && (
-                            <button
-                              onClick={() =>
-                                updateApplicantStatus(app.id, "ACCEPTED")
-                              }
-                              className="text-xs font-medium text-green-700 hover:text-white hover:bg-green-600 border border-green-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              Aprobar
-                            </button>
-                          )}
-                        {app.status !== "REJECTED" &&
-                          app.status !== "ACCEPTED" && (
-                            <button
-                              onClick={() =>
-                                updateApplicantStatus(app.id, "REJECTED")
-                              }
-                              className="text-xs font-medium text-red-600 hover:text-white hover:bg-red-500 border border-red-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              Rechazar
-                            </button>
-                          )}
-                        {app.status === "ACCEPTED" &&
-                          !emailSentIds.has(app.id) && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  sendNotificationEmail(app.id, "accepted")
-                                }
-                                className="text-xs font-medium text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                Enviar email de aceptación
-                              </button>
-                              <button
-                                onClick={() =>
-                                  updateApplicantStatus(app.id, "REVIEWED")
-                                }
-                                className="text-xs font-medium text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                Deshacer
-                              </button>
-                            </>
-                          )}
-                        {app.status === "REJECTED" &&
-                          !emailSentIds.has(app.id) && (
-                            <>
-                              <button
-                                onClick={() =>
-                                  sendNotificationEmail(app.id, "rejected")
-                                }
-                                className="text-xs font-medium text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                Enviar email de rechazo
-                              </button>
-                              <button
-                                onClick={() =>
-                                  updateApplicantStatus(app.id, "REVIEWED")
-                                }
-                                className="text-xs font-medium text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                Deshacer
-                              </button>
-                            </>
-                          )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}
