@@ -73,6 +73,19 @@ const STATUS_CONFIG = {
   },
 };
 
+const PIPELINE_STATUS_CONFIG = {
+  PENDING: {
+    label: "Pendiente de revisión",
+    color: "text-gray-500 bg-gray-100",
+  },
+  REVIEWING: { label: "En revisión", color: "text-blue-700 bg-blue-100" },
+  INTERVIEW: {
+    label: "¡Seleccionado para entrevista! 🎉",
+    color: "text-green-700 bg-green-100",
+  },
+  REJECTED: { label: "No seleccionado", color: "text-red-600 bg-red-100" },
+};
+
 const MODALITY_LABEL: Record<string, string> = {
   REMOTE: "Remoto",
   ONSITE: "Presencial",
@@ -505,12 +518,23 @@ export default function StudentDashboard() {
                         <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
                           Estado
                         </span>
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {status.label}
-                        </span>
+                        {application.pipelineStatus &&
+                        application.pipelineStatus !== "PENDING" ? (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${PIPELINE_STATUS_CONFIG[application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG]?.color ?? status.color}`}
+                          >
+                            {PIPELINE_STATUS_CONFIG[
+                              application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
+                            ]?.label ?? status.label}
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {status.label}
+                          </span>
+                        )}
                       </div>
 
                       <MoreVertical className="w-4 h-4 text-gray-300 shrink-0" />
@@ -599,12 +623,23 @@ export default function StudentDashboard() {
                         <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
                           Estado
                         </span>
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {status.label}
-                        </span>
+                        {application.pipelineStatus &&
+                        application.pipelineStatus !== "PENDING" ? (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${PIPELINE_STATUS_CONFIG[application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG]?.color ?? status.color}`}
+                          >
+                            {PIPELINE_STATUS_CONFIG[
+                              application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
+                            ]?.label ?? status.label}
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {status.label}
+                          </span>
+                        )}
                       </div>
 
                       <MoreVertical className="w-4 h-4 text-gray-300 shrink-0" />

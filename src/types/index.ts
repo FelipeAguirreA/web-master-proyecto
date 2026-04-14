@@ -90,6 +90,7 @@ export interface Application {
   studentId: string;
   internshipId: string;
   status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
+  pipelineStatus?: "PENDING" | "REVIEWING" | "INTERVIEW" | "REJECTED";
   matchScore?: number | null;
   coverLetter?: string | null;
   createdAt: Date;

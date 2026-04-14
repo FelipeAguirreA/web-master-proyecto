@@ -24,6 +24,22 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum PipelineStatus {
+  PENDING
+  REVIEWING
+  INTERVIEW
+  REJECTED
+}
+
+enum ModuleType {
+  SKILLS
+  EXPERIENCE
+  EDUCATION
+  LANGUAGES
+  PORTFOLIO
+  CUSTOM
+}
+
 enum CompanyStatus {
   PENDING
   APPROVED
@@ -63,6 +79,7 @@ model StudentProfile {
   bio       String?
   cvUrl     String?
   cvText    String?
+  cvParsed  Json?
   embedding Float[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +124,7 @@ model Internship {
   updatedAt    DateTime  @updatedAt
 
   applications Application[]
+  atsConfig    ATSConfig?
 
   @@map("internships")
 }
@@ -117,12 +135,45 @@ model Application {
   student      User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
   internshipId String
   internship   Internship        @relation(fields: [internshipId], references: [id], onDelete: Cascade)
-  status       ApplicationStatus @default(PENDING)
-  matchScore   Float?
-  coverLetter  String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  status         ApplicationStatus @default(PENDING)
+  matchScore     Float?
+  coverLetter    String?
+  atsScore       Float?
+  moduleScores   Json?
+  passedFilters  Boolean        @default(true)
+  filterReason   String?
+  pipelineStatus PipelineStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@unique([studentId, internshipId])
   @@map("applications")
+}
+
+model ATSConfig {
+  id           String      @id @default(cuid())
+  internshipId String      @unique
+  internship   Internship  @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  isActive     Boolean     @default(true)
+  modules      ATSModule[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("ats_configs")
+}
+
+model ATSModule {
+  id          String     @id @default(cuid())
+  atsConfigId String
+  atsConfig   ATSConfig  @relation(fields: [atsConfigId], references: [id], onDelete: Cascade)
+  type        ModuleType
+  label       String
+  isActive    Boolean    @default(true)
+  weight      Int
+  order       Int
+  params      Json
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("ats_modules")
 }

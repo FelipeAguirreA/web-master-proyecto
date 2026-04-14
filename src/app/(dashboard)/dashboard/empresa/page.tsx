@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import {
   Plus,
   Users,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   Trash2,
   AlertTriangle,
+  Bot,
 } from "lucide-react";
 
 type Internship = {
@@ -380,7 +382,7 @@ export default function CompanyDashboard() {
 
                 {/* Acciones */}
                 <div
-                  className="flex items-center gap-2 shrink-0"
+                  className="flex items-center gap-2 shrink-0 flex-wrap"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
@@ -394,6 +396,13 @@ export default function CompanyDashboard() {
                     <Users className="w-3.5 h-3.5" />
                     Postulantes
                   </button>
+                  <Link
+                    href={`/dashboard/empresa/candidatos/${internship.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-600 hover:text-white transition-colors"
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    ATS
+                  </Link>
                   {internship.isActive && (
                     <button
                       onClick={() => handleComplete(internship.id)}
