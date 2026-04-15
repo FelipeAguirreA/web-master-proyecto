@@ -57,9 +57,11 @@ model User {
   image        String?
   provider     String?
   providerId   String?
-  passwordHash String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  passwordHash  String?
+  resetToken    String?   @unique
+  resetTokenExp DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   studentProfile StudentProfile?
   companyProfile CompanyProfile?

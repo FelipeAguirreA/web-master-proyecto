@@ -397,7 +397,7 @@ export default function CompanyDashboard() {
                     Postulantes
                   </button>
                   <Link
-                    href={`/dashboard/empresa/candidatos/${internship.id}`}
+                    href={`/dashboard/empresa/ats/${internship.id}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-600 hover:text-white transition-colors"
                   >
                     <Bot className="w-3.5 h-3.5" />

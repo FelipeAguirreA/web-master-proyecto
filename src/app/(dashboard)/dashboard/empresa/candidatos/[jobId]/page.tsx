@@ -35,23 +35,39 @@ export default function CandidatesPage() {
   const [selected, setSelected] = useState<CandidateData | null>(null);
   const [hasATS, setHasATS] = useState(false);
 
-  const loadCandidates = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/applications/internship/${jobId}`);
-      const data = await res.json();
-      setCandidates(data ?? []);
+  const loadCandidates = useCallback(
+    async (autoScore = false) => {
+      setLoading(true);
+      try {
+        const [res, atsRes] = await Promise.all([
+          fetch(`/api/applications/internship/${jobId}`),
+          fetch(`/api/ats/config/${jobId}`),
+        ]);
+        const data: CandidateData[] = (await res.json()) ?? [];
+        const atsData = await atsRes.json();
+        const atsActive: boolean = atsData.config?.isActive ?? false;
 
-      // Verificar si tiene ATS activo
-      const atsRes = await fetch(`/api/ats/config/${jobId}`);
-      const atsData = await atsRes.json();
-      setHasATS(atsData.config?.isActive ?? false);
-    } catch {
-      setCandidates([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [jobId]);
+        setCandidates(data);
+        setHasATS(atsActive);
+
+        // Auto-calcular si ATS activo y hay candidatos sin score
+        if (
+          !autoScore &&
+          atsActive &&
+          data.length > 0 &&
+          data.some((c) => c.atsScore === null)
+        ) {
+          await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+          await loadCandidates(true);
+        }
+      } catch {
+        setCandidates([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [jobId],
+  );
 
   useEffect(() => {
     loadCandidates();

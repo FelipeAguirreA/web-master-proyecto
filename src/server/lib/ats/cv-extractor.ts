@@ -91,28 +91,38 @@ export function parseCVText(
 
   // --- Experience: buscar años de experiencia ---
   let totalYears = 0;
-  const yearsMatches = lower.matchAll(
-    /(\d+)\s*(?:\+\s*)?(?:años?|years?)\s+(?:de\s+)?(?:experiencia|experience)/g,
-  );
-  for (const m of yearsMatches) {
-    const n = parseInt(m[1], 10);
-    if (n > totalYears && n < 50) totalYears = n;
+  const yearsMatches = [
+    ...lower.matchAll(
+      /(\d+)\s*(?:\+\s*)?(?:años?|years?)\s+(?:de\s+)?(?:experiencia|experience)/g,
+    ),
+  ];
+  if (yearsMatches.length > 0) {
+    // Tomar el primer match válido — suele ser el más representativo
+    const firstValid = yearsMatches.find((m) => {
+      const n = parseInt(m[1], 10);
+      return n > 0 && n < 50;
+    });
+    if (firstValid) totalYears = parseInt(firstValid[1], 10);
   }
 
-  // Fallback: calcular por rangos de fecha (2019-2022 = ~3 años)
+  // Fallback: calcular por rangos de fecha usando el span de carrera completa
+  // (no suma — evita doble conteo por experiencias simultáneas)
   if (totalYears === 0) {
     const dateRanges = [
       ...lower.matchAll(
-        /20(\d{2})\s*[-–]\s*(?:20(\d{2})|presente|actual|present)/g,
+        /20(\d{2})\s*[-–—-]\s*(?:20(\d{2})|presente|actual|present|now)/g,
       ),
     ];
-    let sumYears = 0;
-    for (const m of dateRanges) {
-      const start = 2000 + parseInt(m[1], 10);
-      const end = m[2] ? 2000 + parseInt(m[2], 10) : new Date().getFullYear();
-      sumYears += Math.max(0, end - start);
+    if (dateRanges.length > 0) {
+      const currentYear = new Date().getFullYear();
+      const starts = dateRanges.map((m) => 2000 + parseInt(m[1], 10));
+      const ends = dateRanges.map((m) =>
+        m[2] ? 2000 + parseInt(m[2], 10) : currentYear,
+      );
+      const earliest = Math.min(...starts);
+      const latest = Math.max(...ends);
+      totalYears = Math.min(Math.max(0, latest - earliest), 40);
     }
-    totalYears = Math.min(sumYears, 40);
   }
 
   // Roles previos: líneas que contienen palabras clave de cargos

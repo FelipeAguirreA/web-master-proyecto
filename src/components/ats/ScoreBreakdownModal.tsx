@@ -96,14 +96,16 @@ export default function ScoreBreakdownModal({
         <div className="p-6">
           {/* Score general */}
           <div className="text-center mb-6">
-            {applicant.passedFilters ? (
+            {applicant.atsScore === null ? (
               <>
-                <div className="text-5xl font-extrabold text-brand-600 tracking-tighter">
-                  {applicant.atsScore ?? 0}%
+                <div className="text-2xl font-extrabold text-gray-400">
+                  Calculando…
                 </div>
-                <p className="text-sm text-gray-400 mt-1">Score ATS total</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  El score se está procesando
+                </p>
               </>
-            ) : (
+            ) : !applicant.passedFilters ? (
               <>
                 <div className="text-2xl font-extrabold text-red-500">
                   Descalificado
@@ -111,6 +113,13 @@ export default function ScoreBreakdownModal({
                 <p className="text-xs text-red-400 mt-1">
                   {applicant.filterReason}
                 </p>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl font-extrabold text-brand-600 tracking-tighter">
+                  {applicant.atsScore}%
+                </div>
+                <p className="text-sm text-gray-400 mt-1">Score ATS total</p>
               </>
             )}
           </div>
@@ -135,11 +144,11 @@ export default function ScoreBreakdownModal({
                 </div>
               ))}
             </div>
-          ) : (
+          ) : applicant.atsScore !== null ? (
             <p className="text-sm text-gray-400 text-center">
-              Sin datos de scoring. Recalculá el score desde el panel.
+              No hay módulos activos en la configuración ATS.
             </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

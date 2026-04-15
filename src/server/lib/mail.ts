@@ -137,6 +137,40 @@ export function sendStatusUpdateEmail(
   );
 }
 
+export function sendPasswordResetEmail(
+  companyEmail: string,
+  companyName: string,
+  resetUrl: string,
+): Promise<void> {
+  const subject = "Restablecer contraseña — PractiX";
+  const htmlContent = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h2 style="color:#1d4ed8">Hola ${companyName}</h2>
+      <p style="font-size:16px;color:#374151">
+        Recibimos una solicitud para restablecer la contraseña de tu cuenta empresa en PractiX.
+      </p>
+      <p style="font-size:14px;color:#374151;margin:16px 0">
+        Hacé clic en el siguiente botón para crear una nueva contraseña.
+        El enlace es válido por <strong>1 hora</strong>.
+      </p>
+      <a href="${resetUrl}"
+         style="display:inline-block;margin-top:8px;padding:12px 24px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+        Restablecer contraseña
+      </a>
+      <p style="margin-top:24px;font-size:13px;color:#6b7280">
+        Si no solicitaste este cambio, podés ignorar este email.
+        Tu contraseña no se modificará.
+      </p>
+      <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
+    </div>
+  `;
+  return sendEmail(
+    { email: companyEmail, name: companyName },
+    subject,
+    htmlContent,
+  );
+}
+
 export function sendRecommendationEmail(
   studentEmail: string,
   studentName: string,

@@ -156,12 +156,12 @@ function EmpresaLogin() {
             )}
           </button>
         </div>
-        <button
-          type="button"
-          className="text-xs text-brand-600 hover:underline mt-1.5"
+        <Link
+          href="/forgot-password"
+          className="text-xs text-brand-600 hover:underline mt-1.5 inline-block"
         >
           Olvidé mi contraseña
-        </button>
+        </Link>
       </div>
 
       {error && (

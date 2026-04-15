@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Plus, Save } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Plus, Save, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import ModuleCard, { type ATSModuleState } from "@/components/ats/ModuleCard";
 import ModuleEditModal from "@/components/ats/ModuleEditModal";
 import { PRESET_MODULES } from "@/server/lib/ats/preset-modules";
+import type { CandidateData } from "@/components/ats/CandidateCard";
+import ScoreBreakdownModal from "@/components/ats/ScoreBreakdownModal";
 
 const MODULE_ICONS: Record<string, string> = {
   SKILLS: "⚡",
@@ -15,6 +17,13 @@ const MODULE_ICONS: Record<string, string> = {
   LANGUAGES: "🌐",
   PORTFOLIO: "🗂️",
   CUSTOM: "⭐",
+};
+
+const PIPELINE_LABELS: Record<string, { label: string; color: string }> = {
+  PENDING: { label: "Pendiente", color: "bg-gray-100 text-gray-600" },
+  REVIEWING: { label: "En revisión", color: "bg-blue-100 text-blue-700" },
+  INTERVIEW: { label: "Entrevista ✨", color: "bg-green-100 text-green-700" },
+  REJECTED: { label: "Rechazado", color: "bg-red-100 text-red-600" },
 };
 
 function buildModuleState(mod: {
@@ -40,9 +49,9 @@ function buildModuleState(mod: {
 
 export default function ATSConfigPage() {
   const params = useParams();
-  const router = useRouter();
   const jobId = params.jobId as string;
 
+  // — Config state —
   const [activeModules, setActiveModules] = useState<ATSModuleState[]>([]);
   const [editingModule, setEditingModule] = useState<ATSModuleState | null>(
     null,
@@ -51,6 +60,46 @@ export default function ATSConfigPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // — Candidates state —
+  const [candidates, setCandidates] = useState<CandidateData[]>([]);
+  const [selectedCandidate, setSelectedCandidate] =
+    useState<CandidateData | null>(null);
+  const [scoring, setScoring] = useState(false);
+
+  const loadCandidates = useCallback(
+    async (skipAutoScore = false) => {
+      const res = await fetch(`/api/applications/internship/${jobId}`);
+      if (!res.ok) return;
+      const data: CandidateData[] = (await res.json()) ?? [];
+
+      // Auto-calcular si hay candidatos sin score y ATS activo
+      if (
+        !skipAutoScore &&
+        data.length > 0 &&
+        data.some((c) => c.atsScore === null)
+      ) {
+        setScoring(true);
+        try {
+          await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+          const refreshed = await fetch(
+            `/api/applications/internship/${jobId}`,
+          );
+          if (refreshed.ok) {
+            const refreshedData: CandidateData[] =
+              (await refreshed.json()) ?? [];
+            setCandidates(refreshedData);
+            return;
+          }
+        } finally {
+          setScoring(false);
+        }
+      }
+
+      setCandidates(data);
+    },
+    [jobId],
+  );
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -64,6 +113,8 @@ export default function ATSConfigPage() {
             .filter((m: ATSModuleState) => m.isActive)
             .map(buildModuleState),
         );
+        // Config ya existe → cargar candidatos
+        await loadCandidates();
       } else {
         // Sin config previa: cargar módulos por defecto activos
         const defaults = PRESET_MODULES.filter((p) => p.defaultActive).map(
@@ -82,7 +133,7 @@ export default function ATSConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, [jobId]);
+  }, [jobId, loadCandidates]);
 
   useEffect(() => {
     loadConfig();
@@ -115,14 +166,13 @@ export default function ATSConfigPage() {
   const handleActivatePreset = (preset: (typeof PRESET_MODULES)[0]) => {
     const alreadyActive = activeModules.some((m) => m.type === preset.type);
     if (alreadyActive) return;
-
     setActiveModules((prev) => [
       ...prev,
       buildModuleState({
         type: preset.type,
         label: preset.label,
         isActive: true,
-        weight: 0, // la empresa ajusta el peso
+        weight: 0,
         order: prev.length,
         params: preset.defaultParams,
       }),
@@ -141,6 +191,16 @@ export default function ATSConfigPage() {
         params: {},
       }),
     ]);
+  };
+
+  const handleRecalculate = async () => {
+    setScoring(true);
+    try {
+      await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+      await loadCandidates(true);
+    } finally {
+      setScoring(false);
+    }
   };
 
   const handleSave = async () => {
@@ -174,14 +234,8 @@ export default function ATSConfigPage() {
         return;
       }
 
-      const confirmed = window.confirm(
-        "¿Deseas recalcular los scores de todos los candidatos existentes con la nueva configuración?",
-      );
-      if (confirmed) {
-        await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
-      }
-
-      router.push(`/dashboard/empresa/candidatos/${jobId}`);
+      // Auto-recalcular y mostrar candidatos
+      await handleRecalculate();
     } finally {
       setSaving(false);
     }
@@ -190,6 +244,12 @@ export default function ATSConfigPage() {
   const inactivePresets = PRESET_MODULES.filter(
     (p) => !activeModules.some((m) => m.type === p.type),
   );
+
+  const ranked = [...candidates].sort((a, b) => {
+    if (a.passedFilters && !b.passedFilters) return -1;
+    if (!a.passedFilters && b.passedFilters) return 1;
+    return (b.atsScore ?? 0) - (a.atsScore ?? 0);
+  });
 
   if (loading) {
     return (
@@ -225,7 +285,6 @@ export default function ATSConfigPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Indicador de peso */}
             <div
               className={`text-sm font-bold px-4 py-2 rounded-xl ${
                 weightsOk
@@ -238,11 +297,15 @@ export default function ATSConfigPage() {
 
             <button
               onClick={handleSave}
-              disabled={!weightsOk || saving}
+              disabled={!weightsOk || saving || scoring}
               className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
-              {saving ? "Guardando..." : "Guardar configuración"}
+              {saving
+                ? "Guardando..."
+                : scoring
+                  ? "Calculando..."
+                  : "Guardar y calcular"}
             </button>
           </div>
         </div>
@@ -253,7 +316,8 @@ export default function ATSConfigPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Config grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Módulos activos */}
           <div>
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
@@ -328,9 +392,164 @@ export default function ATSConfigPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Ranking de candidatos ── */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+              Ranking de candidatos
+            </h2>
+            {candidates.length > 0 && (
+              <button
+                onClick={handleRecalculate}
+                disabled={scoring}
+                className="flex items-center gap-2 text-xs font-semibold text-brand-600 hover:text-brand-700 border border-brand-200 bg-brand-50 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${scoring ? "animate-spin" : ""}`}
+                />
+                {scoring ? "Calculando..." : "Recalcular"}
+              </button>
+            )}
+          </div>
+
+          {scoring ? (
+            <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
+              <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-400">Calculando scores…</p>
+            </div>
+          ) : candidates.length === 0 ? (
+            <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
+              <p className="text-sm text-gray-400">
+                Aún no hay postulaciones para esta práctica.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4 w-8">
+                      #
+                    </th>
+                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                      Candidato
+                    </th>
+                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                      Score ATS
+                    </th>
+                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                      Match CV
+                    </th>
+                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                      Pipeline
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.map((c, idx) => {
+                    const pipeline =
+                      PIPELINE_LABELS[c.pipelineStatus] ??
+                      PIPELINE_LABELS.PENDING;
+                    const initial = c.student.name.charAt(0).toUpperCase();
+                    const isDisqualified = !c.passedFilters;
+
+                    return (
+                      <tr
+                        key={c.id}
+                        onClick={() => setSelectedCandidate(c)}
+                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          isDisqualified ? "opacity-60" : ""
+                        }`}
+                      >
+                        <td className="px-6 py-4 text-sm font-bold text-gray-400">
+                          {isDisqualified ? "—" : idx + 1}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                              {initial}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">
+                                {c.student.name}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {c.student.studentProfile?.career ??
+                                  c.student.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isDisqualified ? (
+                            <span className="text-xs text-red-500 font-semibold">
+                              ❌{" "}
+                              {c.filterReason?.split(":")[0] ?? "Descalificado"}
+                            </span>
+                          ) : c.atsScore !== null ? (
+                            <span
+                              className={`text-sm font-extrabold ${
+                                c.atsScore >= 80
+                                  ? "text-green-600"
+                                  : c.atsScore >= 60
+                                    ? "text-amber-600"
+                                    : "text-gray-500"
+                              }`}
+                            >
+                              {c.atsScore}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Sin calcular
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {c.matchScore !== null ? (
+                            <span className="text-sm font-semibold text-gray-600">
+                              {Math.round(c.matchScore)}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${pipeline.color}`}
+                          >
+                            {pipeline.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal detalle */}
+      {selectedCandidate && (
+        <ScoreBreakdownModal
+          applicant={{
+            id: selectedCandidate.id,
+            student: selectedCandidate.student,
+            atsScore: selectedCandidate.atsScore,
+            moduleScores: selectedCandidate.moduleScores as Parameters<
+              typeof ScoreBreakdownModal
+            >[0]["applicant"]["moduleScores"],
+            passedFilters: selectedCandidate.passedFilters,
+            filterReason: selectedCandidate.filterReason,
+            pipelineStatus: selectedCandidate.pipelineStatus,
+          }}
+          onClose={() => setSelectedCandidate(null)}
+        />
+      )}
+
+      {/* Modal de edición de módulo */}
       {editingModule && (
         <ModuleEditModal
           module={editingModule}

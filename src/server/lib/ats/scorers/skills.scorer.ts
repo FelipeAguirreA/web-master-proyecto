@@ -19,21 +19,45 @@ function normalize(s: string): string {
     .replace(/[.\-_]/g, " ");
 }
 
-function hasSkill(cvSkills: string[], target: string): boolean {
+/**
+ * Busca una skill en el CV usando dos estrategias:
+ * 1. Lista de skills del perfil: coincidencia exacta o que la skill del CV contenga el target
+ * 2. Texto crudo del CV: word-boundary regex (evita que "c" matchee "css")
+ */
+function hasSkill(
+  cvSkills: string[],
+  rawText: string,
+  target: string,
+): boolean {
   const t = normalize(target);
-  return cvSkills.some((s) => {
-    const n = normalize(s);
-    return n === t || n.includes(t) || t.includes(n);
-  });
+  if (!t) return false;
+
+  // Chequeo en lista de skills (perfil + extraídas)
+  if (
+    cvSkills.some((s) => {
+      const n = normalize(s);
+      return n === t || n.includes(t);
+      // Solo n.includes(t): "react native" matchea "react", pero NO al revés
+      // evita que "c" (de "C programming") matchee "css"
+    })
+  )
+    return true;
+
+  // Chequeo en texto crudo con word boundaries
+  try {
+    const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(rawText);
+  } catch {
+    return false;
+  }
 }
 
 export function scoreSkills(cv: CVData, params: SkillsParams): ScorerResult {
   const { required = [], preferred = [], hardFilter = false } = params;
-  const allCVSkills = [...cv.skills, ...cv.rawText.toLowerCase().split(/\W+/)];
 
   // Hard filter: si le falta algún skill requerido → descalificado
   if (hardFilter && required.length > 0) {
-    const missing = required.filter((r) => !hasSkill(allCVSkills, r));
+    const missing = required.filter((r) => !hasSkill(cv.skills, cv.rawText, r));
     if (missing.length > 0) {
       return {
         score: 0,
@@ -43,23 +67,36 @@ export function scoreSkills(cv: CVData, params: SkillsParams): ScorerResult {
     }
   }
 
-  // Score de requeridas (70% del puntaje)
+  // Score de requeridas
+  const missingRequired: string[] = [];
   let requiredScore = 100;
   if (required.length > 0) {
-    const matched = required.filter((r) => hasSkill(allCVSkills, r)).length;
-    requiredScore = (matched / required.length) * 100;
+    const matched = required.filter((r) => hasSkill(cv.skills, cv.rawText, r));
+    missingRequired.push(
+      ...required.filter((r) => !hasSkill(cv.skills, cv.rawText, r)),
+    );
+    requiredScore = (matched.length / required.length) * 100;
   }
 
-  // Score de preferidas (30% del puntaje)
+  // Score de preferidas
   let preferredScore = 0;
   if (preferred.length > 0) {
-    const matched = preferred.filter((p) => hasSkill(allCVSkills, p)).length;
+    const matched = preferred.filter((p) =>
+      hasSkill(cv.skills, cv.rawText, p),
+    ).length;
     preferredScore = (matched / preferred.length) * 100;
-  } else {
-    preferredScore = 100; // sin preferidas, no penaliza
   }
 
-  const score = Math.round(requiredScore * 0.7 + preferredScore * 0.3);
+  // Si no hay preferred, el score es 100% del de requeridas
+  const score =
+    preferred.length > 0
+      ? Math.round(requiredScore * 0.7 + preferredScore * 0.3)
+      : Math.round(requiredScore);
 
-  return { score, passed: true };
+  const reason =
+    missingRequired.length > 0
+      ? `Skills no encontradas en CV: ${missingRequired.join(", ")}`
+      : undefined;
+
+  return { score, passed: true, reason };
 }

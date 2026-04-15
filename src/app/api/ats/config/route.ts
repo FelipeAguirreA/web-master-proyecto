@@ -14,9 +14,9 @@ const moduleSchema = z.object({
   ]),
   label: z.string().min(1),
   isActive: z.boolean(),
-  weight: z.number().int().min(0).max(100),
-  order: z.number().int().min(0),
-  params: z.record(z.unknown()),
+  weight: z.number().min(0).max(100),
+  order: z.number().min(0),
+  params: z.any(),
 });
 
 const configSchema = z.object({

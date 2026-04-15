@@ -7,31 +7,45 @@ interface LanguagesParams {
   hardFilter: boolean;
 }
 
+// Orden de menor a mayor nivel — incluye CEFR y etiquetas en español
 const LEVEL_ORDER = [
   "a1",
   "a2",
+  "básico",
+  "basico",
   "b1",
+  "intermedio",
   "b2",
   "c1",
+  "avanzado",
   "c2",
-  "nativo",
-  "native",
   "fluido",
   "fluent",
+  "nativo",
+  "native",
 ];
 
+/** Elimina acentos y pasa a minúsculas para comparación insensible */
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function extractLang(entry: string): { lang: string; level: string } {
-  const parts = entry.toLowerCase().split(/\s+/);
-  const level = parts.find((p) => LEVEL_ORDER.includes(p)) ?? "";
+  const parts = normalize(entry).split(/\s+/);
+  const level = parts.find((p) => LEVEL_ORDER.map(normalize).includes(p)) ?? "";
   const lang = parts
-    .filter((p) => !LEVEL_ORDER.includes(p))
+    .filter((p) => !LEVEL_ORDER.map(normalize).includes(p))
     .join(" ")
     .trim();
   return { lang, level };
 }
 
 function levelIndex(level: string): number {
-  const idx = LEVEL_ORDER.indexOf(level.toLowerCase());
+  const normalized = LEVEL_ORDER.map(normalize);
+  const idx = normalized.indexOf(normalize(level));
   return idx === -1 ? 0 : idx;
 }
 
@@ -42,9 +56,10 @@ function candidateHasLanguage(
   const req = extractLang(required);
   return cvLanguages.some((cvLang) => {
     const cv = extractLang(cvLang);
-    if (!cv.lang.includes(req.lang) && !req.lang.includes(cv.lang))
-      return false;
-    if (!req.level) return true; // sin nivel requerido, basta con tener el idioma
+    // Comparación insensible a acentos
+    const langMatch = cv.lang.includes(req.lang) || req.lang.includes(cv.lang);
+    if (!langMatch) return false;
+    if (!req.level) return true; // sin nivel requerido, basta tener el idioma
     return levelIndex(cv.level) >= levelIndex(req.level);
   });
 }
@@ -69,23 +84,34 @@ export function scoreLanguages(
     }
   }
 
+  const missingRequired = required.filter(
+    (r) => !candidateHasLanguage(cv.languages, r),
+  );
+
   let requiredScore = 100;
   if (required.length > 0) {
-    const matched = required.filter((r) =>
-      candidateHasLanguage(cv.languages, r),
-    ).length;
-    requiredScore = (matched / required.length) * 100;
+    requiredScore =
+      ((required.length - missingRequired.length) / required.length) * 100;
   }
 
-  let preferredScore = 100;
+  let preferredScore = 0;
   if (preferred.length > 0) {
-    const matched = preferred.filter((p) =>
+    const matchedPref = preferred.filter((p) =>
       candidateHasLanguage(cv.languages, p),
     ).length;
-    preferredScore = (matched / preferred.length) * 100;
+    preferredScore = (matchedPref / preferred.length) * 100;
   }
 
-  const score = Math.round(requiredScore * 0.7 + preferredScore * 0.3);
+  // Si no hay preferred, el score es solo el de requeridos
+  const score =
+    preferred.length > 0
+      ? Math.round(requiredScore * 0.7 + preferredScore * 0.3)
+      : Math.round(requiredScore);
 
-  return { score, passed: true };
+  const reason =
+    missingRequired.length > 0
+      ? `Idiomas no encontrados en CV: ${missingRequired.join(", ")}`
+      : undefined;
+
+  return { score, passed: true, reason };
 }

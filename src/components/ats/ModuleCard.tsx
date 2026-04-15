@@ -46,9 +46,18 @@ export default function ModuleCard({
             onChange={(e) => onWeightChange(Number(e.target.value))}
             className="flex-1 h-1.5 accent-brand-600"
           />
-          <span className="text-xs font-bold text-brand-600 w-8 text-right">
-            {module.weight}%
-          </span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={module.weight}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              onWeightChange(isNaN(val) ? 0 : Math.min(100, Math.max(0, val)));
+            }}
+            className="w-14 text-xs font-bold text-brand-600 text-right border border-gray-200 rounded-lg px-2 py-0.5 focus:outline-none focus:border-brand-400"
+          />
+          <span className="text-xs font-bold text-gray-400">%</span>
         </div>
       </div>
 

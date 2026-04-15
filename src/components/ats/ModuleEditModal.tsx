@@ -131,11 +131,12 @@ export default function ModuleEditModal({
               <input
                 type="number"
                 min={0}
-                max={20}
+                max={30}
                 value={(params.minYears as number) ?? 0}
-                onChange={(e) =>
-                  updateParam("minYears", parseInt(e.target.value, 10))
-                }
+                onChange={(e) => {
+                  const raw = parseInt(e.target.value, 10);
+                  updateParam("minYears", isNaN(raw) ? 0 : raw);
+                }}
                 className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-brand-400"
               />
             </div>
