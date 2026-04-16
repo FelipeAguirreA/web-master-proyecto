@@ -140,10 +140,42 @@ export async function updateApplicationStatus(
     where: { id: applicationId },
     data: {
       status: status as "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED",
+      ...(status === "ACCEPTED" ? { pipelineStatus: "INTERVIEW" } : {}),
+      ...(status === "REJECTED" ? { pipelineStatus: "REJECTED" } : {}),
     },
   });
 
-  // Emails de ACCEPTED y REJECTED los dispara la empresa manualmente
+  // Crear notificación para el estudiante
+  const notificationMap: Record<string, { title: string; body: string }> = {
+    REVIEWED: {
+      title: "Tu postulación está en revisión",
+      body: `Tu postulación a "${existing.internship.title}" está siendo revisada por la empresa.`,
+    },
+    ACCEPTED: {
+      title: "¡Postulación aprobada! 🎉",
+      body: `Tu postulación a "${existing.internship.title}" fue aprobada. La empresa te contactará pronto.`,
+    },
+    REJECTED: {
+      title: "Postulación rechazada",
+      body: `Tu postulación a "${existing.internship.title}" no fue seleccionada en esta oportunidad.`,
+    },
+  };
+
+  const notif = notificationMap[status];
+  if (notif) {
+    await prisma.notification.create({
+      data: {
+        userId: existing.studentId,
+        type: `APPLICATION_${status}` as
+          | "APPLICATION_REVIEWED"
+          | "APPLICATION_ACCEPTED"
+          | "APPLICATION_REJECTED",
+        title: notif.title,
+        body: notif.body,
+        entityId: applicationId,
+      },
+    });
+  }
 
   return updated;
 }

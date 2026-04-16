@@ -97,9 +97,12 @@ export const authOptions: NextAuthOptions = {
           if (dbUser.role === "COMPANY") {
             const profile = await prisma.companyProfile.findUnique({
               where: { userId: dbUser.id },
-              select: { companyStatus: true },
+              select: { companyStatus: true, companyName: true },
             });
             token.companyStatus = profile?.companyStatus ?? "PENDING";
+            if (profile?.companyName) {
+              token.name = profile.companyName;
+            }
           }
         }
       }
@@ -111,6 +114,12 @@ export const authOptions: NextAuthOptions = {
         }
         if (session?.companyStatus !== undefined) {
           token.companyStatus = session.companyStatus as string;
+        }
+        if (session?.name !== undefined) {
+          token.name = session.name as string;
+        }
+        if (session?.image !== undefined) {
+          token.picture = session.image as string;
         }
       }
 
@@ -125,6 +134,10 @@ export const authOptions: NextAuthOptions = {
           (token.registrationCompleted as boolean) ?? true;
         if (token.companyStatus) {
           session.user.companyStatus = token.companyStatus as string;
+        }
+        // Para empresas el nombre visible es el nombre de la empresa
+        if (token.name) {
+          session.user.name = token.name as string;
         }
       }
 

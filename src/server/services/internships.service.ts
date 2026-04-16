@@ -27,16 +27,33 @@ export async function listInternships(filters: ListFilters) {
     ];
   }
 
-  const [internships, total] = await Promise.all([
+  const [rows, total] = await Promise.all([
     prisma.internship.findMany({
       where,
-      include: { company: { select: { companyName: true, logo: true } } },
+      include: {
+        company: {
+          select: {
+            companyName: true,
+            logo: true,
+            user: { select: { image: true } },
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.internship.count({ where }),
   ]);
+
+  // Normalizar logo: preferir CompanyProfile.logo, caer en User.image
+  const internships = rows.map(({ company, ...rest }) => ({
+    ...rest,
+    company: {
+      companyName: company.companyName,
+      logo: company.logo ?? company.user.image ?? null,
+    },
+  }));
 
   return {
     internships,

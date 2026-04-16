@@ -3,6 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Users,
@@ -18,6 +19,7 @@ import {
   Trash2,
   AlertTriangle,
   Bot,
+  MessageSquare,
 } from "lucide-react";
 
 type Internship = {
@@ -88,6 +90,7 @@ const STATUS_CONFIG = {
 
 export default function CompanyDashboard() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   const [internships, setInternships] = useState<Internship[]>([]);
   const [companyStatus, setCompanyStatus] = useState<string | null>(null);
@@ -254,6 +257,24 @@ export default function CompanyDashboard() {
       if (res.ok) setEmailSentIds((prev) => new Set(prev).add(applicationId));
     } catch {
       /* silencioso */
+    }
+  };
+
+  const handleContactar = async (applicationId: string) => {
+    try {
+      const res = await fetch("/api/chat/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId }),
+      });
+      if (res.ok) {
+        router.push("/dashboard/empresa/inbox");
+      } else {
+        const err = await res.json();
+        alert(err.error ?? "Error al iniciar conversación");
+      }
+    } catch {
+      alert("Error al iniciar conversación");
     }
   };
 
@@ -539,6 +560,15 @@ export default function CompanyDashboard() {
                             </button>
                           </>
                         )}
+                      {app.status === "ACCEPTED" && (
+                        <button
+                          onClick={() => handleContactar(app.id)}
+                          className="w-full text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          Contactar
+                        </button>
+                      )}
                       {app.status === "ACCEPTED" &&
                         !emailSentIds.has(app.id) && (
                           <button

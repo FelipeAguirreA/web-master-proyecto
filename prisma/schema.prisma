@@ -46,6 +46,23 @@ enum CompanyStatus {
   REJECTED
 }
 
+enum MessageType {
+  TEXT
+  INTERVIEW
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  APPLICATION_REVIEWED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -66,6 +83,13 @@ model User {
   studentProfile StudentProfile?
   companyProfile CompanyProfile?
   applications   Application[]
+
+  companyConversations Conversation[] @relation("CompanyConversations")
+  studentConversations Conversation[] @relation("StudentConversations")
+  sentMessages         Message[]
+  companyInterviews    Interview[]    @relation("CompanyInterviews")
+  studentInterviews    Interview[]    @relation("StudentInterviews")
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -127,6 +151,7 @@ model Internship {
 
   applications Application[]
   atsConfig    ATSConfig?
+  interviews   Interview[]
 
   @@map("internships")
 }
@@ -147,6 +172,9 @@ model Application {
   pipelineStatus PipelineStatus @default(PENDING)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+
+  conversation Conversation?
+  interview    Interview?
 
   @@unique([studentId, internshipId])
   @@map("applications")
@@ -178,4 +206,82 @@ model ATSModule {
   updatedAt   DateTime   @updatedAt
 
   @@map("ats_modules")
+}
+
+model Conversation {
+  id             String       @id @default(cuid())
+  companyId      String
+  studentId      String
+  applicationId  String       @unique
+  company        User         @relation("CompanyConversations", fields: [companyId], references: [id])
+  student        User         @relation("StudentConversations", fields: [studentId], references: [id])
+  application    Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  messages       Message[]
+  interviews     Interview[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([companyId])
+  @@index([studentId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String       @db.Text
+  type           MessageType  @default(TEXT)
+  metadata       Json?
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Interview {
+  id             String          @id @default(cuid())
+  companyId      String
+  studentId      String
+  internshipId   String
+  applicationId  String          @unique
+  conversationId String
+  company        User            @relation("CompanyInterviews", fields: [companyId], references: [id])
+  student        User            @relation("StudentInterviews", fields: [studentId], references: [id])
+  internship     Internship      @relation(fields: [internshipId], references: [id])
+  application    Application     @relation(fields: [applicationId], references: [id])
+  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  title          String
+  scheduledAt    DateTime
+  durationMins   Int             @default(60)
+  meetingLink    String?
+  notes          String?         @db.Text
+  sentToChat     Boolean         @default(false)
+  sentToChatAt   DateTime?
+  status         InterviewStatus @default(SCHEDULED)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([companyId])
+  @@index([scheduledAt])
+  @@map("interviews")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  entityId  String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
 }

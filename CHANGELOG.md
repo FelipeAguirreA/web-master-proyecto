@@ -5,6 +5,45 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-16
+
+### Added
+
+- Módulo de chat en tiempo real entre empresas y candidatos aceptados
+  - Optimistic UI: el mensaje aparece al instante sin bloquear el input
+  - Polling cada 3 s como fallback garantizado al Supabase Realtime
+  - Smart scroll: baja automáticamente solo si el usuario está cerca del fondo
+  - Badge de mensajes sin leer en el navbar con polling cada 5 s
+- Calendario de entrevistas para empresas (`/dashboard/empresa/calendar`)
+  - CRUD completo de entrevistas con modal de confirmación al eliminar
+  - Envío de invitación al candidato como mensaje de tipo `INTERVIEW` en el chat
+  - Mensajes de tipo `INTERVIEW` alineados al lado del emisor
+- Módulo de edición de perfil (`/perfil`)
+  - Upload de avatar/logo a Supabase Storage bucket `avatars`
+  - Vista previa local con blob URL antes de guardar
+  - Actualización en tiempo real del navbar sin re-login vía `update()` de NextAuth
+  - Dropdown en el navbar al hacer clic en el avatar con opción "Editar perfil" y "Cerrar sesión"
+- Sistema de notificaciones en la campanita del navbar
+  - Notificación automática al estudiante cuando su postulación cambia a REVIEWED, ACCEPTED o REJECTED
+  - Badge rojo en la campanita con conteo de no leídas
+  - Dropdown con historial de notificaciones y opción "Marcar leídas"
+  - Polling cada 10 s
+- Logo de empresa visible en el explorador de prácticas y en el chat
+- Nombre completo (nombre + apellido) del estudiante en el chat para empresas
+- Encabezado del chat muestra `Nombre Apellido - Empresa` para el estudiante
+
+### Fixed
+
+- Nombre de empresa en el chat mostraba `User.name` personal en lugar de `CompanyProfile.companyName`
+- Scrollbar innecesario en la página de mensajes (`calc(100vh-64px)` → `calc(100vh-80px)`)
+- `CompanyProfile.logo` no se sincronizaba al subir avatar — ahora se actualiza en la misma transacción
+- `listInternships` usaba `CompanyProfile.logo` sin fallback a `User.image` — empresas antiguas no mostraban logo
+- Nombre del usuario de empresa en el navbar mostraba nombre personal en lugar del nombre de la empresa
+- CSP bloqueaba URLs `blob:` en `img-src` — agregado `blob:` para permitir previsualización de imágenes
+- Bucket `avatars` no existía en Supabase Storage — creado con acceso público
+
+---
+
 ## [1.1.0] - 2026-04-13
 
 ### Added
