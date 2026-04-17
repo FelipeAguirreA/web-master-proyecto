@@ -53,12 +53,18 @@ function isCorporateEmail(email: string): boolean {
   return domain ? !BLOCKED_DOMAINS.includes(domain) : false;
 }
 
+// Premium input base
+const INPUT_BASE =
+  "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+
+const INPUT_ERROR =
+  "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+
+const LABEL_CLS =
+  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2";
+
 function inputCls(hasError?: boolean) {
-  return `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors ${
-    hasError
-      ? "border-red-300 bg-red-50 focus:border-red-400"
-      : "border-gray-200 bg-gray-50 focus:border-brand-400 focus:bg-white"
-  }`;
+  return hasError ? INPUT_ERROR : INPUT_BASE;
 }
 
 // ── Google SVG ────────────────────────────────────────────────────────────────
@@ -116,9 +122,7 @@ function EmpresaLogin() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Correo electrónico
-        </label>
+        <label className={LABEL_CLS}>Correo electrónico</label>
         <input
           type="email"
           value={form.email}
@@ -130,9 +134,7 @@ function EmpresaLogin() {
       </div>
 
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Contraseña
-        </label>
+        <label className={LABEL_CLS}>Contraseña</label>
         <div className="relative">
           <input
             type={showPass ? "text" : "password"}
@@ -142,12 +144,13 @@ function EmpresaLogin() {
             }
             placeholder="••••••••"
             required
-            className={`${inputCls()} pr-10`}
+            className={`${inputCls()} pr-11`}
           />
           <button
             type="button"
             onClick={() => setShowPass((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9891] hover:text-[#4A4843] transition-colors"
+            aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
           >
             {showPass ? (
               <EyeOff className="w-4 h-4" />
@@ -158,15 +161,15 @@ function EmpresaLogin() {
         </div>
         <Link
           href="/forgot-password"
-          className="text-xs text-brand-600 hover:underline mt-1.5 inline-block"
+          className="text-[12px] font-medium text-[#FF6A3D] hover:text-[#E85A2D] mt-2 inline-block transition-colors"
         >
           Olvidé mi contraseña
         </Link>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="flex items-start gap-2 bg-[#FFF0ED] border border-[#FF6A3D]/20 text-[#C74A1E] text-[12.5px] px-3 py-2.5 rounded-lg leading-[1.4]">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6A3D]" />
           {error}
         </div>
       )}
@@ -174,9 +177,20 @@ function EmpresaLogin() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
+        className="group relative w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white font-semibold py-3.5 rounded-xl text-[14px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.7),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
       >
-        {loading ? "Ingresando..." : "Iniciar sesión"}
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+        <span className="relative">
+          {loading ? "Ingresando…" : "Iniciar sesión"}
+        </span>
+        {!loading && (
+          <span className="relative text-[11px] transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
+        )}
       </button>
     </form>
   );
@@ -345,28 +359,27 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
     return score;
   };
   const strengthColors = [
-    "bg-red-400",
-    "bg-orange-400",
-    "bg-yellow-400",
-    "bg-green-400",
+    "bg-[#FF6565]",
+    "bg-[#FFA15F]",
+    "bg-[#FFBD2E]",
+    "bg-[#1A8F3C]",
+  ];
+  const strengthLabelColors = [
+    "text-[#FF6565]",
+    "text-[#FF8A3D]",
+    "text-[#C89000]",
+    "text-[#1A8F3C]",
   ];
   const strengthLabels = ["Débil", "Regular", "Buena", "Fuerte"];
   const strength = passwordStrength();
 
-  const fi = (key: keyof RegErrors) =>
-    `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors ${
-      errors[key]
-        ? "border-red-300 bg-red-50 focus:border-red-400"
-        : "border-gray-200 bg-gray-50 focus:border-brand-400 focus:bg-white"
-    }`;
+  const fi = (key: keyof RegErrors) => inputCls(!!errors[key]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-            Nombre *
-          </label>
+          <label className={LABEL_CLS}>Nombre *</label>
           <input
             type="text"
             value={form.name}
@@ -375,13 +388,11 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
             className={fi("name")}
           />
           {errors.name && (
-            <p className="text-xs text-red-600 mt-1">{errors.name}</p>
+            <p className="text-[11.5px] text-[#C74A1E] mt-1">{errors.name}</p>
           )}
         </div>
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-            Apellido *
-          </label>
+          <label className={LABEL_CLS}>Apellido *</label>
           <input
             type="text"
             value={form.lastName}
@@ -390,14 +401,15 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
             className={fi("lastName")}
           />
           {errors.lastName && (
-            <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>
+            <p className="text-[11.5px] text-[#C74A1E] mt-1">
+              {errors.lastName}
+            </p>
           )}
         </div>
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Nombre de la empresa *
-        </label>
+        <label className={LABEL_CLS}>Nombre de la empresa *</label>
         <input
           type="text"
           value={form.companyName}
@@ -406,21 +418,26 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           className={fi("companyName")}
         />
         {errors.companyName && (
-          <p className="text-xs text-red-600 mt-1">{errors.companyName}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">
+            {errors.companyName}
+          </p>
         )}
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          RUT / DNI de la empresa *
-        </label>
-        <div className="flex rounded-xl border border-gray-200 overflow-hidden mb-2 w-fit">
+        <label className={LABEL_CLS}>RUT / DNI de la empresa *</label>
+        <div className="inline-flex rounded-xl bg-black/[0.03] p-1 mb-2.5">
           <button
             type="button"
             onClick={() => {
               setDocType("rut");
               setForm((f) => ({ ...f, empresaRut: "" }));
             }}
-            className={`px-4 py-2 text-sm font-bold transition-colors ${docType === "rut" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+            className={`px-3.5 py-1.5 text-[12.5px] font-semibold rounded-lg transition-all ${
+              docType === "rut"
+                ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-[#6D6A63] hover:text-[#0A0909]"
+            }`}
           >
             RUT Chile
           </button>
@@ -430,9 +447,13 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
               setDocType("passport");
               setForm((f) => ({ ...f, empresaRut: "" }));
             }}
-            className={`px-4 py-2 text-sm font-bold border-l border-gray-200 transition-colors ${docType === "passport" ? "bg-brand-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+            className={`px-3.5 py-1.5 text-[12.5px] font-semibold rounded-lg transition-all ${
+              docType === "passport"
+                ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-[#6D6A63] hover:text-[#0A0909]"
+            }`}
           >
-            Empresa extranjera
+            Extranjera
           </button>
         </div>
         <input
@@ -446,26 +467,25 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           className={fi("empresaRut")}
         />
         {errors.empresaRut && (
-          <p className="text-xs text-red-600 mt-1">{errors.empresaRut}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">
+            {errors.empresaRut}
+          </p>
         )}
       </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-            Industria
-          </label>
+          <label className={LABEL_CLS}>Industria</label>
           <input
             type="text"
             value={form.industry}
             onChange={setField("industry")}
-            placeholder="Tecnología..."
+            placeholder="Tecnología…"
             className={fi("industry")}
           />
         </div>
         <div>
-          <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-            Sitio web
-          </label>
+          <label className={LABEL_CLS}>Sitio web</label>
           <input
             type="url"
             value={form.website}
@@ -475,10 +495,9 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Teléfono *
-        </label>
+        <label className={LABEL_CLS}>Teléfono *</label>
         <input
           type="tel"
           value={form.phone}
@@ -487,13 +506,12 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           className={fi("phone")}
         />
         {errors.phone && (
-          <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">{errors.phone}</p>
         )}
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Correo corporativo *
-        </label>
+        <label className={LABEL_CLS}>Correo corporativo *</label>
         <input
           type="email"
           value={form.email}
@@ -502,9 +520,9 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           className={fi("email")}
         />
         {errors.email && (
-          <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">{errors.email}</p>
         )}
-        <label className="flex items-center gap-2 mt-2 cursor-pointer">
+        <label className="flex items-center gap-2 mt-2.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={allowGeneric}
@@ -512,29 +530,28 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
               setAllowGeneric(e.target.checked);
               setErrors((e2) => ({ ...e2, email: undefined }));
             }}
-            className="rounded border-gray-300 text-brand-600"
+            className="w-3.5 h-3.5 rounded border-[#9B9891] text-[#FF6A3D] focus:ring-[#FF6A3D]/30 focus:ring-offset-0"
           />
-          <span className="text-xs text-gray-400">
+          <span className="text-[12px] text-[#6D6A63] group-hover:text-[#4A4843] transition-colors">
             Mi empresa usa Gmail, Outlook u otro servicio genérico
           </span>
         </label>
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Contraseña *
-        </label>
+        <label className={LABEL_CLS}>Contraseña *</label>
         <div className="relative">
           <input
             type={showPass ? "text" : "password"}
             value={form.password}
             onChange={setField("password")}
             placeholder="••••••••"
-            className={`${fi("password")} pr-10`}
+            className={`${fi("password")} pr-11`}
           />
           <button
             type="button"
             onClick={() => setShowPass((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9891] hover:text-[#4A4843] transition-colors"
           >
             {showPass ? (
               <EyeOff className="w-4 h-4" />
@@ -544,20 +561,20 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </div>
         {form.password && (
-          <div className="mt-2">
-            <div className="flex gap-1 mb-1">
+          <div className="mt-2.5">
+            <div className="flex gap-1 mb-1.5">
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? strengthColors[strength - 1] : "bg-gray-200"}`}
+                  className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? strengthColors[strength - 1] : "bg-[#F4F3EF]"}`}
                 />
               ))}
             </div>
             {strength > 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-[11.5px] text-[#6D6A63]">
                 Contraseña:{" "}
                 <span
-                  className={`font-bold ${strength >= 3 ? "text-green-600" : strength === 2 ? "text-yellow-600" : "text-red-600"}`}
+                  className={`font-semibold ${strengthLabelColors[strength - 1]}`}
                 >
                   {strengthLabels[strength - 1]}
                 </span>
@@ -566,25 +583,24 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           </div>
         )}
         {errors.password && (
-          <p className="text-xs text-red-600 mt-1">{errors.password}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">{errors.password}</p>
         )}
       </div>
+
       <div>
-        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-          Confirmar contraseña *
-        </label>
+        <label className={LABEL_CLS}>Confirmar contraseña *</label>
         <div className="relative">
           <input
             type={showConfirm ? "text" : "password"}
             value={form.confirmPassword}
             onChange={setField("confirmPassword")}
             placeholder="••••••••"
-            className={`${fi("confirmPassword")} pr-10`}
+            className={`${fi("confirmPassword")} pr-11`}
           />
           <button
             type="button"
             onClick={() => setShowConfirm((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9891] hover:text-[#4A4843] transition-colors"
           >
             {showConfirm ? (
               <EyeOff className="w-4 h-4" />
@@ -594,24 +610,39 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>
+          <p className="text-[11.5px] text-[#C74A1E] mt-1">
+            {errors.confirmPassword}
+          </p>
         )}
       </div>
+
       {serverError && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="flex items-start gap-2 bg-[#FFF0ED] border border-[#FF6A3D]/20 text-[#C74A1E] text-[12.5px] px-3 py-2.5 rounded-lg leading-[1.4]">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6A3D]" />
           {serverError}
         </div>
       )}
+
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors disabled:opacity-60"
+        className="group relative w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white font-semibold py-3.5 rounded-xl text-[14px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.7),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
       >
-        {loading ? "Registrando empresa..." : "Crear cuenta empresa"}
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+        <span className="relative">
+          {loading ? "Registrando empresa…" : "Crear cuenta empresa"}
+        </span>
+        {!loading && (
+          <span className="relative text-[11px] transition-transform group-hover:translate-x-0.5">
+            →
+          </span>
+        )}
       </button>
-      <p className="text-xs text-gray-400 text-center">
-        Al registrarte, tu cuenta quedará en revisión hasta ser aprobada por el
+      <p className="text-[11.5px] text-[#9B9891] text-center leading-[1.5]">
+        Al registrarte, tu cuenta queda en revisión hasta ser aprobada por el
         equipo de PractiX.
       </p>
     </form>
@@ -621,22 +652,25 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
 // ── Éxito de registro ─────────────────────────────────────────────────────────
 function RegistroExitoso({ onLogin }: { onLogin: () => void }) {
   return (
-    <div className="text-center py-4">
-      <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-        <CheckCircle2 className="w-8 h-8 text-green-600" />
+    <div className="text-center py-2">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E7F8EA] to-[#C5E8C7] border border-[#1A8F3C]/15 mb-5">
+        <CheckCircle2 className="w-7 h-7 text-[#1A8F3C]" />
       </div>
-      <h2 className="text-xl font-bold text-gray-900 mb-2">
-        ¡Empresa registrada!
+      <h2 className="text-[20px] font-semibold tracking-[-0.015em] text-[#0A0909] mb-2">
+        Empresa registrada
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Tu cuenta fue creada exitosamente. El equipo de PractiX revisará tu
-        solicitud y te notificará por correo cuando sea aprobada.
+      <p className="text-[13.5px] text-[#6D6A63] leading-[1.55] mb-6 max-w-[320px] mx-auto">
+        Tu cuenta fue creada. El equipo de PractiX revisa la solicitud y te
+        notifica por correo cuando queda aprobada.
       </p>
       <button
         onClick={onLogin}
-        className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors"
+        className="group w-full inline-flex items-center justify-center gap-1.5 bg-[#0A0909] text-white font-semibold py-3.5 rounded-xl text-[14px] hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
       >
         Ir al login
+        <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
+          →
+        </span>
       </button>
     </div>
   );
@@ -656,45 +690,81 @@ function LoginContent() {
   const isCompany = activeRole === "company";
 
   return (
-    <div className="min-h-screen bg-[#eeeef8] flex flex-col items-center justify-center px-4 py-12 relative">
+    <div
+      className="relative min-h-screen bg-[#FAFAF8] text-[#0A0909] antialiased overflow-x-hidden flex flex-col items-center justify-center px-4 py-12"
+      style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
+    >
+      {/* Ambient mesh */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
+        <div
+          className="absolute top-[-15%] left-[-10%] w-[55%] h-[50%] rounded-full opacity-55"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,166,122,0.45), rgba(255,166,122,0) 70%)",
+            filter: "blur(40px)",
+          }}
+        />
+        <div
+          className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[50%] rounded-full opacity-50"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,210,180,0.5), rgba(255,210,180,0) 70%)",
+            filter: "blur(50px)",
+          }}
+        />
+      </div>
+
       {/* Volver al home */}
       <Link
         href="/"
-        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-gray-700 transition-colors"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#0A0909] transition-colors group"
       >
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
         Volver al inicio
       </Link>
 
       {/* Logo */}
-      <Link href="/" className="font-black text-3xl tracking-tighter mb-2">
-        <span className="text-brand-700">Practi</span>
-        <span className="text-accent-500">X</span>
+      <Link href="/" className="relative z-10 flex items-center gap-2 mb-2">
+        <span className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]">
+          <span className="text-white font-bold text-[17px] leading-none tracking-tight">
+            P
+          </span>
+        </span>
+        <span className="text-[19px] font-semibold tracking-[-0.015em] text-[#0A0909]">
+          PractiX
+        </span>
       </Link>
-      <p className="text-sm text-gray-400 mb-8">Iniciar sesión</p>
+      <p className="relative z-10 text-[13px] text-[#6D6A63] mb-8">
+        {isCompany
+          ? tab === "register"
+            ? "Creá tu cuenta empresa"
+            : "Acceso empresas"
+          : "Bienvenido de vuelta"}
+      </p>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
+      {/* Card */}
+      <div className="relative z-10 bg-white rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-7 w-full max-w-[440px]">
         {/* Toggle Estudiante / Empresa */}
-        <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+        <div className="flex bg-black/[0.03] rounded-xl p-1 mb-6">
           <button
             onClick={() => setActiveRole("student")}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-[12.5px] font-semibold rounded-lg transition-all ${
               !isCompany
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-[#6D6A63] hover:text-[#0A0909]"
             }`}
           >
-            Soy Estudiante
+            Soy estudiante
           </button>
           <button
             onClick={() => setActiveRole("company")}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-[12.5px] font-semibold rounded-lg transition-all ${
               isCompany
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                : "text-[#6D6A63] hover:text-[#0A0909]"
             }`}
           >
-            Soy Empresa
+            Soy empresa
           </button>
         </div>
 
@@ -703,52 +773,66 @@ function LoginContent() {
           <div className="flex flex-col gap-4">
             <button
               onClick={() => signIn("google", { callbackUrl })}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-xl py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
+              className="group w-full inline-flex items-center justify-center gap-3 bg-white border border-black/[0.08] rounded-xl py-3.5 text-[14px] font-semibold text-[#0A0909] hover:border-black/[0.15] hover:shadow-[0_4px_16px_-4px_rgba(20,15,10,0.08)] transition-all cursor-pointer"
             >
               <GoogleIcon />
               Continuar con Google
+              <span className="text-[11px] text-[#9B9891] transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
             </button>
 
-            <div className="relative">
+            <div className="relative py-1">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-100" />
+                <div className="w-full border-t border-black/[0.06]" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-white px-4 text-xs text-gray-400">o</span>
+                <span className="bg-white px-3 text-[11px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+                  solo google
+                </span>
               </div>
             </div>
 
-            {/* Email/password visualmente presentes pero deshabilitados para estudiantes */}
-            <div className="space-y-3 opacity-40 pointer-events-none select-none">
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-                  Correo electrónico
-                </label>
-                <input
-                  type="email"
-                  placeholder="nombre@ejemplo.com"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50"
-                  readOnly
-                />
+            {/* Nota informativa premium */}
+            <div className="relative bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] rounded-xl p-4 border border-[#FF6A3D]/10 overflow-hidden">
+              <div
+                aria-hidden
+                className="absolute -top-6 -right-6 w-16 h-16 bg-[#FF6A3D]/10 rounded-full blur-xl"
+              />
+              <div className="relative flex items-start gap-3">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white shadow-[0_2px_6px_-1px_rgba(255,106,61,0.25)]">
+                  <svg
+                    className="w-3.5 h-3.5 text-[#FF6A3D]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                </span>
+                <div>
+                  <p className="text-[12.5px] font-semibold text-[#0A0909] leading-tight">
+                    Los estudiantes usan Google
+                  </p>
+                  <p className="text-[11.5px] text-[#6D6A63] mt-1 leading-[1.5]">
+                    Entrás con tu cuenta de la universidad o personal, sin
+                    passwords que acordarse.
+                  </p>
+                </div>
               </div>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50"
-                  readOnly
-                />
-              </div>
-              <button
-                className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold text-sm"
-                disabled
-              >
-                Iniciar sesión
-              </button>
             </div>
+
+            <p className="text-center text-[12px] text-[#6D6A63] mt-1">
+              ¿Representás una empresa?{" "}
+              <button
+                type="button"
+                onClick={() => setActiveRole("company")}
+                className="text-[#FF6A3D] font-semibold hover:text-[#E85A2D] transition-colors"
+              >
+                Acceder como empresa
+              </button>
+            </p>
           </div>
         ) : (
           /* Empresa: email+contraseña con tabs login/registro */
@@ -757,18 +841,26 @@ function LoginContent() {
               <RegistroExitoso onLogin={() => setRegistered(false)} />
             ) : (
               <>
-                <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+                <div className="flex bg-black/[0.03] rounded-xl p-1 mb-6">
                   <button
                     type="button"
                     onClick={() => setTab("login")}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tab === "login" ? "bg-brand-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    className={`flex-1 py-2 text-[12.5px] font-semibold rounded-lg transition-all ${
+                      tab === "login"
+                        ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                        : "text-[#6D6A63] hover:text-[#0A0909]"
+                    }`}
                   >
                     Iniciar sesión
                   </button>
                   <button
                     type="button"
                     onClick={() => setTab("register")}
-                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${tab === "register" ? "bg-brand-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    className={`flex-1 py-2 text-[12.5px] font-semibold rounded-lg transition-all ${
+                      tab === "register"
+                        ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                        : "text-[#6D6A63] hover:text-[#0A0909]"
+                    }`}
                   >
                     Crear cuenta
                   </button>
@@ -785,17 +877,17 @@ function LoginContent() {
       </div>
 
       {/* Footer */}
-      <div className="mt-8 text-xs text-gray-400 text-center">
+      <div className="relative z-10 mt-8 text-[11.5px] text-[#6D6A63] text-center">
         © {new Date().getFullYear()} PractiX ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Privacidad
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Términos
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Ayuda
         </Link>
       </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ArrowLeft } from "lucide-react";
 
 // ── Países ───────────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -65,6 +65,16 @@ function formatRUT(value: string): string {
 
 // ── Pasos ─────────────────────────────────────────────────────────────────────
 const STEPS = ["Tu cuenta", "Tu perfil", "Listo"];
+const ACTIVE_STEP = 1; // index
+
+const LABEL_CLS =
+  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2";
+
+function inputCls(hasError?: boolean) {
+  return hasError
+    ? "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
+    : "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+}
 
 export default function RegistroPage() {
   const { data: session, update } = useSession();
@@ -205,71 +215,103 @@ export default function RegistroPage() {
     }
   };
 
-  const inputCls = (field: FormFields) =>
-    `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none transition-colors ${
-      errors[field]
-        ? "border-red-300 bg-red-50 focus:border-red-400"
-        : "border-gray-200 bg-gray-50 focus:border-brand-400 focus:bg-white"
-    }`;
-
   return (
-    <div className="min-h-screen bg-[#eeeef8] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Decoraciones de fondo */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-brand-100/30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-72 h-72 bg-accent-400/10 rounded-full blur-3xl pointer-events-none" />
+    <div
+      className="relative min-h-screen bg-[#FAFAF8] text-[#0A0909] antialiased overflow-x-hidden flex flex-col items-center justify-center px-4 py-12"
+      style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
+    >
+      {/* Ambient mesh */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
+        <div
+          className="absolute top-[-15%] left-[-10%] w-[55%] h-[50%] rounded-full opacity-55"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,166,122,0.45), rgba(255,166,122,0) 70%)",
+            filter: "blur(40px)",
+          }}
+        />
+        <div
+          className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[50%] rounded-full opacity-50"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,210,180,0.5), rgba(255,210,180,0) 70%)",
+            filter: "blur(50px)",
+          }}
+        />
+      </div>
 
-      {/* Logo */}
+      {/* Volver al inicio */}
       <Link
         href="/"
-        className="font-black text-3xl tracking-tighter mb-1 relative"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#0A0909] transition-colors group"
       >
-        <span className="text-brand-700">Practi</span>
-        <span className="text-accent-500">X</span>
+        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+        Volver al inicio
       </Link>
-      <p className="text-sm text-gray-400 mb-8 relative">
-        Intelligence for Professional Growth
+
+      {/* Logo */}
+      <Link href="/" className="relative z-10 flex items-center gap-2 mb-2">
+        <span className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]">
+          <span className="text-white font-bold text-[17px] leading-none tracking-tight">
+            P
+          </span>
+        </span>
+        <span className="text-[19px] font-semibold tracking-[-0.015em] text-[#0A0909]">
+          PractiX
+        </span>
+      </Link>
+      <p className="relative z-10 text-[13px] text-[#6D6A63] mb-8">
+        Completá tu perfil para activar tu cuenta
       </p>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-0 mb-8 relative">
-        {STEPS.map((step, i) => (
-          <div key={step} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black transition-all ${
-                  i === 0
-                    ? "bg-gray-300 text-gray-500"
-                    : i === 1
-                      ? "bg-brand-600 text-white shadow-lg shadow-brand-600/25"
-                      : "bg-gray-100 text-gray-300"
-                }`}
-              >
-                {i + 1}
+      <div className="relative z-10 flex items-center gap-0 mb-8">
+        {STEPS.map((step, i) => {
+          const isActive = i === ACTIVE_STEP;
+          const isDone = i < ACTIVE_STEP;
+          return (
+            <div key={step} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold transition-all ${
+                    isActive
+                      ? "bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                      : isDone
+                        ? "bg-[#0A0909] text-white"
+                        : "bg-white border border-black/[0.08] text-[#9B9891]"
+                  }`}
+                >
+                  {isDone ? "✓" : i + 1}
+                </div>
+                <span
+                  className={`text-[10px] font-semibold tracking-[0.08em] uppercase mt-1.5 ${
+                    isActive
+                      ? "text-[#FF6A3D]"
+                      : isDone
+                        ? "text-[#0A0909]"
+                        : "text-[#9B9891]"
+                  }`}
+                >
+                  {step}
+                </span>
               </div>
-              <span
-                className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${
-                  i === 1 ? "text-brand-600" : "text-gray-300"
-                }`}
-              >
-                {step}
-              </span>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={`w-14 h-px mx-2 mb-5 ${isDone ? "bg-[#0A0909]/30" : "bg-black/[0.08]"}`}
+                />
+              )}
             </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={`w-16 h-px mx-2 mb-5 ${i === 0 ? "bg-gray-200" : "bg-gray-200"}`}
-              />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md relative">
+      <div className="relative z-10 bg-white rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-7 w-full max-w-[440px]">
         <div className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-[#0A0909]">
             Completá tu perfil
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-[13px] text-[#6D6A63] mt-1 leading-[1.5]">
             Solo necesitamos estos datos una vez para activar tu cuenta.
           </p>
         </div>
@@ -277,20 +319,20 @@ export default function RegistroPage() {
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Nombre + Apellido */}
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-              Nombre completo
-            </label>
+            <label className={LABEL_CLS}>Nombre completo</label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <input
                   type="text"
                   value={form.name}
                   onChange={handleChange("name")}
-                  placeholder="Ej. Alex"
-                  className={inputCls("name")}
+                  placeholder="Alex"
+                  className={inputCls(!!errors.name)}
                 />
                 {errors.name && (
-                  <p className="text-xs text-red-600 mt-1">{errors.name}</p>
+                  <p className="text-[11.5px] text-[#C74A1E] mt-1">
+                    {errors.name}
+                  </p>
                 )}
               </div>
               <div>
@@ -298,81 +340,86 @@ export default function RegistroPage() {
                   type="text"
                   value={form.lastName}
                   onChange={handleChange("lastName")}
-                  placeholder="Ej. Martínez"
-                  className={inputCls("lastName")}
+                  placeholder="Martínez"
+                  className={inputCls(!!errors.lastName)}
                 />
                 {errors.lastName && (
-                  <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>
+                  <p className="text-[11.5px] text-[#C74A1E] mt-1">
+                    {errors.lastName}
+                  </p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Documento de identidad */}
+          {/* Rol + documento */}
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-              Seleccioná tu rol
-            </label>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <label className={LABEL_CLS}>Tipo de documento</label>
+            <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("rut")}
-                className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
+                className={`relative flex flex-col items-center gap-1.5 py-3.5 rounded-xl border transition-all ${
                   docType === "rut"
-                    ? "border-brand-600 bg-brand-50 text-brand-700"
-                    : "border-gray-200 text-gray-400 hover:border-gray-300"
+                    ? "border-[#FF6A3D]/40 bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] text-[#0A0909]"
+                    : "border-black/[0.06] bg-white text-[#6D6A63] hover:border-black/[0.12]"
                 }`}
               >
-                <span className="text-2xl">🎓</span>
-                <span className="text-sm font-bold">Soy Estudiante</span>
+                <span className="text-[22px] leading-none">🇨🇱</span>
+                <span className="text-[12.5px] font-semibold">RUT Chile</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("passport")}
-                className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all ${
+                className={`relative flex flex-col items-center gap-1.5 py-3.5 rounded-xl border transition-all ${
                   docType === "passport"
-                    ? "border-brand-600 bg-brand-50 text-brand-700"
-                    : "border-gray-200 text-gray-400 hover:border-gray-300"
+                    ? "border-[#FF6A3D]/40 bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] text-[#0A0909]"
+                    : "border-black/[0.06] bg-white text-[#6D6A63] hover:border-black/[0.12]"
                 }`}
               >
-                <span className="text-2xl">🏢</span>
-                <span className="text-sm font-bold">Soy Empresa</span>
+                <span className="text-[22px] leading-none">🌐</span>
+                <span className="text-[12.5px] font-semibold">Extranjero</span>
               </button>
             </div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-              Documento de identidad
-            </label>
             <input
               type="text"
               value={form.document}
               onChange={handleDocumentChange}
               placeholder={docType === "rut" ? "12.345.678-9" : "AB123456"}
               maxLength={docType === "rut" ? 12 : 20}
-              className={inputCls("document")}
+              className={inputCls(!!errors.document)}
             />
             {errors.document ? (
-              <p className="text-xs text-red-600 mt-1">{errors.document}</p>
+              <p className="text-[11.5px] text-[#C74A1E] mt-1">
+                {errors.document}
+              </p>
             ) : (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-[11.5px] text-[#9B9891] mt-1.5 leading-[1.45]">
                 {docType === "rut"
                   ? "Formato: 12.345.678-9"
-                  : "Número de pasaporte o documento (6–20 caracteres)"}
+                  : "Pasaporte o documento (6–20 caracteres)"}
               </p>
             )}
           </div>
 
           {/* Teléfono */}
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">
-              Teléfono
-            </label>
+            <label className={LABEL_CLS}>Teléfono</label>
             <div
-              className={`flex rounded-xl border overflow-hidden transition-colors ${errors.phone ? "border-red-300" : "border-gray-200"}`}
+              className={`flex rounded-xl overflow-hidden border transition-all ${
+                errors.phone
+                  ? "border-[#FF6A3D]/30 bg-[#FFF0ED]"
+                  : "border-transparent bg-[#FAFAF8] hover:border-black/[0.05] focus-within:border-[#FF6A3D]/40 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(255,106,61,0.08)]"
+              }`}
             >
               <select
                 value={country.code}
                 onChange={handleCountryChange}
-                className={`pl-3 pr-2 py-3 text-sm cursor-pointer focus:outline-none border-r transition-colors ${errors.phone ? "bg-red-50 border-red-300" : "bg-gray-50 border-gray-200"}`}
+                className={`pl-3 pr-2 py-3 text-[13px] cursor-pointer focus:outline-none border-r transition-colors ${
+                  errors.phone
+                    ? "border-[#FF6A3D]/20 bg-transparent text-[#0A0909]"
+                    : "border-black/[0.06] bg-transparent text-[#0A0909]"
+                }`}
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -385,16 +432,18 @@ export default function RegistroPage() {
                 value={form.phone}
                 onChange={handleChange("phone")}
                 placeholder="912345678"
-                className={`flex-1 px-4 py-3 text-sm focus:outline-none ${errors.phone ? "bg-red-50" : "bg-white"}`}
+                className="flex-1 px-4 py-3 text-[14px] bg-transparent focus:outline-none placeholder:text-[#9B9891] text-[#0A0909]"
               />
             </div>
             {errors.phone && (
-              <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+              <p className="text-[11.5px] text-[#C74A1E] mt-1">
+                {errors.phone}
+              </p>
             )}
           </div>
 
           {serverError && (
-            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700">
+            <div className="bg-[#FFF0ED] border border-[#FF6A3D]/20 text-[#C74A1E] text-[12.5px] px-3 py-2.5 rounded-lg leading-[1.4]">
               {serverError}
             </div>
           )}
@@ -402,22 +451,27 @@ export default function RegistroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-600 text-white py-3.5 rounded-xl font-bold hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="group relative w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white font-semibold py-3.5 rounded-xl text-[14px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.7),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
           >
-            {loading ? (
-              "Guardando..."
-            ) : (
-              <>
-                Continuar <span className="text-brand-200">→</span>
-              </>
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+            <span className="relative">
+              {loading ? "Guardando…" : "Continuar"}
+            </span>
+            {!loading && (
+              <span className="relative text-[11px] transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
             )}
           </button>
 
-          <p className="text-center text-sm text-gray-400">
+          <p className="text-center text-[12.5px] text-[#6D6A63]">
             ¿Ya tenés una cuenta?{" "}
             <Link
               href="/login"
-              className="text-brand-600 font-bold hover:underline"
+              className="text-[#FF6A3D] font-semibold hover:text-[#E85A2D] transition-colors"
             >
               Iniciar sesión
             </Link>
@@ -425,34 +479,42 @@ export default function RegistroPage() {
         </form>
       </div>
 
-      {/* PractiX Insight */}
-      <div className="mt-6 w-full max-w-md bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex gap-3 relative">
-        <div className="w-8 h-8 rounded-xl bg-amber-200 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-amber-700" />
-        </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-amber-700 mb-1">
-            PractiX Insight
-          </p>
-          <p className="text-xs text-amber-700 leading-relaxed">
-            Completá tu perfil para que nuestra IA pueda recomendarte prácticas
-            que se ajusten a tus habilidades únicas en menos de 24 horas.
-          </p>
+      {/* PractiX Insight — warm card */}
+      <div className="relative z-10 mt-5 w-full max-w-[440px]">
+        <div className="relative bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] rounded-2xl p-4 border border-[#FF6A3D]/10 overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute -top-6 -right-6 w-20 h-20 bg-[#FF6A3D]/12 rounded-full blur-xl"
+          />
+          <div className="relative flex items-start gap-3">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-[0_2px_8px_-1px_rgba(255,106,61,0.3)]">
+              <Sparkles className="w-4 h-4 text-[#FF6A3D]" />
+            </span>
+            <div>
+              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D] mb-1">
+                PractiX Insight
+              </p>
+              <p className="text-[12px] text-[#4A4843] leading-[1.55]">
+                Completá tu perfil para que nuestra IA te recomiende prácticas
+                que se ajusten a tus habilidades en menos de 24 horas.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-8 text-xs text-gray-400 text-center">
+      <div className="relative z-10 mt-8 text-[11.5px] text-[#6D6A63] text-center">
         © {new Date().getFullYear()} PractiX ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Privacidad
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Términos
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:underline">
+        <Link href="#" className="hover:text-[#0A0909] transition-colors">
           Contacto
         </Link>
       </div>

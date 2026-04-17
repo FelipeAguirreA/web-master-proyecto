@@ -7,14 +7,16 @@ import {
   Sparkles,
   FileText,
   Clock,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   MapPin,
   Briefcase,
   Calendar,
   X,
-  MoreVertical,
+  ChevronRight,
   Star,
+  TrendingUp,
+  Wand2,
 } from "lucide-react";
 import InternshipCard from "@/components/ui/InternshipCard";
 import type { Internship, Application } from "@/types";
@@ -45,45 +47,43 @@ type UserWithProfile = {
   id: string;
   name: string;
   email: string;
-  studentProfile?: {
-    cvUrl?: string | null;
-  } | null;
+  studentProfile?: { cvUrl?: string | null } | null;
 };
 
 const STATUS_CONFIG = {
   PENDING: {
     label: "Pendiente",
     icon: Clock,
-    color: "text-amber-700 bg-amber-100",
+    pill: "bg-[#FFF3EC] text-[#C2410C]",
   },
   REVIEWED: {
     label: "En revisión",
     icon: FileText,
-    color: "text-blue-700 bg-blue-100",
+    pill: "bg-[#EDF4FF] text-[#2E5AAC]",
   },
   ACCEPTED: {
     label: "Aceptada",
-    icon: CheckCircle,
-    color: "text-green-700 bg-green-100",
+    icon: CheckCircle2,
+    pill: "bg-[#E7F8EA] text-[#1A6E31]",
   },
   REJECTED: {
     label: "Rechazada",
     icon: XCircle,
-    color: "text-red-700 bg-red-100",
+    pill: "bg-[#FFECEC] text-[#A63418]",
   },
 };
 
 const PIPELINE_STATUS_CONFIG = {
   PENDING: {
     label: "Pendiente de revisión",
-    color: "text-gray-500 bg-gray-100",
+    pill: "bg-[#F4F3EF] text-[#6D6A63]",
   },
-  REVIEWING: { label: "En revisión", color: "text-blue-700 bg-blue-100" },
+  REVIEWING: { label: "En revisión", pill: "bg-[#EDF4FF] text-[#2E5AAC]" },
   INTERVIEW: {
     label: "¡Seleccionado para entrevista! 🎉",
-    color: "text-green-700 bg-green-100",
+    pill: "bg-[#E7F8EA] text-[#1A6E31]",
   },
-  REJECTED: { label: "No seleccionado", color: "text-red-600 bg-red-100" },
+  REJECTED: { label: "No seleccionado", pill: "bg-[#FFECEC] text-[#A63418]" },
 };
 
 const MODALITY_LABEL: Record<string, string> = {
@@ -190,33 +190,39 @@ export default function StudentDashboard() {
 
   const hasCv = !!user?.studentProfile?.cvUrl;
   const name = session?.user?.name?.split(" ")[0] ?? "estudiante";
+  const completionPct = hasCv ? 85 : 40;
+
+  const acceptedCount = applications.filter(
+    (a) => a.status === "ACCEPTED",
+  ).length;
 
   return (
     <>
       {/* Modal detalle postulación */}
       {selectedApplication && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0909]/50 backdrop-blur-sm"
           onClick={() => setSelectedApplication(null)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-[24px] shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-start justify-between gap-4 rounded-t-2xl">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-6 py-4 flex items-start justify-between gap-4 rounded-t-[24px]">
+              <div className="min-w-0">
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight truncate">
                   {selectedApplication.internship.title}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-[13px] text-[#6D6A63] mt-0.5">
                   {selectedApplication.internship.company.companyName}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedApplication(null)}
-                className="shrink-0 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                className="shrink-0 w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
+                aria-label="Cerrar"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-4 h-4 text-[#6D6A63]" />
               </button>
             </div>
 
@@ -227,7 +233,7 @@ export default function StudentDashboard() {
                   const Icon = st.icon;
                   return (
                     <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg ${st.color}`}
+                      className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full ${st.pill}`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                       {st.label}
@@ -236,12 +242,13 @@ export default function StudentDashboard() {
                 })()}
                 {selectedApplication.matchScore != null &&
                   selectedApplication.matchScore > 0 && (
-                    <span className="inline-flex items-center text-xs font-semibold bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg">
+                    <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 text-[#C2410C] px-3 py-1.5 rounded-full border border-[#FF6A3D]/15">
+                      <Sparkles className="w-3 h-3" />
                       {Math.round(selectedApplication.matchScore)}%
                       compatibilidad
                     </span>
                   )}
-                <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg">
+                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-[#6D6A63] bg-[#FAFAF8] px-3 py-1.5 rounded-full">
                   <Calendar className="w-3.5 h-3.5" />
                   Postulado el{" "}
                   {new Date(selectedApplication.createdAt).toLocaleDateString(
@@ -252,48 +259,54 @@ export default function StudentDashboard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                  {selectedApplication.internship.location}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Briefcase className="w-4 h-4 text-gray-400 shrink-0" />
-                  {MODALITY_LABEL[selectedApplication.internship.modality]}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                  {selectedApplication.internship.area}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Clock className="w-4 h-4 text-gray-400 shrink-0" />
-                  {selectedApplication.internship.duration}
-                </div>
+                {[
+                  [MapPin, selectedApplication.internship.location],
+                  [
+                    Briefcase,
+                    MODALITY_LABEL[selectedApplication.internship.modality],
+                  ],
+                  [FileText, selectedApplication.internship.area],
+                  [Clock, selectedApplication.internship.duration],
+                ].map(([Icon, label], i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-[13px] text-[#4A4843]"
+                  >
+                    {/* @ts-expect-error icon is a component */}
+                    <Icon className="w-4 h-4 text-[#FF6A3D]/70 shrink-0" />
+                    {label as string}
+                  </div>
+                ))}
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                  Descripción
-                </h3>
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                  <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                    Descripción
+                  </h3>
+                </div>
+                <p className="text-[13px] text-[#4A4843] leading-[1.65] whitespace-pre-line">
                   {selectedApplication.internship.description}
                 </p>
               </div>
 
               {selectedApplication.internship.requirements.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                    Requisitos
-                  </h3>
-                  <ul className="space-y-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                    <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                      Requisitos
+                    </h3>
+                  </div>
+                  <ul className="space-y-1.5">
                     {selectedApplication.internship.requirements.map(
                       (req, i) => (
                         <li
                           key={i}
-                          className="flex items-start gap-2 text-sm text-gray-600"
+                          className="flex items-start gap-2 text-[13px] text-[#4A4843]"
                         >
-                          <span className="text-brand-500 font-bold mt-0.5 shrink-0">
-                            ·
-                          </span>
+                          <span className="w-1 h-1 rounded-full bg-[#FF6A3D] mt-2 shrink-0" />
                           {req}
                         </li>
                       ),
@@ -304,14 +317,17 @@ export default function StudentDashboard() {
 
               {selectedApplication.internship.skills.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                    Habilidades requeridas
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                    <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                      Habilidades requeridas
+                    </h3>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {selectedApplication.internship.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-lg font-medium"
+                        className="text-[11.5px] font-medium bg-[#F4F3EF] text-[#4A4843] px-2.5 py-1 rounded-lg"
                       >
                         {skill}
                       </span>
@@ -324,75 +340,127 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-10">
-        {/* Bienvenida */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-8">
+        {/* Hero bienvenida */}
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-5">
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-gray-900">
-              Hola, {name} 👋
+            <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
+              Tu panel ·{" "}
+              {new Date().toLocaleDateString("es-CL", { weekday: "long" })}
+            </p>
+            <h1 className="text-[36px] md:text-[44px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
+              Hola,{" "}
+              <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
+                {name}
+              </span>{" "}
+              👋
             </h1>
-            <p className="text-gray-400 mt-2 text-lg">
+            <p className="text-[14.5px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
               {recommendations.length > 0
-                ? `Tenés ${recommendations.length} recomendaciones basadas en tu perfil.`
-                : "Subí tu CV para activar las recomendaciones personalizadas."}
+                ? `Tenemos ${recommendations.length} recomendaciones alineadas a tu perfil. Revisalas cuanto antes — las buenas vuelan.`
+                : "Subí tu CV para activar el matching IA y recibir recomendaciones personalizadas."}
             </p>
           </div>
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 font-bold rounded-full text-xs w-fit">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            Perfil {hasCv ? "85" : "40"}% completado
-          </span>
+
+          {/* Mini stats */}
+          <div className="flex items-center gap-3">
+            <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-w-[120px]">
+              <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+                Postulaciones
+              </p>
+              <p className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1 leading-none">
+                {applications.length}
+              </p>
+              {acceptedCount > 0 && (
+                <p className="text-[11px] font-medium text-[#1A8F3C] mt-1 inline-flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" strokeWidth={2.4} />
+                  {acceptedCount} aceptada{acceptedCount > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+            <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-w-[140px]">
+              <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+                Perfil
+              </p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <p className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none">
+                  {completionPct}
+                </p>
+                <span className="text-[12px] font-medium text-[#9B9891]">
+                  %
+                </span>
+              </div>
+              <div className="w-full h-1 bg-[#F4F3EF] rounded-full overflow-hidden mt-2">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A]"
+                  style={{ width: `${completionPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Banner CV */}
         {!hasCv ? (
-          <section className="relative bg-brand-50 border border-brand-100 p-8 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
-            <div className="absolute -right-16 -top-16 w-64 h-64 bg-brand-200/30 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center gap-6 relative z-10">
-              <div className="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center shrink-0">
-                <Upload className="w-7 h-7 text-brand-700" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Sube tu CV para activar el matching IA
-                </h3>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Analizaremos tus habilidades para conectarte con las mejores
-                  vacantes.
-                </p>
-              </div>
+          <section className="relative overflow-hidden rounded-[24px] border border-[#FF6A3D]/15 bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFEDE0] p-7 md:p-8">
+            <div className="pointer-events-none absolute inset-0" aria-hidden>
+              <div className="absolute -top-20 -right-20 w-[360px] h-[360px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[50px]" />
+              <div className="absolute -bottom-16 -left-12 w-[280px] h-[280px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.5),transparent_70%)] blur-[40px]" />
             </div>
-            <div className="relative z-10 flex flex-col items-end gap-2">
-              <label className="bg-brand-600 text-white px-7 py-3.5 rounded-xl font-semibold text-sm cursor-pointer hover:bg-brand-700 transition-colors shadow-lg shadow-brand-600/20 flex items-center gap-2">
-                <Upload className="w-4 h-4" />
-                {uploading ? "Procesando..." : "Subir CV (PDF o DOCX)"}
-                <input
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleCVUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-              </label>
-              {uploadError && (
-                <p className="text-xs text-red-600">{uploadError}</p>
-              )}
+            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex items-start gap-5 min-w-0">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shrink-0 shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)]">
+                  <Wand2 className="w-7 h-7 text-white" strokeWidth={2.2} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#FF6A3D] mb-1">
+                    Activá el matching IA
+                  </p>
+                  <h3 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight">
+                    Subí tu CV y dejá que la IA encuentre tus prácticas ideales
+                  </h3>
+                  <p className="text-[13px] text-[#6D6A63] mt-1.5 max-w-[480px] leading-[1.55]">
+                    Analizamos tus habilidades y experiencia para conectarte con
+                    las vacantes que mejor calzan con tu perfil.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-stretch md:items-end gap-2 w-full md:w-auto shrink-0">
+                <label className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-6 py-3 rounded-xl font-semibold text-[13.5px] cursor-pointer shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all">
+                  <Upload className="w-4 h-4" strokeWidth={2.3} />
+                  {uploading ? "Procesando…" : "Subir CV (PDF o DOCX)"}
+                  <input
+                    type="file"
+                    accept=".pdf,.docx"
+                    onChange={handleCVUpload}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                </label>
+                {uploadError && (
+                  <p className="text-[11.5px] text-[#A63418] font-medium text-center md:text-right">
+                    {uploadError}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
         ) : (
-          <section className="bg-green-50 border border-green-100 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+          <section className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#D3E9C7] to-[#6BB85A] flex items-center justify-center shrink-0 shadow-[0_4px_12px_-2px_rgba(107,184,90,0.35)]">
+              <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={2.4} />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-green-900">
-                CV procesado — matching IA activo
+            <div className="flex-1 min-w-0">
+              <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                CV procesado · matching IA activo
               </p>
-              <p className="text-xs text-green-700 mt-0.5">
-                Tus recomendaciones se actualizan automáticamente
+              <p className="text-[12px] text-[#6D6A63] mt-0.5">
+                Tus recomendaciones se actualizan automáticamente según nuevas
+                vacantes.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-xs font-semibold">
-              <label className="text-brand-600 hover:text-brand-700 cursor-pointer transition-colors">
+            <div className="flex items-center gap-2 text-[12px] font-semibold shrink-0">
+              <label className="text-[#FF6A3D] hover:text-[#FF5A28] cursor-pointer transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF3EC]">
                 Actualizar CV
                 <input
                   type="file"
@@ -402,12 +470,13 @@ export default function StudentDashboard() {
                   disabled={uploading || deleting}
                 />
               </label>
+              <span className="w-px h-4 bg-black/[0.08]" />
               <button
                 onClick={handleCVDelete}
                 disabled={deleting || uploading}
-                className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                className="text-[#6D6A63] hover:text-[#C2410C] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF0ED] disabled:opacity-50"
               >
-                {deleting ? "Eliminando..." : "Eliminar CV"}
+                {deleting ? "Eliminando…" : "Eliminar"}
               </button>
             </div>
           </section>
@@ -415,35 +484,53 @@ export default function StudentDashboard() {
 
         {/* Tabs + contenido */}
         <section>
-          <div className="flex gap-8 border-b border-gray-200 mb-8">
+          <div className="flex items-center gap-1 bg-black/[0.03] rounded-2xl p-1 w-fit mb-7">
             <button
               onClick={() => setTab("recommendations")}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+              className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all ${
                 tab === "recommendations"
-                  ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                  : "text-[#6D6A63] hover:text-[#0A0909]"
               }`}
             >
-              <Sparkles className="w-4 h-4" />
-              Recomendadas ({recommendations.length})
+              <Sparkles className="w-3.5 h-3.5" strokeWidth={2.2} />
+              Recomendadas
+              <span
+                className={`text-[10.5px] px-1.5 py-0.5 rounded-md ${
+                  tab === "recommendations"
+                    ? "bg-[#FFF3EC] text-[#FF6A3D]"
+                    : "bg-white/60 text-[#9B9891]"
+                }`}
+              >
+                {recommendations.length}
+              </span>
             </button>
             <button
               onClick={() => setTab("applications")}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${
+              className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all ${
                 tab === "applications"
-                  ? "border-brand-600 text-brand-700"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                  : "text-[#6D6A63] hover:text-[#0A0909]"
               }`}
             >
-              <FileText className="w-4 h-4" />
-              Mis postulaciones ({applications.length})
+              <FileText className="w-3.5 h-3.5" strokeWidth={2.2} />
+              Mis postulaciones
+              <span
+                className={`text-[10.5px] px-1.5 py-0.5 rounded-md ${
+                  tab === "applications"
+                    ? "bg-[#FFF3EC] text-[#FF6A3D]"
+                    : "bg-white/60 text-[#9B9891]"
+                }`}
+              >
+                {applications.length}
+              </span>
             </button>
           </div>
 
           {tab === "recommendations" && (
             <>
               {recommendations.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
                   {recommendations.map((internship) => (
                     <InternshipCard
                       key={internship.id}
@@ -452,15 +539,16 @@ export default function StudentDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-20">
-                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-7 h-7 text-gray-300" />
+                <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
+                  <div className="w-14 h-14 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-6 h-6 text-[#C9C6BF]" />
                   </div>
-                  <p className="text-lg font-bold text-gray-500">
+                  <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
                     Todavía no hay recomendaciones
                   </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Subí tu CV y la IA encontrará las mejores prácticas para vos
+                  <p className="text-[13px] text-[#6D6A63] mt-1 max-w-[340px] mx-auto">
+                    Subí tu CV y la IA encontrará las mejores prácticas para tu
+                    perfil.
                   </p>
                 </div>
               )}
@@ -468,189 +556,142 @@ export default function StudentDashboard() {
           )}
 
           {tab === "applications" && applications.length > 0 && (
-            <div className="flex flex-col gap-px bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
-              {applications.map((application) => {
-                const status =
-                  STATUS_CONFIG[
-                    application.status as keyof typeof STATUS_CONFIG
-                  ];
-                const StatusIcon = status.icon;
-                const initial = application.internship.company.companyName
-                  .charAt(0)
-                  .toUpperCase();
-
-                return (
-                  <button
-                    key={application.id}
-                    onClick={() => setSelectedApplication(application)}
-                    className="bg-white px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    {/* Info */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center font-bold text-brand-600 shrink-0 text-sm">
-                        {initial}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 truncate text-sm">
-                          {application.internship.title}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {application.internship.company.companyName}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Match + estado + menú */}
-                    <div className="flex items-center gap-6">
-                      {application.matchScore != null &&
-                        application.matchScore > 0 && (
-                          <div className="hidden lg:flex flex-col items-end">
-                            <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
-                              Compatibilidad
-                            </span>
-                            <span className="text-xs font-bold text-amber-600">
-                              {Math.round(application.matchScore)}% Match
-                            </span>
-                          </div>
-                        )}
-
-                      <div className="flex flex-col items-end min-w-[120px]">
-                        <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
-                          Estado
-                        </span>
-                        {application.pipelineStatus &&
-                        application.pipelineStatus !== "PENDING" ? (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${PIPELINE_STATUS_CONFIG[application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG]?.color ?? status.color}`}
-                          >
-                            {PIPELINE_STATUS_CONFIG[
-                              application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
-                            ]?.label ?? status.label}
-                          </span>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {status.label}
-                          </span>
-                        )}
-                      </div>
-
-                      <MoreVertical className="w-4 h-4 text-gray-300 shrink-0" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <ApplicationList
+              items={applications}
+              onSelect={setSelectedApplication}
+            />
           )}
 
           {tab === "applications" && applications.length === 0 && (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-7 h-7 text-gray-300" />
+            <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
+              <div className="w-14 h-14 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-6 h-6 text-[#C9C6BF]" />
               </div>
-              <p className="text-lg font-bold text-gray-500">
+              <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
                 Aún no tenés postulaciones
               </p>
-              <p className="text-sm text-gray-400 mt-1">
-                Explorá las prácticas disponibles y postulate
+              <p className="text-[13px] text-[#6D6A63] mt-1">
+                Explorá las prácticas disponibles y postulate a las que te
+                interesen.
               </p>
             </div>
           )}
         </section>
 
-        {/* Actividad reciente (cuando hay postulaciones y está en tab recomendaciones) */}
+        {/* Actividad reciente */}
         {tab === "recommendations" && applications.length > 0 && (
-          <section className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black tracking-tight text-gray-900">
-                Actividad Reciente
-              </h2>
+          <section>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#9B9891] mb-1">
+                  Historial
+                </p>
+                <h2 className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909]">
+                  Actividad reciente
+                </h2>
+              </div>
               <button
                 onClick={() => setTab("applications")}
-                className="text-xs font-bold uppercase tracking-widest text-brand-600 hover:underline"
+                className="text-[12px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors inline-flex items-center gap-1"
               >
-                Ver todo el historial
+                Ver todo
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="flex flex-col gap-px bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
-              {applications.slice(0, 3).map((application) => {
-                const status =
-                  STATUS_CONFIG[
-                    application.status as keyof typeof STATUS_CONFIG
-                  ];
-                const StatusIcon = status.icon;
-                const initial = application.internship.company.companyName
-                  .charAt(0)
-                  .toUpperCase();
-
-                return (
-                  <button
-                    key={application.id}
-                    onClick={() => setSelectedApplication(application)}
-                    className="bg-white px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center font-bold text-brand-600 shrink-0 text-sm">
-                        {initial}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 truncate text-sm">
-                          {application.internship.title}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {application.internship.company.companyName}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      {application.matchScore != null &&
-                        application.matchScore > 0 && (
-                          <div className="hidden lg:flex flex-col items-end">
-                            <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
-                              Compatibilidad
-                            </span>
-                            <span className="text-xs font-bold text-amber-600">
-                              {Math.round(application.matchScore)}% Match
-                            </span>
-                          </div>
-                        )}
-
-                      <div className="flex flex-col items-end min-w-[120px]">
-                        <span className="text-[10px] font-black uppercase text-gray-400 mb-0.5">
-                          Estado
-                        </span>
-                        {application.pipelineStatus &&
-                        application.pipelineStatus !== "PENDING" ? (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${PIPELINE_STATUS_CONFIG[application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG]?.color ?? status.color}`}
-                          >
-                            {PIPELINE_STATUS_CONFIG[
-                              application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
-                            ]?.label ?? status.label}
-                          </span>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${status.color}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {status.label}
-                          </span>
-                        )}
-                      </div>
-
-                      <MoreVertical className="w-4 h-4 text-gray-300 shrink-0" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+            <ApplicationList
+              items={applications.slice(0, 3)}
+              onSelect={setSelectedApplication}
+            />
           </section>
         )}
       </div>
     </>
+  );
+}
+
+function ApplicationList({
+  items,
+  onSelect,
+}: {
+  items: ApplicationWithInternship[];
+  onSelect: (a: ApplicationWithInternship) => void;
+}) {
+  return (
+    <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+      {items.map((application, i) => {
+        const status =
+          STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG];
+        const StatusIcon = status.icon;
+        const companyName = application.internship.company.companyName;
+        const initial = companyName.charAt(0).toUpperCase();
+        const pipeline =
+          application.pipelineStatus && application.pipelineStatus !== "PENDING"
+            ? PIPELINE_STATUS_CONFIG[
+                application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
+              ]
+            : null;
+
+        return (
+          <button
+            key={application.id}
+            onClick={() => onSelect(application)}
+            className={`w-full px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#FAFAF8] transition-colors text-left ${
+              i < items.length - 1 ? "border-b border-black/[0.04]" : ""
+            }`}
+          >
+            <div className="flex items-center gap-3.5 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFE9B3] to-[#FFC84A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.3)]">
+                {initial}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-semibold tracking-[-0.01em] text-[#0A0909] truncate">
+                  {application.internship.title}
+                </p>
+                <p className="text-[12px] text-[#6D6A63] truncate mt-0.5">
+                  {companyName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 shrink-0">
+              {application.matchScore != null && application.matchScore > 0 && (
+                <div className="hidden lg:flex flex-col items-end">
+                  <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891]">
+                    Match
+                  </span>
+                  <span className="text-[12.5px] font-bold text-[#FF6A3D] inline-flex items-center gap-1 mt-0.5">
+                    <Star className="w-3 h-3 fill-[#FFC84A] text-[#FFC84A]" />
+                    {Math.round(application.matchScore)}%
+                  </span>
+                </div>
+              )}
+
+              <div className="flex flex-col items-end min-w-[140px]">
+                <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891] mb-1">
+                  Estado
+                </span>
+                {pipeline ? (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${pipeline.pill}`}
+                  >
+                    {pipeline.label}
+                  </span>
+                ) : (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${status.pill}`}
+                  >
+                    <StatusIcon className="w-3 h-3" />
+                    {status.label}
+                  </span>
+                )}
+              </div>
+
+              <ChevronRight className="w-4 h-4 text-[#C9C6BF] shrink-0" />
+            </div>
+          </button>
+        );
+      })}
+    </div>
   );
 }

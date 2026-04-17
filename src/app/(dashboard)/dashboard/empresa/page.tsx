@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   Bot,
   MessageSquare,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 type Internship = {
@@ -82,11 +84,19 @@ const MODALITY_LABEL: Record<string, string> = {
 };
 
 const STATUS_CONFIG = {
-  PENDING: { label: "Pendiente", cls: "bg-amber-100 text-amber-700" },
-  REVIEWED: { label: "En revisión", cls: "bg-blue-100 text-blue-700" },
-  ACCEPTED: { label: "Aprobado", cls: "bg-green-100 text-green-700" },
-  REJECTED: { label: "Rechazado", cls: "bg-red-100 text-red-600" },
+  PENDING: { label: "Pendiente", pill: "bg-[#FFF3EC] text-[#C2410C]" },
+  REVIEWED: { label: "En revisión", pill: "bg-[#EDF4FF] text-[#2E5AAC]" },
+  ACCEPTED: { label: "Aprobado", pill: "bg-[#E7F8EA] text-[#1A6E31]" },
+  REJECTED: { label: "Rechazado", pill: "bg-[#FFECEC] text-[#A63418]" },
 };
+
+const INPUT_CLS = (hasError?: boolean) =>
+  hasError
+    ? "w-full rounded-xl px-4 py-2.5 text-[13.5px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
+    : "w-full rounded-xl px-4 py-2.5 text-[13.5px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+
+const LABEL_CLS =
+  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-1.5";
 
 export default function CompanyDashboard() {
   const { data: session } = useSession();
@@ -297,235 +307,323 @@ export default function CompanyDashboard() {
     },
   });
 
-  const inputClass = (hasError?: boolean) =>
-    `w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-colors ${
-      hasError
-        ? "border-red-400 bg-red-50 focus:border-red-500"
-        : "border-gray-200 focus:border-brand-400 bg-white"
-    }`;
-
   const selectedName = selectedInternship
     ? internships.find((i) => i.id === selectedInternship)?.title
     : null;
 
+  const activeCount = internships.filter((i) => i.isActive).length;
+  const completedCount = internships.length - activeCount;
+
   return (
     <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-6">
-      {/* Banner estado */}
+      {/* Status banners */}
       {companyStatus === "PENDING" && (
-        <div className="flex items-center justify-center gap-3 bg-amber-400 text-white px-5 py-3 rounded-2xl text-sm font-semibold -mx-8 px-8">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          Tu cuenta está en revisión — las prácticas no serán visibles hasta su
-          aprobación.
+        <div className="relative overflow-hidden rounded-2xl border border-[#FFBD2E]/25 bg-gradient-to-r from-[#FFF8E6] to-[#FFF3EC] px-5 py-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFE9B3] to-[#FFBD2E] flex items-center justify-center shrink-0 shadow-[0_4px_10px_-2px_rgba(255,189,46,0.35)]">
+            <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-[13.5px] font-semibold text-[#0A0909]">
+              Cuenta en revisión
+            </p>
+            <p className="text-[12.5px] text-[#6D6A63] mt-0.5">
+              Tus prácticas no serán visibles para estudiantes hasta que
+              aprobemos tu empresa.
+            </p>
+          </div>
         </div>
       )}
       {companyStatus === "REJECTED" && (
-        <div className="flex items-center justify-center gap-3 bg-red-500 text-white px-5 py-3 rounded-2xl text-sm font-semibold">
-          <XCircle className="w-4 h-4 shrink-0" />
-          Cuenta rechazada. Contactá a soporte@practix.cl para más información.
+        <div className="relative overflow-hidden rounded-2xl border border-[#FF6A3D]/25 bg-gradient-to-r from-[#FFECEC] to-[#FFF0ED] px-5 py-4 flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFCDCD] to-[#FF6B6B] flex items-center justify-center shrink-0 shadow-[0_4px_10px_-2px_rgba(255,107,107,0.4)]">
+            <XCircle className="w-4 h-4 text-white" strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-[13.5px] font-semibold text-[#0A0909]">
+              Cuenta rechazada
+            </p>
+            <p className="text-[12.5px] text-[#6D6A63] mt-0.5">
+              Contactá a{" "}
+              <a
+                href="mailto:soporte@practix.cl"
+                className="text-[#FF6A3D] font-semibold hover:underline"
+              >
+                soporte@practix.cl
+              </a>{" "}
+              para más información.
+            </p>
+          </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tighter text-gray-900">
-            Panel de Empresa
+          <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
+            Panel empresa
+          </p>
+          <h1 className="text-[34px] md:text-[40px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
+            Gestioná tu{" "}
+            <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
+              talento
+            </span>
           </h1>
-          <p className="text-gray-400 mt-1">
-            Gestioná tus vacantes y encontrá el mejor talento joven.
+          <p className="text-[14px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
+            Publicá vacantes, revisá postulaciones rankeadas por IA y encontrá
+            al candidato ideal para tu equipo.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 bg-brand-600 text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-600/20"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva práctica
-        </button>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+              Activas
+            </p>
+            <p className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
+              {activeCount}
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+              Completadas
+            </p>
+            <p className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
+              {completedCount}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="group inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[13px] font-semibold px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all"
+          >
+            <Plus className="w-4 h-4" strokeWidth={2.4} />
+            Nueva práctica
+          </button>
+        </div>
       </div>
 
       {/* Split layout */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Lista de prácticas */}
-        <div className="lg:col-span-2 flex flex-col gap-px bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
+      <div className="grid lg:grid-cols-3 gap-5">
+        {/* Lista prácticas */}
+        <div className="lg:col-span-2">
           {internships.length === 0 ? (
-            <div className="bg-white text-center py-20 rounded-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="w-7 h-7 text-gray-300" />
+            <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-6 h-6 text-[#FF6A3D]" />
               </div>
-              <p className="text-lg font-bold text-gray-500">
+              <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
                 Aún no publicaste prácticas
               </p>
-              <p className="text-sm text-gray-400 mt-1">
-                Creá tu primera oferta y empezá a recibir postulantes
+              <p className="text-[13px] text-[#6D6A63] mt-1 max-w-[360px] mx-auto">
+                Creá tu primera oferta y empezá a recibir candidatos rankeados
+                por la IA.
               </p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={2.4} />
+                Crear primera práctica
+              </button>
             </div>
           ) : (
-            internships.map((internship) => (
-              <div
-                key={internship.id}
-                onClick={() => setDetailInternship(internship)}
-                className={`bg-white px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  selectedInternship === internship.id
-                    ? "border-l-4 border-brand-600"
-                    : ""
-                }`}
-              >
-                {/* Icon + info */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                    <Briefcase className="w-5 h-5 text-brand-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-gray-900 truncate text-sm">
-                        {internship.title}
-                      </p>
-                      {!internship.isActive && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-green-100 text-green-700 px-2.5 py-1 rounded-full shrink-0">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Completada
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {MODALITY_LABEL[internship.modality]}
-                      </span>
-                      <span>·</span>
-                      <span>{internship.area}</span>
-                      <span>·</span>
-                      <span>{internship.duration}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Acciones */}
+            <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+              {internships.map((internship, idx) => (
                 <div
-                  className="flex items-center gap-2 shrink-0 flex-wrap"
-                  onClick={(e) => e.stopPropagation()}
+                  key={internship.id}
+                  onClick={() => setDetailInternship(internship)}
+                  className={`relative px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 cursor-pointer hover:bg-[#FAFAF8] transition-colors ${
+                    idx < internships.length - 1
+                      ? "border-b border-black/[0.04]"
+                      : ""
+                  } ${selectedInternship === internship.id ? "bg-[#FFF7F2]" : ""}`}
                 >
-                  <button
-                    onClick={() => viewApplicants(internship.id)}
-                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-                      selectedInternship === internship.id
-                        ? "bg-brand-600 text-white border-brand-600"
-                        : "text-brand-600 border-brand-200 hover:bg-brand-600 hover:text-white"
-                    }`}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    Postulantes
-                  </button>
-                  <Link
-                    href={`/dashboard/empresa/ats/${internship.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg hover:bg-purple-600 hover:text-white transition-colors"
-                  >
-                    <Bot className="w-3.5 h-3.5" />
-                    ATS
-                  </Link>
-                  {internship.isActive && (
-                    <button
-                      onClick={() => handleComplete(internship.id)}
-                      disabled={processing === internship.id}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 border border-green-200 px-3 py-1.5 rounded-lg hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Completada
-                    </button>
+                  {selectedInternship === internship.id && (
+                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A]" />
                   )}
-                  <button
-                    onClick={() => setConfirmDeleteId(internship.id)}
-                    disabled={processing === internship.id}
-                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+
+                  <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                        internship.isActive
+                          ? "bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/50"
+                          : "bg-[#F4F3EF]"
+                      }`}
+                    >
+                      <Briefcase
+                        className={`w-5 h-5 ${
+                          internship.isActive
+                            ? "text-[#FF6A3D]"
+                            : "text-[#9B9891]"
+                        }`}
+                        strokeWidth={2.2}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[13.5px] font-semibold tracking-[-0.01em] text-[#0A0909] truncate">
+                          {internship.title}
+                        </p>
+                        {!internship.isActive && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-[#E7F8EA] text-[#1A6E31] px-2 py-0.5 rounded-full shrink-0">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            Completada
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-[11.5px] text-[#6D6A63] mt-0.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {MODALITY_LABEL[internship.modality]}
+                        </span>
+                        <span className="w-px h-3 bg-black/[0.08]" />
+                        <span>{internship.area}</span>
+                        <span className="w-px h-3 bg-black/[0.08]" />
+                        <span>{internship.duration}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center gap-1.5 shrink-0 flex-wrap"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => viewApplicants(internship.id)}
+                      className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                        selectedInternship === internship.id
+                          ? "bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]"
+                          : "text-[#FF6A3D] hover:bg-[#FFF3EC]"
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" strokeWidth={2.4} />
+                      Postulantes
+                    </button>
+                    <Link
+                      href={`/dashboard/empresa/ats/${internship.id}`}
+                      className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#5B2FA6] bg-[#F3EEFF] hover:bg-[#E7DEFF] px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Bot className="w-3.5 h-3.5" strokeWidth={2.4} />
+                      ATS
+                    </Link>
+                    {internship.isActive && (
+                      <button
+                        onClick={() => handleComplete(internship.id)}
+                        disabled={processing === internship.id}
+                        className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#1A6E31] hover:bg-[#E7F8EA] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <CheckCircle2
+                          className="w-3.5 h-3.5"
+                          strokeWidth={2.4}
+                        />
+                        Cerrar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setConfirmDeleteId(internship.id)}
+                      disabled={processing === internship.id}
+                      className="w-8 h-8 inline-flex items-center justify-center text-[#9B9891] hover:text-[#C2410C] hover:bg-[#FFF0ED] rounded-lg transition-colors"
+                      aria-label="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Panel postulantes (siempre visible) */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+        {/* Panel postulantes */}
+        <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col max-h-[720px]">
+          <div className="px-5 py-4 border-b border-black/[0.05] flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#9B9891]">
                 Postulantes
               </p>
-              <p className="text-sm font-bold text-gray-900 mt-0.5 truncate max-w-[180px]">
+              <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em] mt-0.5 truncate">
                 {selectedName ?? "Seleccioná una práctica"}
               </p>
             </div>
             {applicants.length > 0 && (
-              <span className="text-xs font-black bg-brand-600 text-white px-2.5 py-1 rounded-full">
-                {applicants.length} Total
+              <span className="text-[11px] font-bold bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-2.5 py-1 rounded-full shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)] shrink-0">
+                {applicants.length} total
               </span>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          <div className="flex-1 overflow-y-auto">
             {!selectedInternship ? (
-              <div className="text-center py-16 px-4">
-                <Users className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">
-                  Hacé click en &quot;Postulantes&quot; de una práctica para ver
-                  los candidatos
+              <div className="text-center py-16 px-5">
+                <div className="w-12 h-12 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-5 h-5 text-[#C9C6BF]" />
+                </div>
+                <p className="text-[12.5px] text-[#6D6A63] leading-[1.5]">
+                  Hacé click en <b>&quot;Postulantes&quot;</b> de una práctica
+                  para ver los candidatos.
                 </p>
               </div>
             ) : applicants.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <Users className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">Sin postulaciones aún</p>
+              <div className="text-center py-16 px-5">
+                <div className="w-12 h-12 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-5 h-5 text-[#C9C6BF]" />
+                </div>
+                <p className="text-[12.5px] text-[#6D6A63]">
+                  Sin postulaciones aún
+                </p>
               </div>
             ) : (
-              applicants.map((app) => {
+              applicants.map((app, i) => {
                 const initial = app.student.name.charAt(0).toUpperCase();
                 const statusCfg =
                   STATUS_CONFIG[app.status] ?? STATUS_CONFIG.PENDING;
 
                 return (
-                  <div key={app.id} className="px-5 py-4 flex flex-col gap-3">
-                    {/* Cabecera candidato */}
+                  <div
+                    key={app.id}
+                    className={`px-5 py-4 flex flex-col gap-3 ${
+                      i < applicants.length - 1
+                        ? "border-b border-black/[0.04]"
+                        : ""
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       {app.student.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={app.student.image}
                           alt={app.student.name}
-                          className="w-10 h-10 rounded-full border-2 border-gray-100 shrink-0"
+                          className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-[0_2px_6px_-1px_rgba(20,15,10,0.12)] shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)]">
                           {initial}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900 truncate">
+                        <p className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
                           {app.student.name}
                         </p>
-                        <p className="text-xs text-gray-400 truncate">
+                        <p className="text-[11.5px] text-[#6D6A63] truncate">
                           {app.student.email}
                         </p>
                       </div>
                     </div>
 
-                    {/* Match + estado */}
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {app.matchScore != null && app.matchScore > 0 && (
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full">
-                          {Math.round(app.matchScore)}% MATCH IA
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 text-[#C2410C] px-2.5 py-1 rounded-full border border-[#FF6A3D]/15">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          {Math.round(app.matchScore)}% match
                         </span>
                       )}
                       <span
-                        className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${statusCfg.cls}`}
+                        className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${statusCfg.pill}`}
                       >
                         {statusCfg.label}
                       </span>
                     </div>
 
-                    {/* Botones de acción */}
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap">
                       {app.student.studentProfile?.cvUrl && (
                         <button
                           onClick={() =>
@@ -534,7 +632,7 @@ export default function CompanyDashboard() {
                               app.student.studentProfile!.cvUrl!,
                             )
                           }
-                          className="text-xs font-bold text-brand-600 border border-brand-200 hover:bg-brand-600 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                          className="text-[11.5px] font-semibold text-[#4A4843] bg-[#FAFAF8] hover:bg-black/[0.05] px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Ver CV →
                         </button>
@@ -546,7 +644,7 @@ export default function CompanyDashboard() {
                               onClick={() =>
                                 updateApplicantStatus(app.id, "ACCEPTED")
                               }
-                              className="flex-1 text-xs font-bold bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition-colors"
+                              className="flex-1 text-[11.5px] font-semibold bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-3 py-1.5 rounded-lg hover:shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45)] transition-all"
                             >
                               Aprobar
                             </button>
@@ -554,7 +652,7 @@ export default function CompanyDashboard() {
                               onClick={() =>
                                 updateApplicantStatus(app.id, "REJECTED")
                               }
-                              className="flex-1 text-xs font-bold bg-white text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                              className="flex-1 text-[11.5px] font-semibold text-[#6D6A63] bg-[#FAFAF8] hover:bg-black/[0.05] px-3 py-1.5 rounded-lg transition-colors"
                             >
                               Rechazar
                             </button>
@@ -563,9 +661,12 @@ export default function CompanyDashboard() {
                       {app.status === "ACCEPTED" && (
                         <button
                           onClick={() => handleContactar(app.id)}
-                          className="w-full text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                          className="w-full text-[11.5px] font-semibold text-white bg-[#0A0909] hover:bg-[#1a1816] px-3 py-1.5 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare
+                            className="w-3 h-3"
+                            strokeWidth={2.4}
+                          />
                           Contactar
                         </button>
                       )}
@@ -575,7 +676,7 @@ export default function CompanyDashboard() {
                             onClick={() =>
                               sendNotificationEmail(app.id, "accepted")
                             }
-                            className="w-full text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg transition-colors"
+                            className="w-full text-[11.5px] font-semibold text-[#1A6E31] bg-[#E7F8EA] hover:bg-[#D3F0D9] px-3 py-1.5 rounded-lg transition-colors"
                           >
                             Enviar email de aceptación
                           </button>
@@ -586,7 +687,7 @@ export default function CompanyDashboard() {
                             onClick={() =>
                               sendNotificationEmail(app.id, "rejected")
                             }
-                            className="w-full text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors"
+                            className="w-full text-[11.5px] font-semibold text-[#A63418] bg-[#FFECEC] hover:bg-[#FFD9D9] px-3 py-1.5 rounded-lg transition-colors"
                           >
                             Enviar email de rechazo
                           </button>
@@ -599,10 +700,14 @@ export default function CompanyDashboard() {
           </div>
 
           {applicants.length > 0 && (
-            <div className="px-5 py-3 border-t border-gray-100">
-              <button className="w-full text-xs font-bold text-brand-600 hover:underline">
+            <div className="px-5 py-3 border-t border-black/[0.05]">
+              <Link
+                href={`/dashboard/empresa/candidatos/${selectedInternship}`}
+                className="w-full inline-flex items-center justify-center gap-1 text-[12px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
+              >
                 Ver todos los postulantes
-              </button>
+                <TrendingUp className="w-3 h-3" strokeWidth={2.4} />
+              </Link>
             </div>
           )}
         </div>
@@ -611,64 +716,73 @@ export default function CompanyDashboard() {
       {/* Modal detalle práctica */}
       {detailInternship && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setDetailInternship(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-[24px] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between p-6 border-b border-gray-100">
+            <div className="flex items-start justify-between p-6 border-b border-black/[0.05]">
               <div className="flex-1 min-w-0 pr-4">
-                <h2 className="text-lg font-bold text-gray-900 leading-snug">
-                  {detailInternship.title}
-                </h2>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D] mb-1">
                   {detailInternship.area}
                 </p>
+                <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-snug">
+                  {detailInternship.title}
+                </h2>
               </div>
               <button
                 onClick={() => setDetailInternship(null)}
-                className="text-gray-300 hover:text-gray-600 transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
+                aria-label="Cerrar"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 text-[#6D6A63]" />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                  <MapPin className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
+                  <MapPin className="w-3 h-3" />
                   {detailInternship.location}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                  <Layers className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
+                  <Layers className="w-3 h-3" />
                   {MODALITY_LABEL[detailInternship.modality]}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">
-                  <Calendar className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
+                  <Calendar className="w-3 h-3" />
                   {detailInternship.duration}
                 </span>
               </div>
+
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">
-                  Descripción
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                  <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63]">
+                    Descripción
+                  </p>
+                </div>
+                <p className="text-[13px] text-[#4A4843] leading-[1.65] whitespace-pre-line">
                   {detailInternship.description}
                 </p>
               </div>
+
               {detailInternship.skills?.length > 0 && (
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5" />
-                    Skills
-                  </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] flex items-center gap-1.5">
+                      <Tag className="w-3 h-3" />
+                      Skills
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {detailInternship.skills.map((s) => (
                       <span
                         key={s}
-                        className="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-medium"
+                        className="text-[11.5px] font-medium bg-[#F4F3EF] text-[#4A4843] px-2.5 py-1 rounded-lg"
                       >
                         {s}
                       </span>
@@ -676,26 +790,31 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
               )}
+
               {detailInternship.requirements?.length > 0 && (
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 flex items-center gap-1.5">
-                    <ClipboardList className="w-3.5 h-3.5" />
-                    Requisitos
-                  </p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
+                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] flex items-center gap-1.5">
+                      <ClipboardList className="w-3 h-3" />
+                      Requisitos
+                    </p>
+                  </div>
                   <ul className="space-y-1.5">
                     {detailInternship.requirements.map((r) => (
                       <li
                         key={r}
-                        className="text-sm text-gray-700 flex items-start gap-2"
+                        className="text-[13px] text-[#4A4843] flex items-start gap-2"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-brand-400 mt-1.5 shrink-0" />
+                        <span className="w-1 h-1 rounded-full bg-[#FF6A3D] mt-2 shrink-0" />
                         {r}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-              <p className="text-xs text-gray-400">
+
+              <p className="text-[11.5px] text-[#9B9891]">
                 Publicada el{" "}
                 {new Date(detailInternship.createdAt).toLocaleDateString(
                   "es-CL",
@@ -710,83 +829,90 @@ export default function CompanyDashboard() {
                   setDetailInternship(null);
                   viewApplicants(detailInternship.id);
                 }}
-                className="w-full inline-flex items-center justify-center gap-2 bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors text-sm"
+                className="group w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white font-semibold py-3 rounded-xl text-[13.5px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all"
               >
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4" strokeWidth={2.3} />
                 Ver postulantes
+                <span className="transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal creación */}
+      {/* Modal crear */}
       {showForm && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => {
             setShowForm(false);
             setFormErrors({});
           }}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
+            className="bg-white rounded-[24px] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                Crear práctica
-              </h2>
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-6 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D]">
+                  Nueva práctica
+                </p>
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] mt-0.5">
+                  Publicá una vacante
+                </h2>
+              </div>
               <button
                 onClick={() => {
                   setShowForm(false);
                   setFormErrors({});
                 }}
-                className="text-gray-300 hover:text-gray-600"
+                className="w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
+                aria-label="Cerrar"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 text-[#6D6A63]" />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4" noValidate>
+            <form
+              onSubmit={handleCreate}
+              className="px-6 py-5 space-y-4"
+              noValidate
+            >
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                  Título *
-                </label>
+                <label className={LABEL_CLS}>Título *</label>
                 <input
                   type="text"
                   placeholder="Ej: Pasantía Frontend Developer"
-                  className={inputClass(!!formErrors.title)}
+                  className={INPUT_CLS(!!formErrors.title)}
                   {...field("title")}
                 />
                 {formErrors.title && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                     {formErrors.title}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                  Descripción *
-                </label>
+                <label className={LABEL_CLS}>Descripción *</label>
                 <textarea
                   rows={4}
                   placeholder="Describí las tareas y el contexto del puesto"
-                  className={inputClass(!!formErrors.description)}
+                  className={INPUT_CLS(!!formErrors.description)}
                   {...field("description")}
                 />
                 {formErrors.description && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                     {formErrors.description}
                   </p>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                    Área
-                  </label>
-                  <select className={inputClass()} {...field("area")}>
+                  <label className={LABEL_CLS}>Área</label>
+                  <select className={INPUT_CLS()} {...field("area")}>
                     {AREAS.map((a) => (
                       <option key={a} value={a}>
                         {a}
@@ -795,10 +921,8 @@ export default function CompanyDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                    Modalidad
-                  </label>
-                  <select className={inputClass()} {...field("modality")}>
+                  <label className={LABEL_CLS}>Modalidad</label>
+                  <select className={INPUT_CLS()} {...field("modality")}>
                     {MODALITIES.map((m) => (
                       <option key={m.value} value={m.value}>
                         {m.label}
@@ -809,66 +933,61 @@ export default function CompanyDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                    Ubicación *
-                  </label>
+                  <label className={LABEL_CLS}>Ubicación *</label>
                   <input
                     type="text"
                     placeholder="Ej: Santiago"
-                    className={inputClass(!!formErrors.location)}
+                    className={INPUT_CLS(!!formErrors.location)}
                     {...field("location")}
                   />
                   {formErrors.location && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                       {formErrors.location}
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                    Duración *
-                  </label>
+                  <label className={LABEL_CLS}>Duración *</label>
                   <input
                     type="text"
                     placeholder="3 meses"
-                    className={inputClass(!!formErrors.duration)}
+                    className={INPUT_CLS(!!formErrors.duration)}
                     {...field("duration")}
                   />
                   {formErrors.duration && (
-                    <p className="text-xs text-red-600 mt-1">
+                    <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                       {formErrors.duration}
                     </p>
                   )}
                 </div>
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                  Skills requeridas *
-                </label>
+                <label className={LABEL_CLS}>Skills requeridas *</label>
                 <input
                   type="text"
                   placeholder="React, TypeScript, Node.js"
-                  className={inputClass(!!formErrors.skills)}
+                  className={INPUT_CLS(!!formErrors.skills)}
                   {...field("skills")}
                 />
+                <p className="text-[10.5px] text-[#9B9891] mt-1">
+                  Separá con comas
+                </p>
                 {formErrors.skills && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                     {formErrors.skills}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1.5 block">
-                  Requisitos *
-                </label>
+                <label className={LABEL_CLS}>Requisitos *</label>
                 <input
                   type="text"
                   placeholder="Estudiante Ing. Informática, 4to año+"
-                  className={inputClass(!!formErrors.requirements)}
+                  className={INPUT_CLS(!!formErrors.requirements)}
                   {...field("requirements")}
                 />
                 {formErrors.requirements && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
                     {formErrors.requirements}
                   </p>
                 )}
@@ -876,9 +995,21 @@ export default function CompanyDashboard() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700 transition-colors text-sm disabled:opacity-60"
+                className="group w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white font-semibold py-3 rounded-xl text-[13.5px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all disabled:opacity-60"
               >
-                {submitting ? "Publicando..." : "Publicar práctica"}
+                {submitting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Publicando…
+                  </>
+                ) : (
+                  <>
+                    Publicar práctica
+                    <span className="transition-transform group-hover:translate-x-0.5">
+                      →
+                    </span>
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -888,37 +1019,36 @@ export default function CompanyDashboard() {
       {/* Modal confirmar eliminación */}
       {confirmDeleteId && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setConfirmDeleteId(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-sm w-full p-6"
+            className="bg-white rounded-[24px] max-w-sm w-full p-7 shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
-              <Trash2 className="w-6 h-6 text-red-600" />
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFCDCD] to-[#FF6B6B] mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(255,107,107,0.45)]">
+              <Trash2 className="w-6 h-6 text-white" strokeWidth={2.2} />
             </div>
-            <h2 className="text-lg font-bold text-gray-900 text-center mb-2">
+            <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] text-center">
               Eliminar práctica
             </h2>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              ¿Seguro que querés eliminar esta práctica? Se borrarán también
-              todas las postulaciones asociadas. Esta acción no se puede
-              deshacer.
+            <p className="text-[13px] text-[#6D6A63] text-center mt-2 leading-[1.55]">
+              ¿Seguro? Se borrarán también todas las postulaciones asociadas.
+              Esta acción no se puede deshacer.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5 mt-6">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                className="flex-1 text-[13px] font-semibold text-[#4A4843] bg-[#FAFAF8] hover:bg-black/[0.05] py-2.5 rounded-xl transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDelete}
                 disabled={processing === confirmDeleteId}
-                className="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm disabled:opacity-60"
+                className="flex-1 text-[13px] font-semibold bg-[#C2410C] hover:bg-[#A63418] text-white py-2.5 rounded-xl transition-colors disabled:opacity-60"
               >
-                {processing === confirmDeleteId ? "Eliminando..." : "Eliminar"}
+                {processing === confirmDeleteId ? "Eliminando…" : "Eliminar"}
               </button>
             </div>
           </div>

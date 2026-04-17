@@ -2,6 +2,9 @@
 
 @theme {
   --font-sans: var(--font-outfit);
+  --font-tight: var(--font-tight);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
 
   /* Brand — azul */
   --color-brand-50: #eef7ff;
