@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-04-17
+
+### Changed
+
+- Rediseño visual "Premium Modern SaaS — Warm Tech" aplicado por oleadas
+  - Públicas: landing, listing y detalle de práctica refinadas
+  - Auth: login, registro, forgot-password y reset-password alineadas al sistema warm
+  - Oleada 1 dashboards: layout, router `/dashboard`, perfil, `dashboard/estudiante` y `dashboard/empresa`
+- Sistema de diseño: fondo `#FAFAF8`, cards `rounded-[24px]`, gradientes warm, tabs pill, mesh radial + grain
+
+### Fixed
+
+- Postulación duplicada visualmente en `practicas/[id]`: al recargar una práctica ya postulada el botón "Postularme" volvía a aparecer porque el UI no hidrataba el estado persistido. Ahora al montar se consulta `/api/applications/my` y se setea `applied` + `wasAlreadyApplied` si corresponde, mostrando "Ya te postulaste a esta práctica" con link al dashboard
+
+### Added
+
+- `public/hero-video.mp4` — video de fondo para el hero de la landing
+
 ## [1.2.0] - 2026-04-16
 
 ### Added
