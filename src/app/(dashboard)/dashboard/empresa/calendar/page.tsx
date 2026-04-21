@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Filter } from "lucide-react";
 import CalendarGrid from "@/components/chat/calendar/CalendarGrid";
 import InterviewListItem from "@/components/chat/calendar/InterviewListItem";
 import InterviewFormModal from "@/components/chat/calendar/InterviewFormModal";
@@ -23,7 +23,7 @@ type Interview = {
   internship: { id: string; title: string };
 };
 
-type Internship = { id: string; title: string };
+type Internship = { id: string; title: string; isActive: boolean };
 
 type InterviewFormData = {
   internshipId: string;
@@ -97,13 +97,13 @@ export default function EmpresaCalendarPage() {
     }
   }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInternships();
   }, [loadInternships]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadInterviews();
   }, [loadInterviews]);
 
@@ -224,37 +224,60 @@ export default function EmpresaCalendarPage() {
     setShowModal(true);
   };
 
+  const monthCount = interviews.filter((iv) => {
+    const d = new Date(iv.scheduledAt);
+    return d.getFullYear() === year && d.getMonth() === month;
+  }).length;
+
   return (
-    <div className="min-h-screen bg-[#f9f9ff]">
-      <div className="max-w-screen-xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">
-              📆 Entrevistas
-            </h1>
-            <p className="text-gray-400 text-sm mt-1">
-              Agendá entrevistas y enviá las citas a los candidatos.
-            </p>
+    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-8 md:py-10">
+      {/* Hero */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm border border-black/[0.06] mb-4">
+            <CalendarIcon
+              className="w-3 h-3 text-[#FF6A3D]"
+              strokeWidth={2.4}
+            />
+            <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#4A4843]">
+              Agenda de entrevistas
+            </span>
           </div>
-          <button
-            onClick={() => {
-              setEditingInterview(null);
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-600/20"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva entrevista
-          </button>
+          <h1 className="text-[38px] md:text-[46px] leading-[1.05] font-bold tracking-[-0.035em] text-[#0A0909]">
+            Tus{" "}
+            <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
+              entrevistas
+            </span>
+          </h1>
+          <p className="text-[14.5px] text-[#6D6A63] mt-3 max-w-xl leading-relaxed">
+            Agendá reuniones con tus candidatos y enviá la cita directo al chat
+            con un click.
+          </p>
         </div>
 
-        {/* Filtro por oferta */}
-        <div className="mb-6">
+        <button
+          onClick={() => {
+            setEditingInterview(null);
+            setShowModal(true);
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[13px] font-semibold rounded-xl hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.5)] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.35)] transition-all"
+        >
+          <Plus className="w-4 h-4" strokeWidth={2.4} />
+          Nueva entrevista
+        </button>
+      </div>
+
+      {/* Filtro por oferta */}
+      <div className="mb-6">
+        <div className="relative inline-flex items-center">
+          <Filter
+            className="w-3.5 h-3.5 text-[#9B9891] absolute left-3.5 pointer-events-none"
+            strokeWidth={2.2}
+          />
           <select
             value={filterInternshipId}
             onChange={(e) => setFilterInternshipId(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-300 shadow-sm"
+            className="appearance-none rounded-xl border border-black/[0.08] bg-white pl-9 pr-9 py-2.5 text-[13px] font-medium text-[#0A0909] focus:outline-none focus:border-[#FF6A3D]/40 focus:ring-2 focus:ring-[#FF6A3D]/10 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all cursor-pointer"
           >
             <option value="">Todas las prácticas</option>
             {internships.map((i) => (
@@ -264,80 +287,84 @@ export default function EmpresaCalendarPage() {
             ))}
           </select>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-          {/* Calendario */}
-          <div className="space-y-4">
-            <CalendarGrid
-              year={year}
-              month={month}
-              interviewDates={interviewDates}
-              selectedDate={selectedDate}
-              onSelectDate={(d) => setSelectedDate(d)}
-              onPrevMonth={handlePrevMonth}
-              onNextMonth={handleNextMonth}
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+        {/* Columna izquierda */}
+        <div className="space-y-4">
+          <CalendarGrid
+            year={year}
+            month={month}
+            interviewDates={interviewDates}
+            selectedDate={selectedDate}
+            onSelectDate={(d) => setSelectedDate(d)}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+          />
 
-            {/* Resumen del mes */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                {MONTHS_ES[month]} {year}
+          {/* Resumen del mes */}
+          <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-5 py-4">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891]">
+              {MONTHS_ES[month]} {year}
+            </p>
+            <p className="text-[32px] font-bold tracking-[-0.025em] text-[#0A0909] mt-1.5 leading-none">
+              {monthCount}
+            </p>
+            <p className="text-[12px] text-[#6D6A63] mt-1.5">
+              entrevista{monthCount !== 1 ? "s" : ""} este mes
+            </p>
+          </div>
+        </div>
+
+        {/* Lista de entrevistas */}
+        <div>
+          <h2 className="text-[11px] font-semibold text-[#9B9891] uppercase tracking-[0.08em] mb-4">
+            {dayLabel}
+          </h2>
+
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="w-7 h-7 border-2 border-[#FF6A3D]/25 border-t-[#FF6A3D] rounded-full animate-spin" />
+            </div>
+          ) : dayInterviews.length === 0 ? (
+            <div className="bg-white rounded-[20px] border border-dashed border-black/[0.08] py-14 px-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#FAFAF8] border border-black/[0.05] flex items-center justify-center mx-auto mb-3">
+                <CalendarIcon
+                  className="w-5 h-5 text-[#C9C6BF]"
+                  strokeWidth={1.8}
+                />
+              </div>
+              <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                {selectedDate ? "Día libre" : "Sin entrevistas agendadas"}
               </p>
-              <p className="text-2xl font-extrabold text-gray-900">
-                {
-                  interviews.filter((iv) => {
-                    const d = new Date(iv.scheduledAt);
-                    return d.getFullYear() === year && d.getMonth() === month;
-                  }).length
-                }
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                entrevistas este mes
+              <p className="text-[12px] text-[#9B9891] mt-1">
+                {selectedDate
+                  ? "No tenés entrevistas para este día."
+                  : "Creá una nueva entrevista para arrancar."}
               </p>
             </div>
-          </div>
-
-          {/* Lista de entrevistas */}
-          <div>
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
-              {dayLabel}
-            </h2>
-
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="w-7 h-7 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : dayInterviews.length === 0 ? (
-              <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-12 text-center">
-                <p className="text-sm text-gray-400">
-                  {selectedDate
-                    ? "No hay entrevistas para este día."
-                    : "No hay entrevistas agendadas aún."}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {dayInterviews.map((iv) => (
-                  <InterviewListItem
-                    key={iv.id}
-                    id={iv.id}
-                    title={iv.title}
-                    scheduledAt={iv.scheduledAt}
-                    durationMins={iv.durationMins}
-                    meetingLink={iv.meetingLink}
-                    notes={iv.notes}
-                    sentToChat={iv.sentToChat}
-                    sentToChatAt={iv.sentToChatAt}
-                    studentName={iv.student.name}
-                    internshipTitle={iv.internship.title}
-                    onSendToChat={handleSendToChat}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className="space-y-3">
+              {dayInterviews.map((iv) => (
+                <InterviewListItem
+                  key={iv.id}
+                  id={iv.id}
+                  title={iv.title}
+                  scheduledAt={iv.scheduledAt}
+                  durationMins={iv.durationMins}
+                  meetingLink={iv.meetingLink}
+                  notes={iv.notes}
+                  sentToChat={iv.sentToChat}
+                  sentToChatAt={iv.sentToChatAt}
+                  studentName={iv.student.name}
+                  internshipTitle={iv.internship.title}
+                  onSendToChat={handleSendToChat}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -360,7 +387,7 @@ export default function EmpresaCalendarPage() {
                 }
               : undefined
           }
-          internships={internships}
+          internships={internships.filter((i) => i.isActive)}
           onSubmit={handleSubmitInterview}
           onClose={() => {
             setShowModal(false);

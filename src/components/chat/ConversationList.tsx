@@ -58,33 +58,38 @@ export default function ConversationList({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="w-6 h-6 border-3 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-[3px] border-[#FF6A3D] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-brand-600" />
-          <h2 className="text-base font-extrabold text-gray-900">Mensajes</h2>
+      <div className="px-5 py-5 border-b border-[#E8E5DD] bg-white/60 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] flex items-center justify-center shadow-sm">
+            <MessageSquare className="w-4 h-4 text-white" />
+          </div>
+          <h2 className="text-[15px] font-bold text-[#0A0909] tracking-tight">
+            Mensajes
+          </h2>
           {totalUnread > 0 && (
-            <span className="ml-auto text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-[10px] font-bold text-white bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm">
               {totalUnread} sin leer
             </span>
           )}
         </div>
       </div>
 
-      {/* Lista */}
       <div className="flex-1 overflow-y-auto">
         {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 px-4 text-center">
-            <p className="text-sm text-gray-400">
+          <div className="flex flex-col items-center justify-center h-48 px-6 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#F5F4F1] flex items-center justify-center mb-3">
+              <MessageSquare className="w-5 h-5 text-[#9B9891]" />
+            </div>
+            <p className="text-sm text-[#6D6A63] leading-relaxed">
               {userRole === "STUDENT"
-                ? "Cuando una empresa te contacte, los mensajes aparecerán aquí."
+                ? "Cuando una empresa te contacte, los mensajes aparecerán acá."
                 : "Contactá candidatos desde el panel ATS para iniciar conversaciones."}
             </p>
           </div>
@@ -92,6 +97,7 @@ export default function ConversationList({
           conversations.map((conv) => {
             const isCompany = userRole === "COMPANY";
             const otherPerson = isCompany ? conv.student : conv.company;
+            const otherIsCompany = !isCompany;
 
             return (
               <ConversationItem
@@ -104,6 +110,7 @@ export default function ConversationList({
                 unreadCount={conv.unreadCount}
                 hasPendingInterview={isCompany && conv.hasPendingInterview}
                 isActive={conv.id === activeConversationId}
+                isCompany={otherIsCompany}
                 onClick={() => onSelect(conv.id)}
               />
             );

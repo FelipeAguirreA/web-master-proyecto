@@ -54,7 +54,7 @@ export async function getConversationsByUser(
           name: true,
           lastName: true,
           image: true,
-          companyProfile: { select: { companyName: true } },
+          companyProfile: { select: { companyName: true, logo: true } },
         },
       },
       student: {
@@ -106,7 +106,7 @@ export async function getConversationsByUser(
       contactName: [c.company.name, c.company.lastName]
         .filter(Boolean)
         .join(" "),
-      image: c.company.image,
+      image: c.company.companyProfile?.logo ?? c.company.image,
     },
     student: {
       id: c.student.id,
@@ -135,7 +135,7 @@ export async function getConversationById(
           name: true,
           lastName: true,
           image: true,
-          companyProfile: { select: { companyName: true } },
+          companyProfile: { select: { companyName: true, logo: true } },
         },
       },
       student: {
@@ -168,7 +168,7 @@ export async function getConversationById(
       contactName: [conv.company.name, conv.company.lastName]
         .filter(Boolean)
         .join(" "),
-      image: conv.company.image,
+      image: conv.company.companyProfile?.logo ?? conv.company.image,
     },
     student: {
       id: conv.student.id,

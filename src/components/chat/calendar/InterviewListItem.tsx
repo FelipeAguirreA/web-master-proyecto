@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   Send,
   Trash2,
   X,
+  Link as LinkIcon,
 } from "lucide-react";
 
 type InterviewListItemProps = {
@@ -86,60 +88,69 @@ export default function InterviewListItem({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+    <div className="bg-white border border-black/[0.06] rounded-[20px] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_-4px_rgba(20,15,10,0.08)] transition-all">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
           {/* Indicador hora */}
-          <div className="flex-shrink-0 text-center min-w-[48px]">
-            <p className="text-base font-extrabold text-gray-900">{hora}</p>
+          <div className="flex-shrink-0 text-center min-w-[52px] pt-0.5">
+            <p className="text-[17px] font-bold text-[#0A0909] tracking-[-0.02em] leading-none">
+              {hora}
+            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9B9891] mt-1">
+              {durationMins}min
+            </p>
           </div>
 
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900">{title}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {studentName} · {internshipTitle} · {durationMins} min
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
+              {title}
+            </p>
+            <p className="text-[12px] text-[#6D6A63] mt-0.5 truncate">
+              {studentName}
+              <span className="text-[#C9C6BF] mx-1.5">·</span>
+              {internshipTitle}
             </p>
 
             {/* Link */}
             {meetingLink ? (
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2.5">
+                <LinkIcon
+                  className="w-3 h-3 text-[#9B9891] flex-shrink-0"
+                  strokeWidth={2.2}
+                />
                 <a
                   href={meetingLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-brand-600 hover:underline truncate max-w-[200px]"
+                  className="text-[11.5px] text-[#FF6A3D] hover:text-[#FF5A28] hover:underline truncate max-w-[220px] font-medium"
                 >
                   {meetingLink}
                 </a>
                 <button
                   onClick={handleCopyLink}
-                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                  className="text-[10.5px] text-[#9B9891] hover:text-[#0A0909] inline-flex items-center gap-0.5 font-medium transition-colors"
                 >
-                  <Copy className="w-3 h-3" />
+                  <Copy className="w-3 h-3" strokeWidth={2.2} />
                   {copied ? "¡Copiado!" : "Copiar"}
                 </button>
               </div>
             ) : (
-              <p className="text-xs text-gray-400 mt-1 italic">
+              <p className="text-[11.5px] text-[#9B9891] mt-2 italic">
                 Link por confirmar
               </p>
             )}
 
             {/* Estado envío */}
-            <div className="mt-2">
+            <div className="mt-2.5">
               {sentToChat ? (
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                  <span className="text-xs text-green-600 font-medium">
-                    Cita enviada el {sentDate}
-                  </span>
+                <div className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold bg-[#ECFDF3] text-[#047857] border border-[#A7F3D0] px-2 py-0.5 rounded-full">
+                  <CheckCircle2 className="w-3 h-3" strokeWidth={2.4} />
+                  Enviada {sentDate}
                 </div>
               ) : (
-                <div className="flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-xs text-amber-600 font-medium">
-                    Cita no enviada al candidato
-                  </span>
+                <div className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold bg-[#FFF7EC] text-[#B45309] border border-[#FCD9A8] px-2 py-0.5 rounded-full">
+                  <AlertTriangle className="w-3 h-3" strokeWidth={2.4} />
+                  Sin enviar al candidato
                 </div>
               )}
             </div>
@@ -151,9 +162,9 @@ export default function InterviewListItem({
           <button
             onClick={handleSend}
             disabled={sending}
-            className="flex items-center gap-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-white bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] px-3 py-1.5 rounded-xl hover:shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5)] shadow-[0_2px_6px_-1px_rgba(255,106,61,0.35)] transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <Send className="w-3 h-3" />
+            <Send className="w-3 h-3" strokeWidth={2.4} />
             {sending
               ? "Enviando..."
               : sentToChat
@@ -162,75 +173,82 @@ export default function InterviewListItem({
           </button>
           <button
             onClick={() => onEdit(id)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#6D6A63] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
             title="Editar"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-3.5 h-3.5" strokeWidth={2.2} />
           </button>
           <button
             onClick={() => setShowDeleteModal(true)}
             disabled={deleting}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#9B9891] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition-all disabled:opacity-50"
             title="Eliminar"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={2.2} />
           </button>
         </div>
       </div>
 
-      {/* Modal confirmación de eliminación */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Modal eliminación */}
+      {showDeleteModal &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowDeleteModal(false)}
-          />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <button
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
+          >
+            <div
+              className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
               onClick={() => setShowDeleteModal(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
-              <Trash2 className="w-6 h-6 text-red-600" />
-            </div>
-
-            <h2 className="text-base font-extrabold text-gray-900 text-center mb-1">
-              Eliminar entrevista
-            </h2>
-            <p className="text-sm text-gray-500 text-center mb-1">
-              <span className="font-semibold text-gray-700">{title}</span>
-            </p>
-            {sentToChat && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center mt-3 mb-1">
-                ⚠️ Esta cita ya fue enviada al candidato. Se le notificará
-                automáticamente que fue cancelada.
-              </p>
-            )}
-            <p className="text-xs text-gray-400 text-center mt-3 mb-5">
-              Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex gap-3">
+            />
+            <div className="relative bg-white rounded-[24px] shadow-[0_32px_64px_-16px_rgba(20,15,10,0.3)] border border-black/[0.06] w-full max-w-sm p-6">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                className="absolute top-4 right-4 w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#9B9891] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
+                aria-label="Cerrar"
               >
-                Cancelar
+                <X className="w-4 h-4" strokeWidth={2.2} />
               </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl hover:bg-red-700 transition-colors text-sm disabled:opacity-60"
-              >
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
+
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] mx-auto mb-4">
+                <Trash2 className="w-5 h-5 text-[#B91C1C]" strokeWidth={2.2} />
+              </div>
+
+              <h2 className="text-[17px] font-bold tracking-[-0.02em] text-[#0A0909] text-center">
+                Eliminar entrevista
+              </h2>
+              <p className="text-[13px] text-[#6D6A63] text-center mt-1.5">
+                <span className="font-semibold text-[#0A0909]">{title}</span>
+              </p>
+              {sentToChat && (
+                <p className="text-[11.5px] text-[#B45309] bg-[#FFF7EC] border border-[#FCD9A8] rounded-xl px-3 py-2 text-center mt-4 leading-relaxed">
+                  Esta cita ya fue enviada al candidato. Se le notificará que
+                  fue cancelada.
+                </p>
+              )}
+              <p className="text-[11.5px] text-[#9B9891] text-center mt-3">
+                Esta acción no se puede deshacer.
+              </p>
+
+              <div className="flex gap-2.5 mt-6">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 border border-black/[0.08] text-[#4A4843] font-semibold py-2.5 rounded-xl hover:bg-black/[0.03] hover:text-[#0A0909] transition-all text-[13px]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 bg-[#B91C1C] text-white font-semibold py-2.5 rounded-xl hover:bg-[#991B1B] transition-colors text-[13px] disabled:opacity-60"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

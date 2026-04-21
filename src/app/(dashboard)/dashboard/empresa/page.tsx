@@ -3,7 +3,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Plus,
   Users,
@@ -19,8 +18,6 @@ import {
   Trash2,
   AlertTriangle,
   Bot,
-  MessageSquare,
-  Sparkles,
   TrendingUp,
 } from "lucide-react";
 
@@ -40,13 +37,10 @@ type Internship = {
 
 type Applicant = {
   id: string;
-  matchScore?: number | null;
-  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
   student: {
     name: string;
     email: string;
     image?: string | null;
-    studentProfile?: { cvUrl?: string | null } | null;
   };
 };
 
@@ -83,13 +77,6 @@ const MODALITY_LABEL: Record<string, string> = {
   HYBRID: "Híbrido",
 };
 
-const STATUS_CONFIG = {
-  PENDING: { label: "Pendiente", pill: "bg-[#FFF3EC] text-[#C2410C]" },
-  REVIEWED: { label: "En revisión", pill: "bg-[#EDF4FF] text-[#2E5AAC]" },
-  ACCEPTED: { label: "Aprobado", pill: "bg-[#E7F8EA] text-[#1A6E31]" },
-  REJECTED: { label: "Rechazado", pill: "bg-[#FFECEC] text-[#A63418]" },
-};
-
 const INPUT_CLS = (hasError?: boolean) =>
   hasError
     ? "w-full rounded-xl px-4 py-2.5 text-[13.5px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
@@ -100,7 +87,6 @@ const LABEL_CLS =
 
 export default function CompanyDashboard() {
   const { data: session } = useSession();
-  const router = useRouter();
 
   const [internships, setInternships] = useState<Internship[]>([]);
   const [companyStatus, setCompanyStatus] = useState<string | null>(null);
@@ -119,7 +105,6 @@ export default function CompanyDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [emailSentIds, setEmailSentIds] = useState<Set<string>>(new Set());
 
   const loadInternships = async () => {
     try {
@@ -233,66 +218,6 @@ export default function CompanyDashboard() {
     } catch {
       setApplicants([]);
     }
-  };
-
-  const updateApplicantStatus = async (
-    applicationId: string,
-    status: "REVIEWED" | "ACCEPTED" | "REJECTED",
-  ) => {
-    try {
-      const res = await fetch(`/api/applications/${applicationId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok)
-        setApplicants((prev) =>
-          prev.map((a) => (a.id === applicationId ? { ...a, status } : a)),
-        );
-    } catch {
-      /* silencioso */
-    }
-  };
-
-  const sendNotificationEmail = async (
-    applicationId: string,
-    type: "accepted" | "rejected",
-  ) => {
-    try {
-      const res = await fetch(`/api/applications/${applicationId}/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-      if (res.ok) setEmailSentIds((prev) => new Set(prev).add(applicationId));
-    } catch {
-      /* silencioso */
-    }
-  };
-
-  const handleContactar = async (applicationId: string) => {
-    try {
-      const res = await fetch("/api/chat/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applicationId }),
-      });
-      if (res.ok) {
-        router.push("/dashboard/empresa/inbox");
-      } else {
-        const err = await res.json();
-        alert(err.error ?? "Error al iniciar conversación");
-      }
-    } catch {
-      alert("Error al iniciar conversación");
-    }
-  };
-
-  const handleViewCV = async (applicationId: string, cvUrl: string) => {
-    window.open(cvUrl, "_blank", "noopener noreferrer");
-    const applicant = applicants.find((a) => a.id === applicationId);
-    if (applicant?.status === "PENDING")
-      await updateApplicantStatus(applicationId, "REVIEWED");
   };
 
   const field = (key: keyof typeof form) => ({
@@ -574,124 +499,35 @@ export default function CompanyDashboard() {
             ) : (
               applicants.map((app, i) => {
                 const initial = app.student.name.charAt(0).toUpperCase();
-                const statusCfg =
-                  STATUS_CONFIG[app.status] ?? STATUS_CONFIG.PENDING;
 
                 return (
                   <div
                     key={app.id}
-                    className={`px-5 py-4 flex flex-col gap-3 ${
+                    className={`px-5 py-4 flex items-center gap-3 ${
                       i < applicants.length - 1
                         ? "border-b border-black/[0.04]"
                         : ""
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      {app.student.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={app.student.image}
-                          alt={app.student.name}
-                          className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-[0_2px_6px_-1px_rgba(20,15,10,0.12)] shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)]">
-                          {initial}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
-                          {app.student.name}
-                        </p>
-                        <p className="text-[11.5px] text-[#6D6A63] truncate">
-                          {app.student.email}
-                        </p>
+                    {app.student.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={app.student.image}
+                        alt={app.student.name}
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-[0_2px_6px_-1px_rgba(20,15,10,0.12)] shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)]">
+                        {initial}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {app.matchScore != null && app.matchScore > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 text-[#C2410C] px-2.5 py-1 rounded-full border border-[#FF6A3D]/15">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          {Math.round(app.matchScore)}% match
-                        </span>
-                      )}
-                      <span
-                        className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${statusCfg.pill}`}
-                      >
-                        {statusCfg.label}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-1.5 flex-wrap">
-                      {app.student.studentProfile?.cvUrl && (
-                        <button
-                          onClick={() =>
-                            handleViewCV(
-                              app.id,
-                              app.student.studentProfile!.cvUrl!,
-                            )
-                          }
-                          className="text-[11.5px] font-semibold text-[#4A4843] bg-[#FAFAF8] hover:bg-black/[0.05] px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Ver CV →
-                        </button>
-                      )}
-                      {app.status !== "ACCEPTED" &&
-                        app.status !== "REJECTED" && (
-                          <>
-                            <button
-                              onClick={() =>
-                                updateApplicantStatus(app.id, "ACCEPTED")
-                              }
-                              className="flex-1 text-[11.5px] font-semibold bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-3 py-1.5 rounded-lg hover:shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45)] transition-all"
-                            >
-                              Aprobar
-                            </button>
-                            <button
-                              onClick={() =>
-                                updateApplicantStatus(app.id, "REJECTED")
-                              }
-                              className="flex-1 text-[11.5px] font-semibold text-[#6D6A63] bg-[#FAFAF8] hover:bg-black/[0.05] px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              Rechazar
-                            </button>
-                          </>
-                        )}
-                      {app.status === "ACCEPTED" && (
-                        <button
-                          onClick={() => handleContactar(app.id)}
-                          className="w-full text-[11.5px] font-semibold text-white bg-[#0A0909] hover:bg-[#1a1816] px-3 py-1.5 rounded-lg transition-colors inline-flex items-center justify-center gap-1.5"
-                        >
-                          <MessageSquare
-                            className="w-3 h-3"
-                            strokeWidth={2.4}
-                          />
-                          Contactar
-                        </button>
-                      )}
-                      {app.status === "ACCEPTED" &&
-                        !emailSentIds.has(app.id) && (
-                          <button
-                            onClick={() =>
-                              sendNotificationEmail(app.id, "accepted")
-                            }
-                            className="w-full text-[11.5px] font-semibold text-[#1A6E31] bg-[#E7F8EA] hover:bg-[#D3F0D9] px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            Enviar email de aceptación
-                          </button>
-                        )}
-                      {app.status === "REJECTED" &&
-                        !emailSentIds.has(app.id) && (
-                          <button
-                            onClick={() =>
-                              sendNotificationEmail(app.id, "rejected")
-                            }
-                            className="w-full text-[11.5px] font-semibold text-[#A63418] bg-[#FFECEC] hover:bg-[#FFD9D9] px-3 py-1.5 rounded-lg transition-colors"
-                          >
-                            Enviar email de rechazo
-                          </button>
-                        )}
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
+                        {app.student.name}
+                      </p>
+                      <p className="text-[11.5px] text-[#6D6A63] truncate">
+                        {app.student.email}
+                      </p>
                     </div>
                   </div>
                 );
@@ -703,10 +539,10 @@ export default function CompanyDashboard() {
             <div className="px-5 py-3 border-t border-black/[0.05]">
               <Link
                 href={`/dashboard/empresa/candidatos/${selectedInternship}`}
-                className="w-full inline-flex items-center justify-center gap-1 text-[12px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
+                className="w-full inline-flex items-center justify-center gap-1.5 text-[12.5px] font-semibold text-white bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] hover:shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45)] px-3.5 py-2 rounded-xl transition-all"
               >
-                Ver todos los postulantes
-                <TrendingUp className="w-3 h-3" strokeWidth={2.4} />
+                Gestionar candidatos
+                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.4} />
               </Link>
             </div>
           )}

@@ -15,12 +15,11 @@ export default function MessageInput({
   placeholder = "Escribí un mensaje...",
 }: MessageInputProps) {
   const [content, setContent] = useState("");
+  const canSend = content.trim().length > 0 && !disabled;
 
   const handleSend = () => {
     const trimmed = content.trim();
     if (!trimmed || disabled) return;
-
-    // Limpiar input al instante — el envío va en background
     setContent("");
     onSend(trimmed);
   };
@@ -33,7 +32,7 @@ export default function MessageInput({
   };
 
   return (
-    <div className="flex items-end gap-3 p-4 border-t border-gray-100 bg-white">
+    <div className="flex items-end gap-3 px-4 md:px-6 py-4 border-t border-[#E8E5DD] bg-white/80 backdrop-blur-md">
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -43,8 +42,8 @@ export default function MessageInput({
         }
         disabled={disabled}
         rows={1}
-        className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
-        style={{ minHeight: "42px" }}
+        className="flex-1 resize-none rounded-2xl border border-[#E8E5DD] bg-[#FAFAF8] px-4 py-2.5 text-sm text-[#0A0909] placeholder:text-[#9B9891] focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
+        style={{ minHeight: "44px" }}
         onInput={(e) => {
           const target = e.currentTarget;
           target.style.height = "auto";
@@ -53,8 +52,13 @@ export default function MessageInput({
       />
       <button
         onClick={handleSend}
-        disabled={!content.trim() || disabled}
-        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-brand-600 text-white rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!canSend}
+        className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl transition-all ${
+          canSend
+            ? "bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5"
+            : "bg-[#F0EDE4] text-[#9B9891] cursor-not-allowed"
+        }`}
+        aria-label="Enviar mensaje"
       >
         <Send className="w-4 h-4" />
       </button>

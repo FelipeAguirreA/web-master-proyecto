@@ -56,9 +56,21 @@ export async function PATCH(
     );
   }
 
+  // El pipelineStatus (operativo) dicta el status (decisión) para mantenerlos
+  // sincronizados: mover una tarjeta en el kanban refleja la decisión final.
+  const PIPELINE_TO_STATUS = {
+    PENDING: "PENDING",
+    REVIEWING: "REVIEWED",
+    INTERVIEW: "ACCEPTED",
+    REJECTED: "REJECTED",
+  } as const;
+
   const updated = await prisma.application.update({
     where: { id: applicationId },
-    data: { pipelineStatus: parsed.data.status },
+    data: {
+      pipelineStatus: parsed.data.status,
+      status: PIPELINE_TO_STATUS[parsed.data.status],
+    },
   });
 
   return NextResponse.json({ application: updated });

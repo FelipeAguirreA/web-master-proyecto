@@ -4,8 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type CalendarGridProps = {
   year: number;
-  month: number; // 0-based
-  interviewDates: Set<string>; // "YYYY-MM-DD"
+  month: number;
+  interviewDates: Set<string>;
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
   onPrevMonth: () => void;
@@ -45,49 +45,48 @@ export default function CalendarGrid({
   onNextMonth,
 }: CalendarGridProps) {
   const firstDay = new Date(year, month, 1);
-  // Lunes=0 ... Domingo=6
   let startDow = firstDay.getDay() - 1;
   if (startDow < 0) startDow = 6;
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayStr = toLocalDateStr(new Date());
 
-  // Construir celdas del grid
   const cells: (number | null)[] = [
     ...Array(startDow).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-
-  // Completar hasta múltiplo de 7
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+    <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
       {/* Navegación */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={onPrevMonth}
-          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#6D6A63] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
+          aria-label="Mes anterior"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
         </button>
-        <h3 className="text-sm font-bold text-gray-800">
-          {MONTHS_ES[month]} {year}
+        <h3 className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+          {MONTHS_ES[month]}{" "}
+          <span className="text-[#9B9891] font-medium">{year}</span>
         </h3>
         <button
           onClick={onNextMonth}
-          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#6D6A63] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
+          aria-label="Mes siguiente"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" strokeWidth={2.2} />
         </button>
       </div>
 
       {/* Cabecera días */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 mb-1.5">
         {DAYS_ES.map((d) => (
           <div
             key={d}
-            className="text-center text-[11px] font-bold text-gray-400 py-1"
+            className="text-center text-[10px] font-semibold text-[#9B9891] uppercase tracking-[0.08em] py-1.5"
           >
             {d}
           </div>
@@ -110,19 +109,19 @@ export default function CalendarGrid({
             <button
               key={dateStr}
               onClick={() => onSelectDate(isSelected ? "" : dateStr)}
-              className={`relative flex flex-col items-center justify-center h-9 w-9 mx-auto rounded-xl text-sm font-medium transition-colors ${
+              className={`relative flex flex-col items-center justify-center h-9 w-9 mx-auto rounded-xl text-[12.5px] font-medium transition-all ${
                 isSelected
-                  ? "bg-brand-600 text-white"
+                  ? "bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white shadow-[0_4px_12px_-3px_rgba(255,106,61,0.5)] font-bold"
                   : isToday
-                    ? "bg-brand-50 text-brand-700 font-bold"
-                    : "hover:bg-gray-50 text-gray-700"
+                    ? "bg-[#FFF3EC] text-[#FF6A3D] font-bold"
+                    : "text-[#4A4843] hover:bg-black/[0.04] hover:text-[#0A0909]"
               }`}
             >
               {day}
               {hasInterview && (
                 <span
-                  className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
-                    isSelected ? "bg-white" : "bg-brand-500"
+                  className={`absolute bottom-1 w-1 h-1 rounded-full ${
+                    isSelected ? "bg-white" : "bg-[#FF6A3D]"
                   }`}
                 />
               )}

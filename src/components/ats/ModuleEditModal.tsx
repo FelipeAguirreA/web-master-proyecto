@@ -1,13 +1,73 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus } from "lucide-react";
+import {
+  X,
+  Plus,
+  Zap,
+  Briefcase,
+  GraduationCap,
+  Globe,
+  Folder,
+  Star,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ATSModuleState } from "./ModuleCard";
 
 interface ModuleEditModalProps {
   module: ATSModuleState;
   onSave: (updated: ATSModuleState) => void;
   onClose: () => void;
+}
+
+const ICON_BY_TYPE: Record<string, LucideIcon> = {
+  SKILLS: Zap,
+  EXPERIENCE: Briefcase,
+  EDUCATION: GraduationCap,
+  LANGUAGES: Globe,
+  PORTFOLIO: Folder,
+  CUSTOM: Star,
+};
+
+const FONT = "var(--font-onest), system-ui, sans-serif";
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="text-[10px] font-bold text-[#6D6A63] uppercase tracking-wider">
+      {children}
+    </label>
+  );
+}
+
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className="w-full text-[13px] text-[#0A0909] bg-white border border-[#E8E5DD] rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/15 transition-all placeholder:text-[#9B9891]"
+    />
+  );
+}
+
+function CheckboxRow({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex items-start gap-2.5 text-[12.5px] text-[#4A4843] cursor-pointer bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl px-3 py-2.5 hover:border-[#FFD4B5] transition-colors">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 w-4 h-4 accent-[#FF6A3D]"
+      />
+      <span className="leading-snug">{children}</span>
+    </label>
+  );
 }
 
 function TagInput({
@@ -33,39 +93,41 @@ function TagInput({
 
   return (
     <div>
-      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-        {label}
-      </label>
-      <div className="flex flex-wrap gap-1.5 mt-1.5 mb-2">
-        {values.map((v) => (
-          <span
-            key={v}
-            className="flex items-center gap-1 bg-brand-50 text-brand-700 text-xs px-2 py-1 rounded-lg font-medium"
-          >
-            {v}
-            <button
-              type="button"
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              className="hover:text-red-500"
+      <FieldLabel>{label}</FieldLabel>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+          {values.map((v) => (
+            <span
+              key={v}
+              className="flex items-center gap-1 bg-gradient-to-br from-[#FFF0E4] to-[#FFE1CB] border border-[#FFD4B5] text-[#9A3412] text-[11px] px-2.5 py-1 rounded-lg font-semibold"
             >
-              <X className="w-3 h-3" />
-            </button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
+              {v}
+              <button
+                type="button"
+                onClick={() => onChange(values.filter((x) => x !== v))}
+                className="hover:text-[#B91C1C] transition-colors"
+                aria-label={`Eliminar ${v}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2 mt-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
           placeholder={placeholder ?? "Escribí y presioná Enter"}
-          className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-brand-400"
+          className="flex-1 text-[13px] text-[#0A0909] bg-white border border-[#E8E5DD] rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/15 transition-all placeholder:text-[#9B9891]"
         />
         <button
           type="button"
           onClick={add}
-          className="p-2 bg-brand-50 text-brand-600 rounded-lg hover:bg-brand-100 transition-colors"
+          className="p-2.5 bg-[#FFF0E4] text-[#C2410C] border border-[#FFD4B5] rounded-xl hover:bg-gradient-to-br hover:from-[#FF6A3D] hover:to-[#C2410C] hover:text-white hover:border-transparent transition-all"
+          aria-label="Agregar"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -84,6 +146,8 @@ export default function ModuleEditModal({
   );
   const [label, setLabel] = useState(module.label);
 
+  const Icon = ICON_BY_TYPE[module.type] ?? Star;
+
   const updateParam = (key: string, value: unknown) => {
     setParams((prev) => ({ ...prev, [key]: value }));
   };
@@ -99,7 +163,7 @@ export default function ModuleEditModal({
         return (
           <>
             <TagInput
-              label="Skills requeridas (descalifica si faltan con hardFilter)"
+              label="Skills requeridas (descalifica si faltan con hard filter)"
               values={(params.required as string[]) ?? []}
               onChange={(v) => updateParam("required", v)}
               placeholder="ej: React, TypeScript"
@@ -110,35 +174,31 @@ export default function ModuleEditModal({
               onChange={(v) => updateParam("preferred", v)}
               placeholder="ej: Docker, AWS"
             />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.hardFilter as boolean) ?? false}
-                onChange={(e) => updateParam("hardFilter", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
               Hard filter: descalificar si falta una skill requerida
-            </label>
+            </CheckboxRow>
           </>
         );
       case "EXPERIENCE":
         return (
           <>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Años mínimos de experiencia
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                value={(params.minYears as number) ?? 0}
-                onChange={(e) => {
-                  const raw = parseInt(e.target.value, 10);
-                  updateParam("minYears", isNaN(raw) ? 0 : raw);
-                }}
-                className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-brand-400"
-              />
+              <FieldLabel>Años mínimos de experiencia</FieldLabel>
+              <div className="mt-1.5">
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={(params.minYears as number) ?? 0}
+                  onChange={(e) => {
+                    const raw = parseInt(e.target.value, 10);
+                    updateParam("minYears", isNaN(raw) ? 0 : raw);
+                  }}
+                />
+              </div>
             </div>
             <TagInput
               label="Roles preferidos"
@@ -146,35 +206,31 @@ export default function ModuleEditModal({
               onChange={(v) => updateParam("preferredRoles", v)}
               placeholder="ej: developer, analyst"
             />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.hardFilter as boolean) ?? false}
-                onChange={(e) => updateParam("hardFilter", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
               Hard filter: descalificar si tiene menos años de experiencia
-            </label>
+            </CheckboxRow>
           </>
         );
       case "EDUCATION":
         return (
           <>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Promedio mínimo (0 = sin requisito)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={7}
-                step={0.1}
-                value={(params.minGPA as number) ?? 0}
-                onChange={(e) =>
-                  updateParam("minGPA", parseFloat(e.target.value))
-                }
-                className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-brand-400"
-              />
+              <FieldLabel>Promedio mínimo (0 = sin requisito)</FieldLabel>
+              <div className="mt-1.5">
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={7}
+                  step={0.1}
+                  value={(params.minGPA as number) ?? 0}
+                  onChange={(e) =>
+                    updateParam("minGPA", parseFloat(e.target.value))
+                  }
+                />
+              </div>
             </div>
             <TagInput
               label="Carreras preferidas"
@@ -182,22 +238,19 @@ export default function ModuleEditModal({
               onChange={(v) => updateParam("preferredDegrees", v)}
               placeholder="ej: Ingeniería, Computer Science"
             />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.hardFilter as boolean) ?? false}
-                onChange={(e) => updateParam("hardFilter", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
               Hard filter: descalificar si promedio es menor al mínimo
-            </label>
+            </CheckboxRow>
           </>
         );
       case "LANGUAGES":
         return (
           <>
             <TagInput
-              label="Idiomas requeridos (ej: Inglés B2)"
+              label="Idiomas requeridos"
               values={(params.required as string[]) ?? []}
               onChange={(v) => updateParam("required", v)}
               placeholder="ej: Inglés B2, Portugués A2"
@@ -208,52 +261,45 @@ export default function ModuleEditModal({
               onChange={(v) => updateParam("preferred", v)}
               placeholder="ej: Francés A1"
             />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.hardFilter as boolean) ?? false}
-                onChange={(e) => updateParam("hardFilter", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
               Hard filter: descalificar si no cumple idioma requerido
-            </label>
+            </CheckboxRow>
           </>
         );
       case "PORTFOLIO":
         return (
           <>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.required as boolean) ?? false}
-                onChange={(e) => updateParam("required", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.required as boolean) ?? false}
+              onChange={(v) => updateParam("required", v)}
+            >
               Portafolio requerido
-            </label>
+            </CheckboxRow>
             <TagInput
               label="Palabras clave a detectar"
               values={(params.keywords as string[]) ?? []}
               onChange={(v) => updateParam("keywords", v)}
               placeholder="ej: github, behance, portfolio"
             />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={(params.hardFilter as boolean) ?? false}
-                onChange={(e) => updateParam("hardFilter", e.target.checked)}
-                className="accent-brand-600"
-              />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
               Hard filter: descalificar si no tiene portafolio
-            </label>
+            </CheckboxRow>
           </>
         );
       case "CUSTOM":
         return (
-          <p className="text-sm text-gray-400 italic">
-            Los módulos personalizados se puntúan manualmente en el dashboard de
-            candidatos.
-          </p>
+          <div className="bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl p-3.5">
+            <p className="text-[12.5px] text-[#6D6A63] leading-relaxed">
+              Los módulos personalizados se puntúan manualmente en el dashboard
+              de candidatos.
+            </p>
+          </div>
         );
       default:
         return null;
@@ -261,52 +307,65 @@ export default function ModuleEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ fontFamily: FONT }}
+    >
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{module.icon}</span>
-            <h2 className="text-lg font-bold text-gray-900">{module.label}</h2>
+
+      <div className="relative bg-white rounded-[24px] shadow-[0_24px_64px_-16px_rgba(20,15,10,0.25)] w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col border border-[#E8E5DD]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E8E5DD]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFF0E4] to-[#FFE1CB] border border-[#FFD4B5] flex items-center justify-center flex-shrink-0">
+              <Icon className="w-4.5 h-4.5 text-[#C2410C]" strokeWidth={2.2} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-[#9B9891] uppercase tracking-wider">
+                Editar módulo
+              </p>
+              <h2 className="text-[16px] font-extrabold text-[#0A0909] tracking-tight truncate">
+                {label}
+              </h2>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-[#6D6A63] hover:text-[#0A0909] hover:bg-[#F5F4F1] rounded-xl transition-colors flex-shrink-0"
+            aria-label="Cerrar"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {module.type === "CUSTOM" && (
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Nombre del módulo
-              </label>
-              <input
-                type="text"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-brand-400"
-              />
+              <FieldLabel>Nombre del módulo</FieldLabel>
+              <div className="mt-1.5">
+                <TextInput
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                />
+              </div>
             </div>
           )}
           {renderFields()}
         </div>
 
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-[#E8E5DD] flex justify-end gap-2 bg-[#FAFAF8]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+            className="px-4 py-2.5 text-[13px] font-semibold text-[#4A4843] hover:text-[#0A0909] hover:bg-white border border-transparent hover:border-[#E8E5DD] rounded-xl transition-all"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className="px-5 py-2 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-600/20"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white text-[13px] font-bold rounded-xl shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5 transition-all"
           >
             Guardar cambios
           </button>

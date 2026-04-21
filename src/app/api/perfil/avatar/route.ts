@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
   const path = `avatars/${auth.user.id}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const url = await uploadFile("avatars", path, buffer, file.type);
+  const baseUrl = await uploadFile("avatars", path, buffer, file.type);
+  const url = `${baseUrl}?v=${Date.now()}`;
 
   await prisma.user.update({
     where: { id: auth.user.id },

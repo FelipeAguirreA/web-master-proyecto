@@ -34,17 +34,17 @@ export default function KanbanColumn({
 
   return (
     <div
-      className="flex flex-col min-h-[400px] bg-gray-50 rounded-2xl border border-gray-100 p-3"
+      className="flex flex-col min-h-[400px] bg-white/60 backdrop-blur-sm rounded-[20px] border border-black/[0.06] p-3"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
-        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+      <div className="flex items-center gap-2 px-1 mb-3">
+        <div className={`w-2 h-2 rounded-full ${color}`} />
+        <span className="text-[10.5px] font-semibold text-[#4A4843] uppercase tracking-[0.08em]">
           {label}
         </span>
-        <span className="ml-auto text-xs font-bold text-gray-400 bg-gray-200 rounded-full px-2 py-0.5">
+        <span className="ml-auto text-[10.5px] font-bold text-[#6D6A63] bg-black/[0.05] rounded-full px-2 py-0.5">
           {candidates.length}
         </span>
       </div>
@@ -52,8 +52,10 @@ export default function KanbanColumn({
       {/* Cards */}
       <div className="flex flex-col gap-2 flex-1">
         {candidates.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-xs text-gray-300">Arrastrá candidatos aquí</p>
+          <div className="flex-1 flex items-center justify-center py-8">
+            <p className="text-[11.5px] text-[#C9C6BF] font-medium">
+              Arrastrá candidatos acá
+            </p>
           </div>
         ) : (
           candidates.map((c) => (
@@ -64,6 +66,7 @@ export default function KanbanColumn({
                 e.dataTransfer.setData("candidateId", c.id);
                 e.dataTransfer.effectAllowed = "move";
               }}
+              className="cursor-grab active:cursor-grabbing"
             >
               <CandidateCard
                 candidate={c}

@@ -6,7 +6,7 @@ import { supabaseRealtime } from "@/lib/supabase/realtime-client";
 import MessageBubble from "./MessageBubble";
 import InterviewMessageCard from "./InterviewMessageCard";
 import MessageInput from "./MessageInput";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, MessageSquare, Building2 } from "lucide-react";
 import Link from "next/link";
 
 type Sender = {
@@ -52,6 +52,23 @@ type ChatWindowProps = {
   onBack?: () => void;
 };
 
+function avatarGradient(name: string): string {
+  const gradients = [
+    "from-[#FF6A3D] to-[#C2410C]",
+    "from-[#F59E0B] to-[#B45309]",
+    "from-[#10B981] to-[#047857]",
+    "from-[#3B82F6] to-[#1D4ED8]",
+    "from-[#8B5CF6] to-[#6D28D9]",
+    "from-[#0A0909] to-[#2a2722]",
+    "from-[#F97316] to-[#9A3412]",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return gradients[hash % gradients.length];
+}
+
 export default function ChatWindow({
   conversationId,
   showBackButton = false,
@@ -64,6 +81,7 @@ export default function ChatWindow({
   const [messages, setMessages] = useState<Message[]>([]);
   const [meta, setMeta] = useState<ConversationMeta | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imgBroken, setImgBroken] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasPendingOptimistic = useRef(false);
@@ -84,7 +102,6 @@ export default function ChatWindow({
     [isNearBottom],
   );
 
-  // Cargar metadata + mensajes iniciales
   useEffect(() => {
     let cancelled = false;
 
@@ -116,16 +133,13 @@ export default function ChatWindow({
     };
   }, [conversationId]);
 
-  // Scroll solo cuando llegan mensajes nuevos — no en cada poll
   useEffect(() => {
     const isFirstLoad = prevMessageCount.current === 0 && messages.length > 0;
     const hasNewMessages = messages.length > prevMessageCount.current;
 
     if (isFirstLoad) {
-      // Al cargar por primera vez: scroll forzado sin animación
       bottomRef.current?.scrollIntoView();
     } else if (hasNewMessages) {
-      // Nuevo mensaje: scroll solo si ya estaba al fondo
       scrollToBottom();
     }
 
@@ -133,7 +147,6 @@ export default function ChatWindow({
   }, [messages, scrollToBottom]);
 
   const refetchMessages = useCallback(async () => {
-    // No reemplazar si hay un optimista en vuelo — evita parpadeo
     if (hasPendingOptimistic.current) return;
     const res = await fetch(
       `/api/chat/conversations/${conversationId}/messages?limit=50`,
@@ -144,8 +157,6 @@ export default function ChatWindow({
     }
   }, [conversationId]);
 
-  // Polling cada 3 segundos — garantiza que el receptor recibe mensajes
-  // aunque Realtime falle por RLS u otras restricciones de Supabase
   useEffect(() => {
     if (!conversationId) return;
 
@@ -156,7 +167,6 @@ export default function ChatWindow({
     return () => clearInterval(interval);
   }, [conversationId, refetchMessages]);
 
-  // Supabase Realtime — para recepción instantánea cuando funciona
   useEffect(() => {
     if (!conversationId) return;
 
@@ -183,7 +193,6 @@ export default function ChatWindow({
   }, [conversationId, refetchMessages]);
 
   const handleSend = (content: string) => {
-    // Optimistic update sincrónico — aparece al instante
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: Message = {
       id: tempId,
@@ -201,10 +210,8 @@ export default function ChatWindow({
     };
     hasPendingOptimistic.current = true;
     setMessages((prev) => [...prev, optimisticMsg]);
-    // Al enviar propio mensaje siempre scrollear al fondo
     setTimeout(() => scrollToBottom(true), 30);
 
-    // Fire and forget — no bloquea el input
     fetch(`/api/chat/conversations/${conversationId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -226,8 +233,8 @@ export default function ChatWindow({
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 flex items-center justify-center bg-[#FAFAF8]">
+        <div className="w-8 h-8 border-4 border-[#FF6A3D] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -236,44 +243,60 @@ export default function ChatWindow({
 
   const isCompany = userRole === "COMPANY";
   const otherPerson = isCompany ? meta.student : meta.company;
+  const otherIsCompany = !isCompany;
+  const headerName = isCompany
+    ? otherPerson.name
+    : `${meta.company.contactName} · ${meta.company.name}`;
   const hasMessages = messages.length > 0;
   const isStudentAndNoMessages = !isCompany && !hasMessages;
+  const showImage = otherPerson.image && !imgBroken;
+  const headerFallbackGradient = otherIsCompany
+    ? "from-[#2a2722] to-[#0A0909]"
+    : avatarGradient(otherPerson.name);
 
   return (
-    <div className="flex flex-col h-full bg-[#f9f9ff]">
-      {/* Header */}
+    <div className="flex flex-col h-full bg-[#FAFAF8] relative">
       <div
-        className="flex items-center gap-3 px-4 py-0 bg-white border-b border-gray-100 shadow-sm flex-shrink-0"
-        style={{ height: "64px" }}
-      >
+        className="pointer-events-none absolute inset-0 opacity-30"
+        style={{
+          background:
+            "radial-gradient(600px circle at 80% 0%, rgba(255,106,61,0.04), transparent 50%), radial-gradient(500px circle at 20% 100%, rgba(194,65,12,0.03), transparent 50%)",
+        }}
+      />
+
+      <div className="relative flex items-center gap-3 px-5 bg-white/70 backdrop-blur-md border-b border-[#E8E5DD] flex-shrink-0 h-16 z-10">
         {showBackButton && (
           <button
             onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 flex-shrink-0 self-center"
+            className="p-2 rounded-xl hover:bg-[#F5F4F1] transition-colors text-[#4A4843] flex-shrink-0"
+            aria-label="Volver"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
 
-        <div className="flex items-center gap-3 flex-1 min-w-0 self-center">
-          <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden">
-            {otherPerson.image ? (
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 overflow-hidden text-white shadow-sm bg-gradient-to-br ${headerFallbackGradient}`}
+          >
+            {showImage ? (
               <img
-                src={otherPerson.image}
+                src={otherPerson.image!}
                 alt={otherPerson.name}
+                onError={() => setImgBroken(true)}
                 className="w-full h-full object-cover"
               />
+            ) : otherIsCompany ? (
+              <Building2 className="w-5 h-5" strokeWidth={2.2} />
             ) : (
               otherPerson.name.charAt(0).toUpperCase()
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900 truncate">
-              {isCompany
-                ? otherPerson.name
-                : `${meta.company.contactName} - ${meta.company.name}`}
+            <p className="text-sm font-bold text-[#0A0909] truncate tracking-tight">
+              {headerName}
             </p>
-            <p className="text-xs text-gray-400 truncate mt-0.5">
+            <p className="text-[11px] text-[#9B9891] truncate mt-0.5 uppercase tracking-wide font-medium">
               {meta.application.internship.title}
             </p>
           </div>
@@ -282,25 +305,27 @@ export default function ChatWindow({
         {isCompany && (
           <Link
             href={`/dashboard/empresa/calendar`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-xl transition-colors flex-shrink-0 self-center"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#0A0909] bg-white hover:bg-[#F5F4F1] px-3.5 py-2 rounded-xl transition-all flex-shrink-0 border border-[#E8E5DD] shadow-sm"
           >
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="w-3.5 h-3.5 text-[#FF6A3D]" />
             Calendario
           </Link>
         )}
       </div>
 
-      {/* Mensajes */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-1"
+        className="relative flex-1 overflow-y-auto px-4 md:px-6 py-5 space-y-1 z-10"
       >
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-gray-400 text-center">
+          <div className="flex flex-col items-center justify-center h-full text-center px-6">
+            <div className="w-14 h-14 rounded-2xl bg-white border border-[#E8E5DD] flex items-center justify-center mb-4 shadow-sm">
+              <MessageSquare className="w-6 h-6 text-[#9B9891]" />
+            </div>
+            <p className="text-sm text-[#6D6A63] leading-relaxed max-w-xs">
               {isCompany
                 ? "Enviá el primer mensaje para iniciar la conversación."
-                : "Cuando la empresa te contacte podrás responder aquí."}
+                : "Cuando la empresa te contacte podrás responder acá."}
             </p>
           </div>
         )}
@@ -331,8 +356,9 @@ export default function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <MessageInput onSend={handleSend} disabled={isStudentAndNoMessages} />
+      <div className="relative z-10">
+        <MessageInput onSend={handleSend} disabled={isStudentAndNoMessages} />
+      </div>
     </div>
   );
 }

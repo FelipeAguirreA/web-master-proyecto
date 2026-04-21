@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MessageSquare } from "lucide-react";
 import ConversationList from "@/components/chat/ConversationList";
 import ChatWindow from "@/components/chat/ChatWindow";
 
@@ -8,44 +9,60 @@ export default function EstudianteInboxPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   return (
-    <div className="h-[calc(100vh-80px)] flex bg-[#f9f9ff]">
-      {/* Columna izquierda: lista de conversaciones */}
-      <div
-        className={`w-full md:w-80 lg:w-96 border-r border-gray-100 bg-white flex-shrink-0 ${
-          activeId ? "hidden md:flex md:flex-col" : "flex flex-col"
-        }`}
-      >
-        <ConversationList
-          activeConversationId={activeId}
-          onSelect={setActiveId}
-        />
-      </div>
-
-      {/* Columna derecha: chat activo */}
-      <div
-        className={`flex-1 ${
-          activeId ? "flex flex-col" : "hidden md:flex md:flex-col"
-        }`}
-      >
-        {activeId ? (
-          <ChatWindow
-            conversationId={activeId}
-            showBackButton={true}
-            onBack={() => setActiveId(null)}
+    <div className="px-4 md:px-6 py-4 md:py-6 h-[calc(100vh-96px)]">
+      <div className="max-w-screen-2xl mx-auto h-full flex bg-white/75 backdrop-blur-xl border border-black/[0.06] rounded-[24px] shadow-[0_8px_32px_-16px_rgba(20,15,10,0.1)] overflow-hidden">
+        <div
+          className={`w-full md:w-80 lg:w-96 border-r border-[#E8E5DD] flex-shrink-0 ${
+            activeId ? "hidden md:flex md:flex-col" : "flex flex-col"
+          }`}
+        >
+          <ConversationList
+            activeConversationId={activeId}
+            onSelect={setActiveId}
           />
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-4xl mb-3">💬</p>
-              <p className="text-sm text-gray-500 font-medium">
-                Cuando la empresa te contacte podrás responder aquí
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Solo las empresas pueden iniciar conversaciones
-              </p>
+        </div>
+
+        <div
+          className={`flex-1 min-w-0 ${
+            activeId ? "flex flex-col" : "hidden md:flex md:flex-col"
+          }`}
+        >
+          {activeId ? (
+            <ChatWindow
+              conversationId={activeId}
+              showBackButton={true}
+              onBack={() => setActiveId(null)}
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center relative bg-[#FAFAF8]">
+              <div
+                className="pointer-events-none absolute inset-0 opacity-25"
+                style={{
+                  background:
+                    "radial-gradient(500px circle at 50% 30%, rgba(255,106,61,0.08), transparent 60%)",
+                }}
+              />
+              <div className="relative text-center max-w-sm px-6">
+                <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-[#E8E5DD] items-center justify-center mb-5 shadow-sm">
+                  <MessageSquare
+                    className="w-7 h-7 text-[#FF6A3D]"
+                    strokeWidth={1.8}
+                  />
+                </div>
+                <p className="text-[15px] font-bold text-[#0A0909] tracking-tight mb-1.5">
+                  Tu bandeja está esperando
+                </p>
+                <p className="text-[13px] text-[#6D6A63] leading-relaxed mb-1">
+                  Cuando una empresa te contacte, vas a poder responder desde
+                  acá.
+                </p>
+                <p className="text-[11px] text-[#9B9891] uppercase tracking-wide font-semibold mt-3">
+                  Solo las empresas inician conversaciones
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

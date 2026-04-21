@@ -150,15 +150,18 @@ export default function DashboardLayout({
 
             <nav className="hidden md:flex gap-1 items-center">
               {navItems.map(({ href, label, icon: Icon, inbox }) => {
+                const moreSpecificMatch = navItems.some(
+                  (n) =>
+                    n.href !== href &&
+                    n.href !== "/dashboard" &&
+                    (pathname === n.href || pathname.startsWith(`${n.href}/`)),
+                );
                 const active =
                   href === "/dashboard"
-                    ? pathname === "/dashboard" ||
-                      pathname.startsWith("/dashboard/")
-                      ? pathname === "/dashboard" ||
-                        pathname.startsWith("/dashboard/estudiante") ||
-                        pathname === "/dashboard/empresa"
-                      : false
-                    : pathname.startsWith(href);
+                    ? !moreSpecificMatch &&
+                      (pathname === "/dashboard" ||
+                        pathname.startsWith("/dashboard/"))
+                    : pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link
                     key={href}

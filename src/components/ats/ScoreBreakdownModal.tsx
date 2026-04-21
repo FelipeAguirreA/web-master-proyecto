@@ -1,6 +1,15 @@
 "use client";
 
-import { X } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  X,
+  Zap,
+  Briefcase,
+  GraduationCap,
+  Globe,
+  Folder,
+  Star,
+} from "lucide-react";
 
 interface ModuleScore {
   moduleId: string;
@@ -14,7 +23,11 @@ interface ModuleScore {
 
 interface Applicant {
   id: string;
-  student: { name: string; email: string };
+  student: {
+    name: string;
+    email: string;
+    image?: string | null;
+  };
   atsScore: number | null;
   moduleScores: ModuleScore[] | null;
   passedFilters: boolean;
@@ -27,34 +40,44 @@ interface ScoreBreakdownModalProps {
   onClose: () => void;
 }
 
-const MODULE_ICONS: Record<string, string> = {
-  SKILLS: "⚡",
-  EXPERIENCE: "💼",
-  EDUCATION: "🎓",
-  LANGUAGES: "🌐",
-  PORTFOLIO: "🗂️",
-  CUSTOM: "⭐",
+const MODULE_ICONS: Record<string, typeof Zap> = {
+  SKILLS: Zap,
+  EXPERIENCE: Briefcase,
+  EDUCATION: GraduationCap,
+  LANGUAGES: Globe,
+  PORTFOLIO: Folder,
+  CUSTOM: Star,
 };
 
 function ScoreBar({ score, passed }: { score: number; passed: boolean }) {
-  const color = !passed
-    ? "bg-red-400"
+  const fillClass = !passed
+    ? "bg-[#EF4444]"
     : score >= 80
-      ? "bg-green-400"
+      ? "bg-[#10B981]"
       : score >= 60
-        ? "bg-amber-400"
-        : "bg-gray-300";
+        ? "bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A]"
+        : "bg-[#C9C6BF]";
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 bg-gray-100 rounded-full h-2">
+      <div className="flex-1 bg-[#F5F4F1] rounded-full h-1.5 overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all ${color}`}
-          style={{ width: `${passed ? score : 100}%` }}
+          className={`h-1.5 rounded-full transition-all ${fillClass}`}
+          style={{ width: `${passed ? Math.max(score, 4) : 100}%` }}
         />
       </div>
-      <span className="text-sm font-bold w-10 text-right text-gray-700">
-        {passed ? `${score}%` : "❌"}
+      <span
+        className={`text-[12.5px] font-bold w-10 text-right tracking-[-0.01em] ${
+          !passed
+            ? "text-[#B91C1C]"
+            : score >= 80
+              ? "text-[#047857]"
+              : score >= 60
+                ? "text-[#C2410C]"
+                : "text-[#6D6A63]"
+        }`}
+      >
+        {passed ? `${score}%` : "✕"}
       </span>
     </div>
   );
@@ -66,60 +89,87 @@ export default function ScoreBreakdownModal({
 }: ScoreBreakdownModalProps) {
   const initial = applicant.student.name.charAt(0).toUpperCase();
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
+    >
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+      <div className="relative bg-white rounded-[24px] shadow-[0_32px_64px_-16px_rgba(20,15,10,0.3)] border border-black/[0.06] w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-black/[0.05] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">
-              {initial}
-            </div>
-            <div>
-              <p className="font-bold text-gray-900">
+            {applicant.student.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={applicant.student.image}
+                alt={applicant.student.name}
+                className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-[0_4px_12px_-3px_rgba(20,15,10,0.2)]"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center font-bold text-[15px] shadow-[0_4px_12px_-3px_rgba(255,106,61,0.45)]">
+                {initial}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-[14.5px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
                 {applicant.student.name}
               </p>
-              <p className="text-xs text-gray-400">{applicant.student.email}</p>
+              <p className="text-[12px] text-[#6D6A63] truncate mt-0.5">
+                {applicant.student.email}
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#9B9891] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
+            aria-label="Cerrar"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" strokeWidth={2.2} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="px-6 py-6">
           {/* Score general */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-7">
             {applicant.atsScore === null ? (
               <>
-                <div className="text-2xl font-extrabold text-gray-400">
-                  Calculando…
+                <div className="inline-flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-[#FF6A3D]/25 border-t-[#FF6A3D] rounded-full animate-spin" />
+                  <p className="text-[18px] font-bold text-[#6D6A63] tracking-[-0.02em]">
+                    Calculando
+                  </p>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-[12.5px] text-[#9B9891] mt-2">
                   El score se está procesando
                 </p>
               </>
             ) : !applicant.passedFilters ? (
               <>
-                <div className="text-2xl font-extrabold text-red-500">
-                  Descalificado
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FEF2F2] border border-[#FECACA]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
+                  <span className="text-[11.5px] font-semibold text-[#B91C1C] uppercase tracking-[0.08em]">
+                    Descalificado
+                  </span>
                 </div>
-                <p className="text-xs text-red-400 mt-1">
+                <p className="text-[13px] text-[#6D6A63] mt-3 leading-relaxed">
                   {applicant.filterReason}
                 </p>
               </>
             ) : (
               <>
-                <div className="text-5xl font-extrabold text-brand-600 tracking-tighter">
-                  {applicant.atsScore}%
+                <div className="text-[56px] font-bold bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent tracking-[-0.04em] leading-none">
+                  {applicant.atsScore}
+                  <span className="text-[32px]">%</span>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">Score ATS total</p>
+                <p className="text-[11.5px] font-semibold text-[#9B9891] uppercase tracking-[0.08em] mt-2">
+                  Score ATS total
+                </p>
               </>
             )}
           </div>
@@ -127,30 +177,40 @@ export default function ScoreBreakdownModal({
           {/* Breakdown por módulo */}
           {applicant.moduleScores && applicant.moduleScores.length > 0 ? (
             <div className="space-y-4">
-              {applicant.moduleScores.map((ms) => (
-                <div key={ms.moduleId}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                      {MODULE_ICONS[ms.type] ?? "⭐"} {ms.label}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      Peso: {ms.weight}%
-                    </span>
+              {applicant.moduleScores.map((ms) => {
+                const Icon = MODULE_ICONS[ms.type] ?? Star;
+                return (
+                  <div key={ms.moduleId}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
+                        <Icon
+                          className="w-3.5 h-3.5 text-[#6D6A63]"
+                          strokeWidth={2.2}
+                        />
+                        {ms.label}
+                      </span>
+                      <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891]">
+                        Peso {ms.weight}%
+                      </span>
+                    </div>
+                    <ScoreBar score={ms.score} passed={ms.passed} />
+                    {ms.reason && (
+                      <p className="text-[11.5px] text-[#B91C1C] mt-1.5 leading-relaxed">
+                        {ms.reason}
+                      </p>
+                    )}
                   </div>
-                  <ScoreBar score={ms.score} passed={ms.passed} />
-                  {ms.reason && (
-                    <p className="text-xs text-red-400 mt-1">{ms.reason}</p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : applicant.atsScore !== null ? (
-            <p className="text-sm text-gray-400 text-center">
+            <p className="text-[12.5px] text-[#9B9891] text-center">
               No hay módulos activos en la configuración ATS.
             </p>
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

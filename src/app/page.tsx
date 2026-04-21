@@ -139,11 +139,9 @@ export default async function Home() {
               muted
               loop
               playsInline
-              preload="metadata"
-              poster="/hero-poster.jpg"
+              preload="auto"
             >
               <source src="/hero-video.mp4" type="video/mp4" />
-              <source src="/hero-video.webm" type="video/webm" />
             </video>
             {/* Vignette + gradient overlay para legibilidad */}
             <div

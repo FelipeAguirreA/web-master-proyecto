@@ -51,6 +51,7 @@ export default function PerfilPage() {
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageBroken, setImageBroken] = useState(false);
 
   useEffect(() => {
     fetch("/api/perfil")
@@ -139,9 +140,9 @@ export default function PerfilPage() {
             }
           : prev,
       );
+      if (newImageUrl) setImageBroken(false);
       setAvatarFile(null);
-      setSuccess(true);
-      setTimeout(() => router.push("/dashboard"), 1200);
+      router.push("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Ocurrió un error inesperado.",
@@ -162,7 +163,10 @@ export default function PerfilPage() {
   if (!profile) return null;
 
   const isCompany = profile.role === "COMPANY";
-  const currentImage = avatarPreview ?? profile.image;
+  const sessionImage = (session?.user as { image?: string } | undefined)?.image;
+  const rawImage = avatarPreview ?? profile.image ?? sessionImage ?? null;
+  const currentImage =
+    avatarPreview ?? (imageBroken ? (sessionImage ?? null) : rawImage);
   const displayInitial = (profile.name || session?.user?.name || "U")
     .charAt(0)
     .toUpperCase();
@@ -206,7 +210,8 @@ export default function PerfilPage() {
                   key={currentImage}
                   src={currentImage}
                   alt={profile.name}
-                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-[0_12px_32px_-8px_rgba(20,15,10,0.18)]"
+                  onError={() => setImageBroken(true)}
+                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-[0_12px_32px_-8px_rgba(20,15,10,0.18)] bg-[#F5F4F1]"
                 />
               ) : (
                 <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[36px] font-bold border-4 border-white shadow-[0_12px_32px_-8px_rgba(255,106,61,0.45)]">

@@ -2,7 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Plus, Save, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Save,
+  RefreshCw,
+  Sparkles,
+  Users,
+  AlertCircle,
+  Zap,
+  Briefcase,
+  GraduationCap,
+  Globe,
+  Folder,
+  Star,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import ModuleCard, { type ATSModuleState } from "@/components/ats/ModuleCard";
 import ModuleEditModal from "@/components/ats/ModuleEditModal";
@@ -19,12 +34,51 @@ const MODULE_ICONS: Record<string, string> = {
   CUSTOM: "⭐",
 };
 
-const PIPELINE_LABELS: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pendiente", color: "bg-gray-100 text-gray-600" },
-  REVIEWING: { label: "En revisión", color: "bg-blue-100 text-blue-700" },
-  INTERVIEW: { label: "Entrevista ✨", color: "bg-green-100 text-green-700" },
-  REJECTED: { label: "Rechazado", color: "bg-red-100 text-red-600" },
+const PRESET_LUCIDE: Record<string, LucideIcon> = {
+  SKILLS: Zap,
+  EXPERIENCE: Briefcase,
+  EDUCATION: GraduationCap,
+  LANGUAGES: Globe,
+  PORTFOLIO: Folder,
+  CUSTOM: Star,
 };
+
+const PIPELINE_STYLES: Record<string, { label: string; className: string }> = {
+  PENDING: {
+    label: "Pendiente",
+    className: "bg-[#F5F4F1] text-[#6D6A63] border-[#E8E5DD]",
+  },
+  REVIEWING: {
+    label: "En revisión",
+    className: "bg-[#EFF6FF] text-[#1D4ED8] border-[#DBEAFE]",
+  },
+  INTERVIEW: {
+    label: "Entrevista",
+    className: "bg-[#ECFDF3] text-[#047857] border-[#D1FAE5]",
+  },
+  REJECTED: {
+    label: "Rechazado",
+    className: "bg-[#FEF2F2] text-[#B91C1C] border-[#FEE2E2]",
+  },
+};
+
+function avatarGradient(name: string): string {
+  const gradients = [
+    "from-[#FF6A3D] to-[#C2410C]",
+    "from-[#F59E0B] to-[#B45309]",
+    "from-[#10B981] to-[#047857]",
+    "from-[#3B82F6] to-[#1D4ED8]",
+    "from-[#8B5CF6] to-[#6D28D9]",
+    "from-[#EC4899] to-[#BE185D]",
+    "from-[#0A0909] to-[#2a2722]",
+    "from-[#F97316] to-[#9A3412]",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  return gradients[hash % gradients.length];
+}
 
 function buildModuleState(mod: {
   id?: string;
@@ -51,7 +105,6 @@ export default function ATSConfigPage() {
   const params = useParams();
   const jobId = params.jobId as string;
 
-  // — Config state —
   const [activeModules, setActiveModules] = useState<ATSModuleState[]>([]);
   const [editingModule, setEditingModule] = useState<ATSModuleState | null>(
     null,
@@ -61,7 +114,6 @@ export default function ATSConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // — Candidates state —
   const [candidates, setCandidates] = useState<CandidateData[]>([]);
   const [selectedCandidate, setSelectedCandidate] =
     useState<CandidateData | null>(null);
@@ -73,7 +125,6 @@ export default function ATSConfigPage() {
       if (!res.ok) return;
       const data: CandidateData[] = (await res.json()) ?? [];
 
-      // Auto-calcular si hay candidatos sin score y ATS activo
       if (
         !skipAutoScore &&
         data.length > 0 &&
@@ -113,10 +164,8 @@ export default function ATSConfigPage() {
             .filter((m: ATSModuleState) => m.isActive)
             .map(buildModuleState),
         );
-        // Config ya existe → cargar candidatos
         await loadCandidates();
       } else {
-        // Sin config previa: cargar módulos por defecto activos
         const defaults = PRESET_MODULES.filter((p) => p.defaultActive).map(
           (p, i) =>
             buildModuleState({
@@ -234,7 +283,6 @@ export default function ATSConfigPage() {
         return;
       }
 
-      // Auto-recalcular y mostrar candidatos
       await handleRecalculate();
     } finally {
       setSaving(false);
@@ -253,82 +301,119 @@ export default function ATSConfigPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f9f9ff]">
-        <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#FF6A3D] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  const saveLabel = saving
+    ? "Guardando..."
+    : scoring
+      ? "Calculando..."
+      : "Guardar y calcular";
+
   return (
-    <div className="min-h-screen bg-[#f9f9ff]">
-      <div className="max-w-screen-xl mx-auto px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+    <div className="px-4 md:px-8 py-6 md:py-10">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="mb-6">
           <Link
             href="/dashboard/empresa"
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#6D6A63] hover:text-[#0A0909] transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Volver al dashboard
           </Link>
         </div>
 
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tighter text-gray-900">
-              Configuración ATS 🤖
-            </h1>
-            <p className="text-gray-400 mt-1">
-              Configurá los módulos de evaluación y sus pesos para rankear
-              candidatos automáticamente.
-            </p>
-          </div>
+        <div className="relative overflow-hidden rounded-[28px] bg-white border border-[#E8E5DD] shadow-[0_8px_32px_-16px_rgba(20,15,10,0.1)] p-6 md:p-8 mb-8">
+          <div
+            className="pointer-events-none absolute -top-24 -right-16 w-[340px] h-[340px] rounded-full opacity-60"
+            style={{
+              background:
+                "radial-gradient(closest-side, rgba(255,106,61,0.15), transparent 72%)",
+              filter: "blur(40px)",
+            }}
+          />
 
-          <div className="flex items-center gap-3">
-            <div
-              className={`text-sm font-bold px-4 py-2 rounded-xl ${
-                weightsOk
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-600"
-              }`}
-            >
-              Total: {totalWeight}% {weightsOk ? "✓" : "≠ 100%"}
+          <div className="relative flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#FFF0E4] to-[#FFE1CB] border border-[#FFD4B5] mb-3">
+                <Sparkles
+                  className="w-3 h-3 text-[#C2410C]"
+                  strokeWidth={2.4}
+                />
+                <span className="text-[10px] font-bold text-[#9A3412] uppercase tracking-wider">
+                  Configuración ATS
+                </span>
+              </div>
+              <h1 className="text-[28px] md:text-[34px] font-extrabold tracking-tighter text-[#0A0909] leading-[1.05]">
+                Rankeá candidatos con criterios propios
+              </h1>
+              <p className="text-[14px] text-[#6D6A63] mt-2 max-w-xl leading-relaxed">
+                Activá los módulos de evaluación y ajustá sus pesos. El score se
+                recalcula automáticamente cuando guardás.
+              </p>
             </div>
 
-            <button
-              onClick={handleSave}
-              disabled={!weightsOk || saving || scoring}
-              className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors shadow-sm shadow-brand-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="w-4 h-4" />
-              {saving
-                ? "Guardando..."
-                : scoring
-                  ? "Calculando..."
-                  : "Guardar y calcular"}
-            </button>
+            <div className="flex flex-col items-stretch md:items-end gap-2.5 flex-shrink-0">
+              <div
+                className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 rounded-xl border tabular-nums ${
+                  weightsOk
+                    ? "bg-[#ECFDF3] text-[#047857] border-[#D1FAE5]"
+                    : "bg-[#FEF2F2] text-[#B91C1C] border-[#FEE2E2]"
+                }`}
+              >
+                Total {totalWeight}% {weightsOk ? "·  ok" : "· debe ser 100%"}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/dashboard/empresa/candidatos/${jobId}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-[#4A4843] text-[12.5px] font-semibold rounded-xl border border-black/[0.08] hover:border-black/[0.15] hover:text-[#0A0909] transition-all"
+                >
+                  <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
+                  Gestionar candidatos
+                </Link>
+
+                <button
+                  onClick={handleSave}
+                  disabled={!weightsOk || saving || scoring}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white text-[13px] font-bold rounded-xl shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {saveLabel}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         {saveError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-            {saveError}
+          <div className="flex items-start gap-2.5 mb-6 p-4 bg-[#FEF2F2] border border-[#FEE2E2] rounded-xl">
+            <AlertCircle className="w-4 h-4 text-[#B91C1C] flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-[#B91C1C]">{saveError}</p>
           </div>
         )}
 
-        {/* Config grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Módulos activos */}
-          <div>
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
-              Módulos activos
-            </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+          <section className="bg-white border border-[#E8E5DD] rounded-[24px] p-5 md:p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider">
+                Módulos activos
+              </h2>
+              {activeModules.length > 0 && (
+                <span className="text-[10px] font-semibold text-[#9B9891] uppercase tracking-wider">
+                  {activeModules.length}{" "}
+                  {activeModules.length === 1 ? "activo" : "activos"}
+                </span>
+              )}
+            </div>
 
             {activeModules.length === 0 ? (
-              <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-8 text-center">
-                <p className="text-sm text-gray-400">
-                  No hay módulos activos. Activá módulos desde la columna
-                  derecha.
+              <div className="bg-[#FAFAF8] border border-dashed border-[#E8E5DD] rounded-[16px] p-8 text-center">
+                <p className="text-[13px] text-[#6D6A63]">
+                  Sin módulos activos. Activá desde la columna derecha.
                 </p>
               </div>
             ) : (
@@ -346,67 +431,86 @@ export default function ATSConfigPage() {
             )}
 
             {!weightsOk && activeModules.length > 0 && (
-              <p className="mt-3 text-xs text-red-500 font-medium">
-                Los pesos deben sumar exactamente 100%. Actual: {totalWeight}%
+              <p className="mt-3 text-[11px] text-[#B91C1C] font-semibold flex items-center gap-1.5">
+                <AlertCircle className="w-3 h-3" />
+                Los pesos deben sumar 100%. Ahora: {totalWeight}%
               </p>
             )}
-          </div>
+          </section>
 
-          {/* Módulos disponibles */}
-          <div>
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
+          <section className="bg-white border border-[#E8E5DD] rounded-[24px] p-5 md:p-6 shadow-sm">
+            <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider mb-4">
               Módulos disponibles
             </h2>
 
             <div className="space-y-3">
-              {inactivePresets.map((preset) => (
-                <div
-                  key={preset.type}
-                  className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-3"
-                >
-                  <span className="text-xl">{preset.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-700">
-                      {preset.label}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {preset.description}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleActivatePreset(preset)}
-                    className="flex-shrink-0 text-xs font-semibold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors"
+              {inactivePresets.map((preset) => {
+                const Icon = PRESET_LUCIDE[preset.type] ?? Star;
+                return (
+                  <div
+                    key={preset.type}
+                    className="bg-[#FAFAF8] border border-[#E8E5DD] rounded-[16px] p-4 flex items-center gap-3 hover:border-[#FFD4B5] hover:bg-white transition-all"
                   >
-                    + Activar
-                  </button>
-                </div>
-              ))}
+                    <div className="w-9 h-9 rounded-xl bg-white border border-[#E8E5DD] flex items-center justify-center flex-shrink-0">
+                      <Icon
+                        className="w-4 h-4 text-[#4A4843]"
+                        strokeWidth={2.2}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-[#0A0909] tracking-tight">
+                        {preset.label}
+                      </p>
+                      <p className="text-[11.5px] text-[#6D6A63] mt-0.5 leading-snug">
+                        {preset.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleActivatePreset(preset)}
+                      className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-[#C2410C] hover:text-white bg-[#FFF0E4] hover:bg-gradient-to-br hover:from-[#FF6A3D] hover:to-[#C2410C] border border-[#FFD4B5] hover:border-transparent px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Activar
+                    </button>
+                  </div>
+                );
+              })}
 
               <button
                 onClick={handleAddCustom}
-                className="w-full flex items-center justify-center gap-2 border border-dashed border-brand-300 text-brand-600 hover:bg-brand-50 rounded-xl py-3 text-sm font-semibold transition-colors"
+                className="w-full flex items-center justify-center gap-2 border border-dashed border-[#FFD4B5] text-[#C2410C] hover:bg-[#FFF4EE] hover:border-[#FF6A3D] rounded-[16px] py-3.5 text-[12.5px] font-semibold transition-all"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5" />
                 Crear módulo personalizado
               </button>
             </div>
-          </div>
+          </section>
         </div>
 
-        {/* ── Ranking de candidatos ── */}
-        <div>
+        <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
-              Ranking de candidatos
-            </h2>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white border border-[#E8E5DD] flex items-center justify-center shadow-sm">
+                <Users className="w-4 h-4 text-[#FF6A3D]" strokeWidth={2.2} />
+              </div>
+              <div>
+                <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider">
+                  Ranking de candidatos
+                </h2>
+                <p className="text-[11px] text-[#9B9891] mt-0.5">
+                  {candidates.length}{" "}
+                  {candidates.length === 1 ? "postulación" : "postulaciones"}
+                </p>
+              </div>
+            </div>
             {candidates.length > 0 && (
               <button
                 onClick={handleRecalculate}
                 disabled={scoring}
-                className="flex items-center gap-2 text-xs font-semibold text-brand-600 hover:text-brand-700 border border-brand-200 bg-brand-50 px-3 py-1.5 rounded-xl transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#0A0909] bg-white hover:bg-[#F5F4F1] border border-[#E8E5DD] px-3 py-2 rounded-xl shadow-sm transition-all disabled:opacity-50"
               >
                 <RefreshCw
-                  className={`w-3.5 h-3.5 ${scoring ? "animate-spin" : ""}`}
+                  className={`w-3.5 h-3.5 text-[#FF6A3D] ${scoring ? "animate-spin" : ""}`}
                 />
                 {scoring ? "Calculando..." : "Recalcular"}
               </button>
@@ -414,34 +518,39 @@ export default function ATSConfigPage() {
           </div>
 
           {scoring ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
-              <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm text-gray-400">Calculando scores…</p>
+            <div className="bg-white border border-[#E8E5DD] rounded-[24px] p-12 text-center shadow-sm">
+              <div className="w-10 h-10 border-[3px] border-[#FF6A3D] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-[13px] text-[#6D6A63] font-medium">
+                Calculando scores…
+              </p>
             </div>
           ) : candidates.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center">
-              <p className="text-sm text-gray-400">
+            <div className="bg-white border border-[#E8E5DD] rounded-[24px] p-12 text-center shadow-sm">
+              <div className="inline-flex w-12 h-12 rounded-2xl bg-[#FAFAF8] items-center justify-center mb-3">
+                <Users className="w-5 h-5 text-[#9B9891]" />
+              </div>
+              <p className="text-[13px] text-[#6D6A63]">
                 Aún no hay postulaciones para esta práctica.
               </p>
             </div>
           ) : (
-            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-white border border-[#E8E5DD] rounded-[24px] overflow-hidden shadow-sm">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4 w-8">
+                  <tr className="border-b border-[#E8E5DD] bg-[#FAFAF8]">
+                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5 w-10">
                       #
                     </th>
-                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
                       Candidato
                     </th>
-                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
                       Score ATS
                     </th>
-                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
                       Match CV
                     </th>
-                    <th className="text-left text-xs font-bold text-gray-400 uppercase tracking-wider px-6 py-4">
+                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
                       Pipeline
                     </th>
                   </tr>
@@ -449,32 +558,44 @@ export default function ATSConfigPage() {
                 <tbody>
                   {ranked.map((c, idx) => {
                     const pipeline =
-                      PIPELINE_LABELS[c.pipelineStatus] ??
-                      PIPELINE_LABELS.PENDING;
+                      PIPELINE_STYLES[c.pipelineStatus] ??
+                      PIPELINE_STYLES.PENDING;
                     const initial = c.student.name.charAt(0).toUpperCase();
                     const isDisqualified = !c.passedFilters;
+                    const scoreClass =
+                      c.atsScore !== null
+                        ? c.atsScore >= 80
+                          ? "text-[#047857]"
+                          : c.atsScore >= 60
+                            ? "text-[#C2410C]"
+                            : "text-[#6D6A63]"
+                        : "text-[#9B9891]";
 
                     return (
                       <tr
                         key={c.id}
                         onClick={() => setSelectedCandidate(c)}
-                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${
+                        className={`border-b border-[#F0EDE4] last:border-0 hover:bg-[#FAFAF8] transition-colors cursor-pointer ${
                           isDisqualified ? "opacity-60" : ""
                         }`}
                       >
-                        <td className="px-6 py-4 text-sm font-bold text-gray-400">
+                        <td className="px-6 py-4 text-[12px] font-bold text-[#9B9891] tabular-nums">
                           {isDisqualified ? "—" : idx + 1}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            <div
+                              className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0 shadow-sm bg-gradient-to-br ${avatarGradient(
+                                c.student.name,
+                              )}`}
+                            >
                               {initial}
                             </div>
-                            <div>
-                              <p className="text-sm font-bold text-gray-800">
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-bold text-[#0A0909] truncate tracking-tight">
                                 {c.student.name}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-[11px] text-[#9B9891] truncate">
                                 {c.student.studentProfile?.career ??
                                   c.student.email}
                               </p>
@@ -483,40 +604,36 @@ export default function ATSConfigPage() {
                         </td>
                         <td className="px-6 py-4">
                           {isDisqualified ? (
-                            <span className="text-xs text-red-500 font-semibold">
-                              ❌{" "}
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#B91C1C] bg-[#FEF2F2] border border-[#FEE2E2] px-2 py-1 rounded-lg">
+                              <AlertCircle className="w-3 h-3" />
                               {c.filterReason?.split(":")[0] ?? "Descalificado"}
                             </span>
                           ) : c.atsScore !== null ? (
                             <span
-                              className={`text-sm font-extrabold ${
-                                c.atsScore >= 80
-                                  ? "text-green-600"
-                                  : c.atsScore >= 60
-                                    ? "text-amber-600"
-                                    : "text-gray-500"
-                              }`}
+                              className={`text-[14px] font-extrabold tabular-nums ${scoreClass}`}
                             >
                               {c.atsScore}%
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-[11px] text-[#9B9891]">
                               Sin calcular
                             </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           {c.matchScore !== null ? (
-                            <span className="text-sm font-semibold text-gray-600">
+                            <span className="text-[13px] font-semibold text-[#4A4843] tabular-nums">
                               {Math.round(c.matchScore)}%
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-300">—</span>
+                            <span className="text-[11px] text-[#C9C6BF]">
+                              —
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <span
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${pipeline.color}`}
+                            className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${pipeline.className}`}
                           >
                             {pipeline.label}
                           </span>
@@ -528,10 +645,9 @@ export default function ATSConfigPage() {
               </table>
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* Modal detalle */}
       {selectedCandidate && (
         <ScoreBreakdownModal
           applicant={{
@@ -549,7 +665,6 @@ export default function ATSConfigPage() {
         />
       )}
 
-      {/* Modal de edición de módulo */}
       {editingModule && (
         <ModuleEditModal
           module={editingModule}
