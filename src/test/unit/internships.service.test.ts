@@ -10,8 +10,8 @@ import {
 beforeEach(() => {
   Object.values(prismaMock).forEach((model) =>
     Object.values(model).forEach((fn) =>
-      (fn as ReturnType<typeof vi.fn>).mockReset()
-    )
+      (fn as ReturnType<typeof vi.fn>).mockReset(),
+    ),
   );
 });
 
@@ -30,6 +30,11 @@ const mockInternship = {
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
+  company: {
+    companyName: "TechCorp",
+    logo: null,
+    user: { image: null },
+  },
 };
 
 describe("listInternships", () => {
@@ -54,7 +59,7 @@ describe("listInternships", () => {
     expect(prismaMock.internship.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ area: "Ingeniería" }),
-      })
+      }),
     );
   });
 
@@ -71,7 +76,7 @@ describe("listInternships", () => {
             expect.objectContaining({ title: expect.any(Object) }),
           ]),
         }),
-      })
+      }),
     );
   });
 
@@ -84,21 +89,24 @@ describe("listInternships", () => {
     expect(prismaMock.internship.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ isActive: true }),
-      })
+      }),
     );
   });
 });
 
 describe("getInternshipById", () => {
   it("retorna la práctica con datos de la empresa cuando existe", async () => {
-    const withCompany = { ...mockInternship, company: { companyName: "TechCorp" } };
+    const withCompany = {
+      ...mockInternship,
+      company: { companyName: "TechCorp" },
+    };
     prismaMock.internship.findUnique.mockResolvedValue(withCompany);
 
     const result = await getInternshipById("int-1");
 
     expect(result).toEqual(withCompany);
     expect(prismaMock.internship.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "int-1" } })
+      expect.objectContaining({ where: { id: "int-1" } }),
     );
   });
 
@@ -127,7 +135,7 @@ describe("createInternship", () => {
     prismaMock.companyProfile.findUnique.mockResolvedValue(null);
 
     await expect(createInternship("user-1", data)).rejects.toThrow(
-      "Company profile required"
+      "Company profile required",
     );
   });
 
@@ -147,25 +155,34 @@ describe("createInternship", () => {
     expect(prismaMock.internship.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ companyId: "cp-1" }),
-      })
+      }),
     );
   });
 });
 
 describe("deleteInternship", () => {
   it("lanza error si el usuario no es dueño de la práctica", async () => {
-    prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1", userId: "user-1" });
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+    });
     prismaMock.internship.findFirst.mockResolvedValue(null);
 
     await expect(deleteInternship("int-1", "user-1")).rejects.toThrow(
-      "Not found or not authorized"
+      "Not found or not authorized",
     );
   });
 
   it("hace soft delete (isActive: false) en lugar de borrar", async () => {
-    prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1", userId: "user-1" });
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+    });
     prismaMock.internship.findFirst.mockResolvedValue(mockInternship);
-    prismaMock.internship.update.mockResolvedValue({ ...mockInternship, isActive: false });
+    prismaMock.internship.update.mockResolvedValue({
+      ...mockInternship,
+      isActive: false,
+    });
 
     const result = await deleteInternship("int-1", "user-1");
 
@@ -173,7 +190,7 @@ describe("deleteInternship", () => {
     expect(prismaMock.internship.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ isActive: false }),
-      })
+      }),
     );
   });
 });
