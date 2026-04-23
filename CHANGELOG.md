@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-04-23
+
+### Fixed
+
+- `deleteInternship` ahora hace **soft delete** (`isActive: false`) en lugar de borrado físico (`prisma.internship.delete`). Antes, eliminar una práctica destruía el registro y rompía la integridad referencial con `Application` (las postulaciones quedaban huérfanas o se perdían en cascade). El soft delete preserva el historial de postulaciones, mantiene el contrato documentado en `CLAUDE.md` ("Prácticas usan soft delete (campo isActive: Boolean)"), y deja la práctica fuera del listing público porque `listInternships` ya filtra por `isActive: true`. Bug detectado al desbloquear los unit tests del service en la Fase 2 del refactor.
+
 ## [1.4.1] - 2026-04-23
 
 ### Documentation

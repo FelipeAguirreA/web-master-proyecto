@@ -140,8 +140,9 @@ export async function deleteInternship(
 
   if (!existing) throw new Error("Not found or not authorized");
 
-  await prisma.internship.delete({
+  await prisma.internship.update({
     where: { id: internshipId },
+    data: { isActive: false },
   });
 
   return { success: true };
