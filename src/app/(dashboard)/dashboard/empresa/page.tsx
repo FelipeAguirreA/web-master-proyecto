@@ -240,7 +240,7 @@ export default function CompanyDashboard() {
   const completedCount = internships.length - activeCount;
 
   return (
-    <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-6">
+    <div className="pt-6 sm:pt-8 pb-12 sm:pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-5 sm:gap-6">
       {/* Status banners */}
       {companyStatus === "PENDING" && (
         <div className="relative overflow-hidden rounded-2xl border border-[#FFBD2E]/25 bg-gradient-to-r from-[#FFF8E6] to-[#FFF3EC] px-5 py-4 flex items-start gap-3">
@@ -282,43 +282,45 @@ export default function CompanyDashboard() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-5">
         <div>
           <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
             Panel empresa
           </p>
-          <h1 className="text-[34px] md:text-[40px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
+          <h1 className="text-[26px] sm:text-[34px] md:text-[40px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
             Gestioná tu{" "}
             <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
               talento
             </span>
           </h1>
-          <p className="text-[14px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
+          <p className="text-[13px] sm:text-[14px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
             Publicá vacantes, revisá postulaciones rankeadas por IA y encontrá
             al candidato ideal para tu equipo.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-              Activas
-            </p>
-            <p className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
-              {activeCount}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <p className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-              Completadas
-            </p>
-            <p className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
-              {completedCount}
-            </p>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <p className="text-[9.5px] sm:text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+                Activas
+              </p>
+              <p className="text-[17px] sm:text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
+                {activeCount}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <p className="text-[9.5px] sm:text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
+                Completadas
+              </p>
+              <p className="text-[17px] sm:text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
+                {completedCount}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setShowForm(true)}
-            className="group inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[13px] font-semibold px-5 py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all"
+            className="group inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[12.5px] sm:text-[13px] font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4" strokeWidth={2.4} />
             Nueva práctica
@@ -327,9 +329,9 @@ export default function CompanyDashboard() {
       </div>
 
       {/* Split layout */}
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
         {/* Lista prácticas */}
-        <div className="lg:col-span-2">
+        <div className="md:col-span-2">
           {internships.length === 0 ? (
             <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 flex items-center justify-center mx-auto mb-4">
@@ -745,7 +747,7 @@ export default function CompanyDashboard() {
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={LABEL_CLS}>Área</label>
                   <select className={INPUT_CLS()} {...field("area")}>
@@ -767,7 +769,7 @@ export default function CompanyDashboard() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={LABEL_CLS}>Ubicación *</label>
                   <input

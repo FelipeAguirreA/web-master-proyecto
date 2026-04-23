@@ -147,16 +147,16 @@ export default function AdminEmpresasPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-14">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 sm:py-10 md:py-14">
       {/* Hero */}
-      <div className="mb-10">
+      <div className="mb-8 sm:mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm border border-black/[0.06] mb-5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#FF6A3D] animate-pulse" />
           <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#4A4843]">
             Panel de administración
           </span>
         </div>
-        <h1 className="text-[42px] md:text-[52px] leading-[1.02] font-bold tracking-[-0.035em] text-[#0A0909]">
+        <h1 className="text-[32px] sm:text-[42px] md:text-[52px] leading-[1.02] font-bold tracking-[-0.035em] text-[#0A0909]">
           Validación de{" "}
           <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
             empresas

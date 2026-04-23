@@ -104,7 +104,7 @@ export default function CandidateCard({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-[10px] font-medium text-[#9B9891] hover:text-[#FF6A3D] inline-flex items-center gap-0.5 transition-colors"
+            className="text-[10px] font-medium text-[#9B9891] hover:text-[#FF6A3D] inline-flex items-center gap-0.5 transition-colors px-2 py-1 -mx-2 -my-1 rounded-md hover:bg-[#FFF3EC]"
           >
             CV <ExternalLink className="w-3 h-3" strokeWidth={2.2} />
           </a>

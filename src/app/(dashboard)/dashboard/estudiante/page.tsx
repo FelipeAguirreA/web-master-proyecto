@@ -196,37 +196,39 @@ export default function StudentDashboard() {
     (a) => a.status === "ACCEPTED",
   ).length;
 
+  const visibleRecommendations = recommendations.slice(0, 6);
+
   return (
     <>
       {/* Modal detalle postulación */}
       {selectedApplication && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0909]/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#0A0909]/50 backdrop-blur-sm"
           onClick={() => setSelectedApplication(null)}
         >
           <div
-            className="bg-white rounded-[24px] shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-t-[24px] sm:rounded-[24px] rounded-b-none sm:rounded-b-[24px] shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)] w-full sm:max-w-2xl max-h-[calc(100dvh-80px)] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-6 py-4 flex items-start justify-between gap-4 rounded-t-[24px]">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-4 sm:px-6 py-3 sm:py-4 flex items-start justify-between gap-4 rounded-t-[24px] z-10">
               <div className="min-w-0">
-                <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight truncate">
+                <h2 className="text-[16px] sm:text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight truncate">
                   {selectedApplication.internship.title}
                 </h2>
-                <p className="text-[13px] text-[#6D6A63] mt-0.5">
+                <p className="text-[12.5px] sm:text-[13px] text-[#6D6A63] mt-0.5 truncate">
                   {selectedApplication.internship.company.companyName}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedApplication(null)}
-                className="shrink-0 w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
+                className="shrink-0 w-11 h-11 -mr-2 rounded-full hover:bg-[#FAFAF8] active:bg-[#F0EDE4] flex items-center justify-center transition-colors"
                 aria-label="Cerrar"
               >
-                <X className="w-4 h-4 text-[#6D6A63]" />
+                <X className="w-5 h-5 text-[#6D6A63]" />
               </button>
             </div>
 
-            <div className="px-6 py-5 space-y-5">
+            <div className="px-4 sm:px-6 py-5 space-y-5">
               <div className="flex flex-wrap gap-2">
                 {(() => {
                   const st = STATUS_CONFIG[selectedApplication.status];
@@ -340,35 +342,35 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      <div className="pt-8 pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-8">
+      <div className="pt-6 sm:pt-8 pb-12 sm:pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-6 sm:gap-8">
         {/* Hero bienvenida */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-5">
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-5">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
               Tu panel ·{" "}
               {new Date().toLocaleDateString("es-CL", { weekday: "long" })}
             </p>
-            <h1 className="text-[36px] md:text-[44px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
+            <h1 className="text-[28px] sm:text-[36px] md:text-[44px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
               Hola,{" "}
               <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
                 {name}
               </span>{" "}
               👋
             </h1>
-            <p className="text-[14.5px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
-              {recommendations.length > 0
-                ? `Tenemos ${recommendations.length} recomendaciones alineadas a tu perfil. Revisalas cuanto antes — las buenas vuelan.`
+            <p className="text-[13px] sm:text-[14.5px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
+              {visibleRecommendations.length > 0
+                ? `Tenemos ${visibleRecommendations.length} recomendaciones alineadas a tu perfil. Revisalas cuanto antes — las buenas vuelan.`
                 : "Subí tu CV para activar el matching IA y recibir recomendaciones personalizadas."}
             </p>
           </div>
 
           {/* Mini stats */}
-          <div className="flex items-center gap-3">
-            <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-w-[120px]">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex-1 sm:flex-none bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:min-w-[120px]">
               <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
                 Postulaciones
               </p>
-              <p className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1 leading-none">
+              <p className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1 leading-none">
                 {applications.length}
               </p>
               {acceptedCount > 0 && (
@@ -378,12 +380,12 @@ export default function StudentDashboard() {
                 </p>
               )}
             </div>
-            <div className="bg-white rounded-2xl border border-black/[0.06] px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-w-[140px]">
+            <div className="flex-1 sm:flex-none bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:min-w-[140px]">
               <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
                 Perfil
               </p>
               <div className="flex items-baseline gap-1 mt-1">
-                <p className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none">
+                <p className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none">
                   {completionPct}
                 </p>
                 <span className="text-[12px] font-medium text-[#9B9891]">
@@ -402,31 +404,34 @@ export default function StudentDashboard() {
 
         {/* Banner CV */}
         {!hasCv ? (
-          <section className="relative overflow-hidden rounded-[24px] border border-[#FF6A3D]/15 bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFEDE0] p-7 md:p-8">
+          <section className="relative overflow-hidden rounded-[20px] sm:rounded-[24px] border border-[#FF6A3D]/15 bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFEDE0] p-5 sm:p-7 md:p-8">
             <div className="pointer-events-none absolute inset-0" aria-hidden>
               <div className="absolute -top-20 -right-20 w-[360px] h-[360px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[50px]" />
               <div className="absolute -bottom-16 -left-12 w-[280px] h-[280px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.5),transparent_70%)] blur-[40px]" />
             </div>
-            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex items-start gap-5 min-w-0">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shrink-0 shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)]">
-                  <Wand2 className="w-7 h-7 text-white" strokeWidth={2.2} />
+            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
+              <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shrink-0 shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)]">
+                  <Wand2
+                    className="w-6 h-6 sm:w-7 sm:h-7 text-white"
+                    strokeWidth={2.2}
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#FF6A3D] mb-1">
+                  <p className="text-[10.5px] sm:text-[11px] font-semibold tracking-[0.1em] uppercase text-[#FF6A3D] mb-1">
                     Activá el matching IA
                   </p>
-                  <h3 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight">
+                  <h3 className="text-[16px] sm:text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight">
                     Subí tu CV y dejá que la IA encuentre tus prácticas ideales
                   </h3>
-                  <p className="text-[13px] text-[#6D6A63] mt-1.5 max-w-[480px] leading-[1.55]">
+                  <p className="text-[12.5px] sm:text-[13px] text-[#6D6A63] mt-1.5 max-w-[480px] leading-[1.55]">
                     Analizamos tus habilidades y experiencia para conectarte con
                     las vacantes que mejor calzan con tu perfil.
                   </p>
                 </div>
               </div>
               <div className="flex flex-col items-stretch md:items-end gap-2 w-full md:w-auto shrink-0">
-                <label className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-6 py-3 rounded-xl font-semibold text-[13.5px] cursor-pointer shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all">
+                <label className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-[13px] sm:text-[13.5px] cursor-pointer shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all">
                   <Upload className="w-4 h-4" strokeWidth={2.3} />
                   {uploading ? "Procesando…" : "Subir CV (PDF o DOCX)"}
                   <input
@@ -459,7 +464,7 @@ export default function StudentDashboard() {
                 vacantes.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-[12px] font-semibold shrink-0">
+            <div className="flex items-center flex-wrap gap-1 sm:gap-2 text-[12px] font-semibold shrink-0">
               <label className="text-[#FF6A3D] hover:text-[#FF5A28] cursor-pointer transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF3EC]">
                 Actualizar CV
                 <input
@@ -470,7 +475,7 @@ export default function StudentDashboard() {
                   disabled={uploading || deleting}
                 />
               </label>
-              <span className="w-px h-4 bg-black/[0.08]" />
+              <span className="hidden sm:block w-px h-4 bg-black/[0.08]" />
               <button
                 onClick={handleCVDelete}
                 disabled={deleting || uploading}
@@ -484,7 +489,7 @@ export default function StudentDashboard() {
 
         {/* Tabs + contenido */}
         <section>
-          <div className="flex items-center gap-1 bg-black/[0.03] rounded-2xl p-1 w-fit mb-7">
+          <div className="flex items-center gap-1 bg-black/[0.03] rounded-2xl p-1 w-fit max-w-full overflow-x-auto mb-5 sm:mb-7">
             <button
               onClick={() => setTab("recommendations")}
               className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all ${
@@ -502,7 +507,7 @@ export default function StudentDashboard() {
                     : "bg-white/60 text-[#9B9891]"
                 }`}
               >
-                {recommendations.length}
+                {visibleRecommendations.length}
               </span>
             </button>
             <button
@@ -529,9 +534,9 @@ export default function StudentDashboard() {
 
           {tab === "recommendations" && (
             <>
-              {recommendations.length > 0 ? (
-                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {recommendations.map((internship) => (
+              {visibleRecommendations.length > 0 ? (
+                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+                  {visibleRecommendations.map((internship) => (
                     <InternshipCard
                       key={internship.id}
                       internship={internship}
@@ -636,7 +641,7 @@ function ApplicationList({
           <button
             key={application.id}
             onClick={() => onSelect(application)}
-            className={`w-full px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#FAFAF8] transition-colors text-left ${
+            className={`w-full px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-[#FAFAF8] transition-colors text-left ${
               i < items.length - 1 ? "border-b border-black/[0.04]" : ""
             }`}
           >
@@ -654,7 +659,7 @@ function ApplicationList({
               </div>
             </div>
 
-            <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 w-full sm:w-auto">
               {application.matchScore != null && application.matchScore > 0 && (
                 <div className="hidden lg:flex flex-col items-end">
                   <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891]">
@@ -667,7 +672,7 @@ function ApplicationList({
                 </div>
               )}
 
-              <div className="flex flex-col items-end min-w-[140px]">
+              <div className="flex flex-col items-start sm:items-end sm:min-w-[140px]">
                 <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891] mb-1">
                   Estado
                 </span>

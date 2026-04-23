@@ -4,7 +4,13 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LogOut, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  LayoutDashboard,
+  LogOut,
+  ShieldCheck,
+} from "lucide-react";
 import { ADMIN_EMAIL } from "@/lib/constants";
 
 export default function AdminLayout({
@@ -84,10 +90,19 @@ export default function AdminLayout({
               </span>
             </Link>
 
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-[#0A0909] text-white px-3 py-1.5 rounded-full">
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold bg-[#0A0909] text-white px-3 py-1.5 rounded-full">
               <ShieldCheck className="w-3 h-3" strokeWidth={2.4} />
               Admin
             </span>
+
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 text-[12px] sm:text-[12.5px] font-medium text-[#4A4843] hover:text-[#0A0909] bg-white hover:bg-[#FAFAF8] border border-black/[0.06] px-2.5 sm:px-3 py-1.5 rounded-xl transition-all"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Volver</span>
+            </Link>
           </div>
 
           {/* Usuario + dropdown */}
@@ -127,6 +142,14 @@ export default function AdminLayout({
                   </p>
                 </div>
                 <div className="py-1">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#4A4843] hover:bg-[#FAFAF8] hover:text-[#0A0909] transition-colors"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Volver al dashboard
+                  </Link>
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className="flex items-center gap-2.5 w-full px-4 py-2.5 text-[13px] text-[#C2410C] hover:bg-[#FFF0ED] transition-colors"

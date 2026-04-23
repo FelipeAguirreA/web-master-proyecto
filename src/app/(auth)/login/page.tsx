@@ -377,7 +377,7 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={LABEL_CLS}>Nombre *</label>
           <input
@@ -473,7 +473,7 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={LABEL_CLS}>Industria</label>
           <input
@@ -691,7 +691,7 @@ function LoginContent() {
 
   return (
     <div
-      className="relative min-h-screen bg-[#FAFAF8] text-[#0A0909] antialiased overflow-x-hidden flex flex-col items-center justify-center px-4 py-12"
+      className="relative min-h-screen bg-[#FAFAF8] text-[#0A0909] antialiased overflow-x-hidden flex flex-col items-center justify-center px-4 pt-16 pb-10 sm:py-12"
       style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
     >
       {/* Ambient mesh */}
@@ -717,7 +717,7 @@ function LoginContent() {
       {/* Volver al home */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#0A0909] transition-colors group"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#0A0909] transition-colors group"
       >
         <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
         Volver al inicio
@@ -743,7 +743,7 @@ function LoginContent() {
       </p>
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-7 w-full max-w-[440px]">
+      <div className="relative z-10 bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-5 sm:p-7 w-full max-w-[440px]">
         {/* Toggle Estudiante / Empresa */}
         <div className="flex bg-black/[0.03] rounded-xl p-1 mb-6">
           <button

@@ -247,7 +247,7 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-8 md:py-10">
+    <div className="max-w-screen-xl mx-auto px-4 md:px-6 py-6 md:py-10">
       {/* Breadcrumb */}
       <Link
         href="/dashboard/empresa"
@@ -258,7 +258,7 @@ export default function CandidatesPage() {
       </Link>
 
       {/* Hero */}
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 sm:gap-6 mb-6 sm:mb-8">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm border border-black/[0.06] mb-4">
             <Users className="w-3 h-3 text-[#FF6A3D]" strokeWidth={2.4} />
@@ -268,13 +268,13 @@ export default function CandidatesPage() {
               {hasATS && " · ATS activo"}
             </span>
           </div>
-          <h1 className="text-[38px] md:text-[46px] leading-[1.05] font-bold tracking-[-0.035em] text-[#0A0909]">
+          <h1 className="text-[28px] sm:text-[38px] md:text-[46px] leading-[1.05] font-bold tracking-[-0.035em] text-[#0A0909]">
             Ranking de{" "}
             <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
               candidatos
             </span>
           </h1>
-          <p className="text-[14.5px] text-[#6D6A63] mt-3 max-w-xl leading-relaxed">
+          <p className="text-[13.5px] sm:text-[14.5px] text-[#6D6A63] mt-2 sm:mt-3 max-w-xl leading-relaxed">
             Revisá quién aplicó a esta práctica y gestioná el pipeline hasta la
             entrevista.
           </p>
@@ -343,7 +343,161 @@ export default function CandidatesPage() {
         </div>
       ) : view === "ranking" ? (
         <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Mobile: cards */}
+          <div className="md:hidden divide-y divide-black/[0.04]">
+            {ranked.map((c, idx) => {
+              const pipeline =
+                STATUS_CONFIG[c.pipelineStatus] ?? STATUS_CONFIG.PENDING;
+              const initial = c.student.name.charAt(0).toUpperCase();
+              const isDisqualified = !c.passedFilters;
+
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => setSelected(c)}
+                  className={`p-4 cursor-pointer active:bg-[#FAFAF8]/60 transition-colors ${
+                    isDisqualified ? "opacity-55" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                      <span className="text-[11px] font-bold text-[#9B9891] tabular-nums">
+                        {isDisqualified ? "—" : `#${idx + 1}`}
+                      </span>
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[14px] font-bold shadow-[0_2px_8px_-2px_rgba(255,106,61,0.4)]">
+                        {initial}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
+                        {c.student.name}
+                      </p>
+                      <p className="text-[12px] text-[#6D6A63] truncate mt-0.5">
+                        {c.student.studentProfile?.career ?? c.student.email}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span
+                          className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${pipeline.className}`}
+                        >
+                          {pipeline.label}
+                        </span>
+                        {hasATS && !isDisqualified && c.atsScore !== null && (
+                          <span
+                            className={`inline-flex items-center text-[10.5px] font-bold px-2 py-0.5 rounded-full ${
+                              c.atsScore >= 80
+                                ? "bg-[#ECFDF3] text-[#047857]"
+                                : c.atsScore >= 60
+                                  ? "bg-[#FFF7EC] text-[#B45309]"
+                                  : "bg-[#F5F4F1] text-[#6D6A63]"
+                            }`}
+                          >
+                            ATS {c.atsScore}%
+                          </span>
+                        )}
+                        {hasATS && isDisqualified && (
+                          <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">
+                            Descalificado
+                          </span>
+                        )}
+                        {c.matchScore !== null && c.matchScore > 0 && (
+                          <span className="inline-flex items-center text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-[#FAFAF8] text-[#4A4843] border border-black/[0.05]">
+                            Match {Math.round(c.matchScore)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="flex items-center flex-wrap gap-1.5 mt-3 pl-[56px]"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {c.student.studentProfile?.cvUrl && (
+                      <button
+                        onClick={() =>
+                          handleViewCV(c.id, c.student.studentProfile!.cvUrl!)
+                        }
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4A4843] bg-white border border-black/[0.06] px-2.5 py-1.5 rounded-lg hover:border-black/[0.15] transition-all"
+                      >
+                        <FileText className="w-3 h-3" strokeWidth={2.2} />
+                        CV
+                      </button>
+                    )}
+
+                    {c.status !== "ACCEPTED" && c.status !== "REJECTED" && (
+                      <>
+                        <button
+                          onClick={() => handleStatusChange(c.id, "ACCEPTED")}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] px-2.5 py-1.5 rounded-lg"
+                        >
+                          <Check className="w-3 h-3" strokeWidth={2.4} />
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(c.id, "REJECTED")}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6D6A63] bg-white border border-black/[0.06] px-2.5 py-1.5 rounded-lg hover:text-[#B91C1C] hover:border-[#FECACA]"
+                        >
+                          <XCircle className="w-3 h-3" strokeWidth={2.2} />
+                          Rechazar
+                        </button>
+                      </>
+                    )}
+
+                    {c.status === "ACCEPTED" && (
+                      <>
+                        <button
+                          onClick={() => handleContact(c.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0A0909] px-2.5 py-1.5 rounded-lg"
+                        >
+                          <MessageSquare
+                            className="w-3 h-3"
+                            strokeWidth={2.4}
+                          />
+                          Contactar
+                        </button>
+                        {!emailSentIds.has(c.id) ? (
+                          <button
+                            onClick={() => handleSendEmail(c.id, "accepted")}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1A6E31] bg-[#E7F8EA] px-2.5 py-1.5 rounded-lg"
+                          >
+                            <Mail className="w-3 h-3" strokeWidth={2.2} />
+                            Avisar
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center text-[10.5px] font-semibold text-[#1A6E31] px-1.5">
+                            ✓ Email enviado
+                          </span>
+                        )}
+                      </>
+                    )}
+
+                    {c.status === "REJECTED" && (
+                      <>
+                        {!emailSentIds.has(c.id) ? (
+                          <button
+                            onClick={() => handleSendEmail(c.id, "rejected")}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#A63418] bg-[#FFECEC] px-2.5 py-1.5 rounded-lg"
+                          >
+                            <Mail className="w-3 h-3" strokeWidth={2.2} />
+                            Avisar rechazo
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center text-[10.5px] font-semibold text-[#A63418] px-1.5">
+                            ✓ Email enviado
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-black/[0.06] bg-[#FAFAF8]/60">

@@ -145,14 +145,16 @@ export default function InternshipCard({
       )}
 
       {/* Footer */}
-      <div className="flex items-center gap-3 pt-3 mt-auto border-t border-black/[0.05] text-[11px] text-[#6D6A63]">
-        <span className="inline-flex items-center gap-1">
-          <MapPin className="w-3 h-3" />
-          <span className="truncate max-w-[90px]">{internship.location}</span>
+      <div className="flex items-center gap-2 sm:gap-3 pt-3 mt-auto border-t border-black/[0.05] text-[11px] text-[#6D6A63] flex-wrap">
+        <span className="inline-flex items-center gap-1 min-w-0">
+          <MapPin className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate max-w-[80px] sm:max-w-[90px]">
+            {internship.location}
+          </span>
         </span>
         <span className="w-px h-3 bg-black/[0.08]" />
         <span className="inline-flex items-center gap-1">
-          <Clock className="w-3 h-3" />
+          <Clock className="w-3 h-3 flex-shrink-0" />
           {internship.duration}
         </span>
         {modality && (

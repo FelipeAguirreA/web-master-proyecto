@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAuthSession, ADMIN_EMAIL } from "@/lib/auth";
+import { PublicNav } from "@/components/layout/PublicNav";
 
 export default async function Home() {
   const session = await getAuthSession();
@@ -37,91 +38,14 @@ export default async function Home() {
         />
       </div>
 
-      {/* ========== NAV ========== */}
-      <header className="fixed top-0 inset-x-0 z-50">
-        <div className="max-w-[1240px] mx-auto px-6 pt-4">
-          <div className="flex items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl border border-black/[0.05] px-5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.06)]">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]">
-                <span className="text-white font-bold text-[15px] leading-none tracking-tight">
-                  P
-                </span>
-              </span>
-              <span className="text-[17px] font-semibold tracking-[-0.015em] text-[#0A0909]">
-                PractiX
-              </span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-1 bg-black/[0.03] rounded-xl p-1">
-              {[
-                { label: "Prácticas", href: "/practicas" },
-                { label: "Producto", href: "#producto" },
-                { label: "Para empresas", href: "#empresas" },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] hover:bg-white/80 transition-all px-3.5 py-1.5 rounded-lg"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="flex items-center gap-2">
-              {session ? (
-                <>
-                  {session.user.email === ADMIN_EMAIL && (
-                    <Link
-                      href="/admin/empresas"
-                      className="hidden sm:inline-flex text-[12px] font-medium text-[#FF6A3D] bg-[#FF6A3D]/10 hover:bg-[#FF6A3D]/15 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Admin
-                    </Link>
-                  )}
-                  <Link
-                    href="/dashboard"
-                    className="hidden sm:inline-flex text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] px-3 py-1.5 transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    className="group inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#0A0909] text-white px-4 py-2 rounded-lg hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
-                  >
-                    Ir al panel
-                    <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                      →
-                    </span>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] px-3 py-1.5 transition-colors"
-                  >
-                    Iniciar sesión
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="group inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#0A0909] text-white px-4 py-2 rounded-lg hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
-                  >
-                    Empezar gratis
-                    <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                      →
-                    </span>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicNav
+        isLoggedIn={!!session}
+        isAdmin={session?.user.email === ADMIN_EMAIL}
+      />
 
       <main className="relative z-10 pt-[88px]">
         {/* ========== HERO ========== */}
-        <section className="relative pt-16 md:pt-24 pb-12 overflow-hidden">
+        <section className="relative pt-10 sm:pt-16 md:pt-24 pb-10 sm:pb-12 overflow-hidden">
           {/* ----- VIDEO BACKGROUND ----- */}
           <div aria-hidden className="absolute inset-0 -z-10">
             {/* Fallback gradient (se ve si el video no carga) */}
@@ -169,20 +93,20 @@ export default async function Home() {
             />
           </div>
 
-          <div className="relative max-w-[1240px] mx-auto px-6">
+          <div className="relative max-w-[1240px] mx-auto px-4 sm:px-6">
             {/* Announcement badge */}
-            <div className="flex justify-center mb-10 animate-[fadeUp_0.6s_ease-out_both]">
+            <div className="flex justify-center mb-8 sm:mb-10 animate-[fadeUp_0.6s_ease-out_both]">
               <Link
                 href="#producto"
-                className="group inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/15 rounded-full pl-1.5 pr-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.2)] hover:bg-white/15 hover:border-white/25 transition-all"
+                className="group inline-flex items-center gap-1.5 sm:gap-2 bg-white/10 backdrop-blur-xl border border-white/15 rounded-full pl-1.5 pr-3 sm:pr-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.2)] hover:bg-white/15 hover:border-white/25 transition-all max-w-[92vw]"
               >
-                <span className="flex items-center gap-1.5 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[11px] font-semibold tracking-wide px-2.5 py-0.5 rounded-full shadow-[0_2px_8px_-2px_rgba(255,106,61,0.5)]">
+                <span className="flex items-center gap-1.5 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[10.5px] sm:text-[11px] font-semibold tracking-wide px-2 sm:px-2.5 py-0.5 rounded-full shadow-[0_2px_8px_-2px_rgba(255,106,61,0.5)] flex-shrink-0">
                   NUEVO
                 </span>
-                <span className="text-[13px] text-white/95 font-medium">
+                <span className="text-[12px] sm:text-[13px] text-white/95 font-medium truncate">
                   ATS con scoring automático y chat en vivo
                 </span>
-                <span className="text-white/60 text-[11px] transition-transform group-hover:translate-x-0.5">
+                <span className="text-white/60 text-[11px] transition-transform group-hover:translate-x-0.5 flex-shrink-0">
                   →
                 </span>
               </Link>
@@ -235,7 +159,7 @@ export default async function Home() {
 
             {/* Subheadline */}
             <p
-              className="mt-8 text-center mx-auto max-w-[580px] text-[17px] leading-[1.55] text-white/80 animate-[fadeUp_0.7s_ease-out_0.15s_both]"
+              className="mt-6 sm:mt-8 text-center mx-auto max-w-[580px] text-[15px] sm:text-[17px] leading-[1.55] text-white/80 animate-[fadeUp_0.7s_ease-out_0.15s_both] px-2 sm:px-0"
               style={{ textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
             >
               Subí tu CV una sola vez. Nuestra IA lo lee como un reclutador
@@ -247,10 +171,10 @@ export default async function Home() {
             </p>
 
             {/* CTAs */}
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-[fadeUp_0.7s_ease-out_0.22s_both]">
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3 max-w-[320px] sm:max-w-none mx-auto animate-[fadeUp_0.7s_ease-out_0.22s_both]">
               <Link
                 href="/login?role=student"
-                className="group relative inline-flex items-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white px-6 py-3.5 rounded-xl font-semibold text-[14.5px] shadow-[0_4px_20px_-4px_rgba(255,106,61,0.65),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_28px_-6px_rgba(255,106,61,0.8),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all overflow-hidden"
+                className="group relative inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white px-6 py-3.5 rounded-xl font-semibold text-[14.5px] shadow-[0_4px_20px_-4px_rgba(255,106,61,0.65),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_28px_-6px_rgba(255,106,61,0.8),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all overflow-hidden"
               >
                 <span
                   aria-hidden
@@ -270,7 +194,7 @@ export default async function Home() {
               </Link>
               <Link
                 href="/practicas"
-                className="group inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 text-white px-6 py-3.5 rounded-xl font-semibold text-[14.5px] hover:bg-white/15 hover:border-white/30 transition-all"
+                className="group inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 text-white px-6 py-3.5 rounded-xl font-semibold text-[14.5px] hover:bg-white/15 hover:border-white/30 transition-all"
               >
                 Ver prácticas
                 <span className="text-[12px] text-white/60 transition-transform group-hover:translate-x-0.5">
@@ -280,7 +204,7 @@ export default async function Home() {
             </div>
 
             {/* Trust row */}
-            <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-5 sm:gap-8 animate-[fadeUp_0.7s_ease-out_0.3s_both]">
+            <div className="mt-10 sm:mt-14 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 animate-[fadeUp_0.7s_ease-out_0.3s_both]">
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2">
                   {[
@@ -319,7 +243,7 @@ export default async function Home() {
 
               <div className="hidden sm:block h-8 w-px bg-white/15" />
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
                 {["UBA", "UTN", "ITBA", "UCA", "UADE"].map((u) => (
                   <span
                     key={u}
@@ -334,8 +258,8 @@ export default async function Home() {
         </section>
 
         {/* ========== PRODUCT MOCKUP ========== */}
-        <section className="relative pb-16">
-          <div className="relative -mt-20 md:-mt-24 max-w-[1140px] mx-auto px-6 animate-[fadeUp_1s_ease-out_0.45s_both]">
+        <section className="relative pb-12 sm:pb-16">
+          <div className="relative -mt-10 sm:-mt-20 md:-mt-24 max-w-[1140px] mx-auto px-4 sm:px-6 animate-[fadeUp_1s_ease-out_0.45s_both]">
             <div className="relative">
               {/* Glow behind */}
               <div
@@ -346,16 +270,16 @@ export default async function Home() {
               {/* Browser chrome */}
               <div className="relative bg-white rounded-[20px] overflow-hidden border border-black/[0.08] shadow-[0_40px_80px_-20px_rgba(20,15,10,0.2),0_10px_30px_-10px_rgba(20,15,10,0.1)]">
                 {/* Top bar */}
-                <div className="flex items-center gap-3 px-5 py-3.5 bg-[#FAFAF8] border-b border-black/[0.05]">
-                  <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#FF6565]" />
-                    <span className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
-                    <span className="w-3 h-3 rounded-full bg-[#28C840]" />
+                <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-3.5 bg-[#FAFAF8] border-b border-black/[0.05]">
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-[#FF6565]" />
+                    <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-[#FFBD2E]" />
+                    <span className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full bg-[#28C840]" />
                   </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="flex items-center gap-2 bg-white border border-black/[0.06] rounded-lg px-3 py-1 text-[11px] text-[#6D6A63] font-medium min-w-[280px] max-w-[380px] justify-center">
+                  <div className="flex-1 min-w-0 flex justify-center">
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white border border-black/[0.06] rounded-lg px-2.5 sm:px-3 py-1 text-[10.5px] sm:text-[11px] text-[#6D6A63] font-medium w-full sm:min-w-[280px] max-w-[380px] justify-center truncate">
                       <svg
-                        className="w-3 h-3"
+                        className="w-3 h-3 flex-shrink-0"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -364,17 +288,17 @@ export default async function Home() {
                         <rect x="3" y="11" width="18" height="11" rx="2" />
                         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                       </svg>
-                      practix.app/dashboard
+                      <span className="truncate">practix.app/dashboard</span>
                     </div>
                   </div>
-                  <div className="w-12" />
+                  <div className="hidden sm:block w-12 flex-shrink-0" />
                 </div>
 
                 {/* App content */}
-                <div className="grid grid-cols-[220px_1fr] min-h-[420px]">
+                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[360px] md:min-h-[420px]">
                   {/* Sidebar */}
-                  <aside className="bg-[#FDFCFA] border-r border-black/[0.05] p-4">
-                    <div className="flex items-center gap-2 mb-6">
+                  <aside className="bg-[#FDFCFA] border-b md:border-b-0 md:border-r border-black/[0.05] p-4">
+                    <div className="flex items-center gap-2 mb-4 md:mb-6">
                       <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center text-white text-[12px] font-bold">
                         P
                       </span>
@@ -401,7 +325,7 @@ export default async function Home() {
                         </div>
                       ))}
                     </nav>
-                    <div className="mt-8 p-3 bg-gradient-to-br from-[#FFF3EC] to-[#FFE4D2] rounded-xl border border-[#FF6A3D]/10">
+                    <div className="mt-5 md:mt-8 p-3 bg-gradient-to-br from-[#FFF3EC] to-[#FFE4D2] rounded-xl border border-[#FF6A3D]/10">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#FF6A3D] animate-pulse" />
                         <span className="text-[10px] font-semibold text-[#0A0909]">
@@ -415,8 +339,8 @@ export default async function Home() {
                   </aside>
 
                   {/* Main content */}
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-5">
+                  <div className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-4 sm:mb-5 gap-2">
                       <div>
                         <h3 className="text-[15px] font-semibold tracking-tight">
                           Prácticas para vos
@@ -425,9 +349,10 @@ export default async function Home() {
                           Ordenadas por afinidad semántica
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-[#F4F3EF] rounded-lg px-2 py-1 text-[10.5px] text-[#6D6A63]">
+                      <div className="flex items-center gap-1.5 bg-[#F4F3EF] rounded-lg px-2 py-1 text-[10.5px] text-[#6D6A63] flex-shrink-0">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#28C840]" />
-                        Tiempo real
+                        <span className="hidden sm:inline">Tiempo real</span>
+                        <span className="sm:hidden">Live</span>
                       </div>
                     </div>
 
@@ -566,53 +491,54 @@ export default async function Home() {
         </section>
 
         {/* ========== FEATURES BENTO ========== */}
-        <section id="producto" className="relative py-32">
-          <div className="max-w-[1240px] mx-auto px-6">
-            <div className="text-center mb-16 max-w-[720px] mx-auto">
-              <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md border border-black/[0.06] rounded-full px-3 py-1 mb-5">
+        <section id="producto" className="relative py-16 sm:py-24 md:py-32">
+          <div className="max-w-[1240px] mx-auto px-4 sm:px-6">
+            <div className="text-center mb-10 sm:mb-16 max-w-[720px] mx-auto">
+              <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md border border-black/[0.06] rounded-full px-3 py-1 mb-4 sm:mb-5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#FF6A3D]" />
                 <span className="text-[11.5px] font-semibold tracking-wide text-[#4A4843]">
                   EL PRODUCTO
                 </span>
               </span>
-              <h2 className="text-[clamp(2rem,4.5vw,3.5rem)] leading-[1.05] tracking-[-0.025em] font-semibold text-[#0A0909]">
+              <h2 className="text-[clamp(1.6rem,4.5vw,3.5rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.025em] font-semibold text-[#0A0909]">
                 Todo lo que necesitás.{" "}
                 <span className="text-[#9B9891]">Nada de lo que no.</span>
               </h2>
-              <p className="mt-5 text-[16px] text-[#4A4843] leading-[1.55]">
+              <p className="mt-4 sm:mt-5 text-[14px] sm:text-[16px] text-[#4A4843] leading-[1.55] px-2 sm:px-0">
                 Una plataforma para estudiantes que buscan su primera
                 oportunidad y empresas que buscan talento real.
               </p>
             </div>
 
-            <div className="grid grid-cols-6 gap-4 auto-rows-[minmax(220px,auto)]">
+            <div className="grid grid-cols-6 gap-3 sm:gap-4 auto-rows-[minmax(200px,auto)] sm:auto-rows-[minmax(220px,auto)]">
               {/* Large — AI Matching */}
-              <div className="col-span-6 md:col-span-4 row-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-8 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
+              <div className="col-span-6 md:col-span-4 row-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-8 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
                 <div
                   aria-hidden
                   className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-bl from-[#FFF3EC]/80 via-[#FFE4D2]/40 to-transparent pointer-events-none"
                 />
                 <div className="relative">
-                  <div className="inline-flex items-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white rounded-lg px-2.5 py-1 text-[10.5px] font-semibold mb-5 shadow-[0_2px_8px_-2px_rgba(255,106,61,0.4)]">
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white rounded-lg px-2.5 py-1 text-[10.5px] font-semibold mb-4 sm:mb-5 shadow-[0_2px_8px_-2px_rgba(255,106,61,0.4)]">
                     IA SEMÁNTICA
                   </div>
-                  <h3 className="text-[28px] leading-[1.1] tracking-[-0.02em] font-semibold mb-3">
+                  <h3 className="text-[22px] sm:text-[28px] leading-[1.15] sm:leading-[1.1] tracking-[-0.02em] font-semibold mb-3">
                     Matching que no busca
-                    <br />
+                    <br className="hidden sm:block" />
+                    <span className="sm:hidden"> </span>
                     palabras. Busca{" "}
                     <span className="bg-gradient-to-br from-[#FF5A28] to-[#FF8A52] bg-clip-text text-transparent">
                       sentido
                     </span>
                     .
                   </h3>
-                  <p className="text-[14.5px] text-[#4A4843] leading-[1.6] max-w-[440px] mb-8">
+                  <p className="text-[13.5px] sm:text-[14.5px] text-[#4A4843] leading-[1.6] max-w-[440px] mb-6 sm:mb-8">
                     Modelo multilingüe de 384 dimensiones. Entiende que
                     &ldquo;React&rdquo; y &ldquo;JSX&rdquo; son lo mismo, y que
                     &ldquo;trabajo en equipo&rdquo; no aparece literalmente en
                     tu CV pero está ahí.
                   </p>
 
-                  <div className="grid grid-cols-3 gap-3 max-w-[520px]">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-[520px]">
                     {[
                       {
                         title: "Tu CV",
@@ -632,12 +558,12 @@ export default async function Home() {
                     ].map((item) => (
                       <div
                         key={item.title}
-                        className={`relative bg-gradient-to-br ${item.hue} rounded-xl p-3 border border-white/60`}
+                        className={`relative bg-gradient-to-br ${item.hue} rounded-xl p-2.5 sm:p-3 border border-white/60`}
                       >
-                        <p className="text-[10px] font-semibold tracking-wide text-[#4A4843] mb-1">
+                        <p className="text-[9.5px] sm:text-[10px] font-semibold tracking-wide text-[#4A4843] mb-1 truncate">
                           {item.title.toUpperCase()}
                         </p>
-                        <p className="text-[17px] font-bold tracking-tight text-[#0A0909]">
+                        <p className="text-[14px] sm:text-[17px] font-bold tracking-tight text-[#0A0909] truncate">
                           {item.val}
                         </p>
                       </div>
@@ -647,7 +573,7 @@ export default async function Home() {
               </div>
 
               {/* Chat */}
-              <div className="col-span-6 md:col-span-2 relative bg-[#0A0909] rounded-[20px] p-7 overflow-hidden text-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <div className="col-span-6 md:col-span-2 relative bg-[#0A0909] rounded-[20px] p-5 sm:p-7 overflow-hidden text-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 <div
                   aria-hidden
                   className="absolute -top-8 -right-8 w-32 h-32 bg-[#FF6A3D]/20 rounded-full blur-2xl"
@@ -657,7 +583,7 @@ export default async function Home() {
                     <span className="w-1.5 h-1.5 rounded-full bg-[#28C840] animate-pulse" />
                     EN VIVO
                   </div>
-                  <h3 className="text-[20px] font-semibold tracking-tight mb-2">
+                  <h3 className="text-[18px] sm:text-[20px] font-semibold tracking-tight mb-2">
                     Chat con la empresa, sin intermediarios.
                   </h3>
                   <p className="text-[13px] text-white/60 leading-[1.55] mb-4">
@@ -681,7 +607,7 @@ export default async function Home() {
               </div>
 
               {/* ATS */}
-              <div className="col-span-6 md:col-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
+              <div className="col-span-6 md:col-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-[#E4ECFF] to-[#C5D4FF]">
                     <svg
@@ -696,7 +622,7 @@ export default async function Home() {
                     </svg>
                   </span>
                 </div>
-                <h3 className="text-[20px] font-semibold tracking-tight mb-2">
+                <h3 className="text-[18px] sm:text-[20px] font-semibold tracking-tight mb-2">
                   ATS con scoring automático
                 </h3>
                 <p className="text-[13px] text-[#4A4843] leading-[1.55] mb-4">
@@ -711,12 +637,12 @@ export default async function Home() {
                   ].map((p) => (
                     <div
                       key={p.label}
-                      className={`flex-1 ${p.c} rounded-lg p-2`}
+                      className={`flex-1 min-w-0 ${p.c} rounded-lg p-2`}
                     >
-                      <p className="text-[9.5px] font-semibold text-[#4A4843] uppercase tracking-wide">
+                      <p className="text-[9.5px] font-semibold text-[#4A4843] uppercase tracking-wide truncate">
                         {p.label}
                       </p>
-                      <p className="text-[17px] font-bold text-[#0A0909] mt-0.5">
+                      <p className="text-[16px] sm:text-[17px] font-bold text-[#0A0909] mt-0.5">
                         {p.count}
                       </p>
                     </div>
@@ -725,7 +651,7 @@ export default async function Home() {
               </div>
 
               {/* Calendar */}
-              <div className="col-span-6 md:col-span-2 relative bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] rounded-[20px] border border-black/[0.04] p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
+              <div className="col-span-6 md:col-span-2 relative bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] rounded-[20px] border border-black/[0.04] p-5 sm:p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
                 <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-[0_2px_8px_-2px_rgba(255,106,61,0.3)] mb-4">
                   <svg
                     className="w-5 h-5 text-[#FF6A3D]"
@@ -738,7 +664,7 @@ export default async function Home() {
                     <path d="M16 2v4M8 2v4M3 10h18" />
                   </svg>
                 </span>
-                <h3 className="text-[20px] font-semibold tracking-tight mb-2">
+                <h3 className="text-[18px] sm:text-[20px] font-semibold tracking-tight mb-2">
                   Agenda interna
                 </h3>
                 <p className="text-[13px] text-[#4A4843] leading-[1.55] mb-4">
@@ -759,16 +685,16 @@ export default async function Home() {
               </div>
 
               {/* Speed */}
-              <div className="col-span-6 md:col-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
+              <div className="col-span-6 md:col-span-2 relative bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-7 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_-8px_rgba(20,15,10,0.1)] transition-shadow">
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-[56px] font-bold tracking-[-0.04em] leading-none bg-gradient-to-br from-[#0A0909] to-[#6D6A63] bg-clip-text text-transparent">
+                  <span className="text-[48px] sm:text-[56px] font-bold tracking-[-0.04em] leading-none bg-gradient-to-br from-[#0A0909] to-[#6D6A63] bg-clip-text text-transparent">
                     2.8
                   </span>
-                  <span className="text-[20px] font-semibold text-[#6D6A63]">
+                  <span className="text-[18px] sm:text-[20px] font-semibold text-[#6D6A63]">
                     s
                   </span>
                 </div>
-                <h3 className="text-[17px] font-semibold tracking-tight mb-2">
+                <h3 className="text-[16px] sm:text-[17px] font-semibold tracking-tight mb-2">
                   En leer tu CV completo
                 </h3>
                 <p className="text-[13px] text-[#4A4843] leading-[1.55]">
@@ -781,15 +707,15 @@ export default async function Home() {
         </section>
 
         {/* ========== TESTIMONIAL ========== */}
-        <section className="relative py-24">
-          <div className="max-w-[900px] mx-auto px-6">
-            <div className="relative bg-white rounded-[28px] border border-black/[0.06] p-10 md:p-14 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+        <section className="relative py-16 sm:py-24">
+          <div className="max-w-[900px] mx-auto px-4 sm:px-6">
+            <div className="relative bg-white rounded-[20px] sm:rounded-[28px] border border-black/[0.06] p-6 sm:p-10 md:p-14 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
               <div
                 aria-hidden
                 className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#FFE4D2]/60 to-transparent rounded-full blur-3xl"
               />
               <div className="relative">
-                <div className="flex items-center gap-1 mb-8">
+                <div className="flex items-center gap-1 mb-6 sm:mb-8">
                   {[...Array(5)].map((_, i) => (
                     <svg
                       key={i}
@@ -800,7 +726,7 @@ export default async function Home() {
                     </svg>
                   ))}
                 </div>
-                <p className="text-[clamp(1.5rem,2.8vw,2.15rem)] leading-[1.35] tracking-[-0.015em] font-semibold text-[#0A0909] mb-10">
+                <p className="text-[clamp(1.125rem,2.8vw,2.15rem)] leading-[1.4] sm:leading-[1.35] tracking-[-0.015em] font-semibold text-[#0A0909] mb-8 sm:mb-10">
                   &ldquo;Me postulé en 4 prácticas en toda mi carrera. En
                   PractiX me postulé en 3 y me llamaron de las 3. El scoring no
                   miente: si dice 96%,{" "}
@@ -809,13 +735,15 @@ export default async function Home() {
                   </span>
                   .&rdquo;
                 </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FFC5A3] to-[#FF6A3D] flex items-center justify-center text-white font-bold text-[15px] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 rounded-full bg-gradient-to-br from-[#FFC5A3] to-[#FF6A3D] flex items-center justify-center text-white font-bold text-[14px] sm:text-[15px] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]">
                     MG
                   </div>
-                  <div>
-                    <p className="text-[14px] font-semibold">Mariana Giménez</p>
-                    <p className="text-[12px] text-[#6D6A63]">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] sm:text-[14px] font-semibold truncate">
+                      Mariana Giménez
+                    </p>
+                    <p className="text-[11.5px] sm:text-[12px] text-[#6D6A63] leading-[1.4]">
                       Ing. en Sistemas · UTN · Hoy en Mercado Libre
                     </p>
                   </div>
@@ -826,9 +754,9 @@ export default async function Home() {
         </section>
 
         {/* ========== CTA FINAL ========== */}
-        <section id="empresas" className="relative py-32">
-          <div className="max-w-[1100px] mx-auto px-6">
-            <div className="relative rounded-[28px] overflow-hidden bg-[#0A0909] p-10 md:p-16 text-center shadow-[0_40px_80px_-20px_rgba(20,15,10,0.3)]">
+        <section id="empresas" className="relative py-16 sm:py-24 md:py-32">
+          <div className="max-w-[1100px] mx-auto px-4 sm:px-6">
+            <div className="relative rounded-[20px] sm:rounded-[28px] overflow-hidden bg-[#0A0909] p-6 sm:p-10 md:p-16 text-center shadow-[0_40px_80px_-20px_rgba(20,15,10,0.3)]">
               {/* Decorative gradient */}
               <div
                 aria-hidden
@@ -856,24 +784,25 @@ export default async function Home() {
                   </span>
                 </span>
 
-                <h2 className="text-[clamp(2.25rem,5vw,4rem)] leading-[1.05] tracking-[-0.03em] font-semibold text-white max-w-[720px] mx-auto">
+                <h2 className="text-[clamp(1.75rem,5vw,4rem)] leading-[1.1] sm:leading-[1.05] tracking-[-0.03em] font-semibold text-white max-w-[720px] mx-auto">
                   La próxima práctica que
-                  <br />
+                  <br className="hidden sm:block" />
+                  <span className="sm:hidden"> </span>
                   cambia tu CV{" "}
                   <span className="bg-gradient-to-br from-[#FFB88C] to-[#FF6A3D] bg-clip-text text-transparent">
                     está a un click
                   </span>
                   .
                 </h2>
-                <p className="mt-6 text-[16px] text-white/60 max-w-[480px] mx-auto leading-[1.55]">
+                <p className="mt-5 sm:mt-6 text-[14px] sm:text-[16px] text-white/60 max-w-[480px] mx-auto leading-[1.55]">
                   Sin formularios largos. Sin sellos burocráticos. Entrás con
                   Google, subís tu CV, ves las prácticas que te corresponden.
                 </p>
 
-                <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-[320px] sm:max-w-none mx-auto">
                   <Link
                     href="/login?role=student"
-                    className="group inline-flex items-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white px-7 py-4 rounded-xl font-semibold text-[14.5px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.6),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.75),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all"
+                    className="group inline-flex items-center justify-center gap-2 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white px-5 sm:px-7 py-3.5 sm:py-4 rounded-xl font-semibold text-[14px] sm:text-[14.5px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.6),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.75),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all"
                   >
                     Soy estudiante
                     <span className="text-[12px] transition-transform group-hover:translate-x-0.5">
@@ -882,7 +811,7 @@ export default async function Home() {
                   </Link>
                   <Link
                     href="/login?role=company"
-                    className="group inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-7 py-4 rounded-xl font-semibold text-[14.5px] hover:bg-white/15 transition-all"
+                    className="group inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-5 sm:px-7 py-3.5 sm:py-4 rounded-xl font-semibold text-[14px] sm:text-[14.5px] hover:bg-white/15 transition-all"
                   >
                     Soy empresa
                     <span className="text-[12px] transition-transform group-hover:translate-x-0.5">
@@ -891,7 +820,7 @@ export default async function Home() {
                   </Link>
                 </div>
 
-                <p className="mt-8 text-[12px] text-white/40">
+                <p className="mt-6 sm:mt-8 text-[11.5px] sm:text-[12px] text-white/40 leading-[1.5]">
                   12.3k+ estudiantes · 240+ prácticas activas · 4.9 ★ en reviews
                 </p>
               </div>
@@ -901,13 +830,13 @@ export default async function Home() {
 
         {/* ========== MARQUEE EMPRESAS ========== */}
         <section className="relative pt-6 pb-6">
-          <div className="max-w-[1240px] mx-auto px-6 mb-6">
+          <div className="max-w-[1240px] mx-auto px-4 sm:px-6 mb-6">
             <div className="flex items-center justify-center gap-3">
-              <span className="h-px w-10 bg-black/[0.1]" />
-              <span className="text-[11px] font-semibold tracking-[0.22em] uppercase text-[#6D6A63]">
+              <span className="h-px w-6 sm:w-10 bg-black/[0.1]" />
+              <span className="text-[10px] sm:text-[11px] font-semibold tracking-[0.18em] sm:tracking-[0.22em] uppercase text-[#6D6A63] text-center">
                 Empresas con prácticas activas
               </span>
-              <span className="h-px w-10 bg-black/[0.1]" />
+              <span className="h-px w-6 sm:w-10 bg-black/[0.1]" />
             </div>
           </div>
 
@@ -931,7 +860,7 @@ export default async function Home() {
             />
 
             {/* Track — duplicamos la lista para que el loop sea seamless */}
-            <div className="flex gap-4 w-max animate-[marquee_50s_linear_infinite] group-hover:[animation-play-state:paused]">
+            <div className="flex gap-3 sm:gap-4 w-max animate-[marquee_50s_linear_infinite] group-hover:[animation-play-state:paused]">
               {[
                 ...[
                   {
@@ -1004,10 +933,10 @@ export default async function Home() {
               ].map((company, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 bg-white/80 backdrop-blur-sm border border-black/[0.06] rounded-xl px-5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] hover:border-black/[0.12] transition-all flex-shrink-0"
+                  className="flex items-center gap-2 sm:gap-2.5 bg-white/80 backdrop-blur-sm border border-black/[0.06] rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] hover:border-black/[0.12] transition-all flex-shrink-0"
                 >
                   <span
-                    className="relative flex items-center justify-center w-7 h-7 rounded-md font-bold text-[10.5px] tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+                    className="relative flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md font-bold text-[10px] sm:text-[10.5px] tracking-tight shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
                     style={{
                       background: company.c,
                       color: company.text,
@@ -1015,7 +944,7 @@ export default async function Home() {
                   >
                     {company.ini}
                   </span>
-                  <span className="text-[14px] font-semibold tracking-[-0.01em] text-[#0A0909] whitespace-nowrap">
+                  <span className="text-[13px] sm:text-[14px] font-semibold tracking-[-0.01em] text-[#0A0909] whitespace-nowrap">
                     {company.name}
                   </span>
                 </div>
@@ -1023,8 +952,8 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="max-w-[1240px] mx-auto px-6 mt-6 text-center">
-            <p className="text-[12.5px] text-[#6D6A63]">
+          <div className="max-w-[1240px] mx-auto px-4 sm:px-6 mt-6 text-center">
+            <p className="text-[11.5px] sm:text-[12.5px] text-[#6D6A63] leading-[1.5]">
               <span className="font-semibold text-[#0A0909]">240+</span>{" "}
               empresas publicando prácticas · actualizado en tiempo real
             </p>
@@ -1034,9 +963,9 @@ export default async function Home() {
 
       {/* ========== FOOTER ========== */}
       <footer className="relative z-10 border-t border-black/[0.06] bg-white/40 backdrop-blur-sm">
-        <div className="max-w-[1240px] mx-auto px-6 py-14">
-          <div className="grid md:grid-cols-4 gap-10 mb-10">
-            <div className="md:col-span-2">
+        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
+            <div className="col-span-2 md:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-4">
                 <span className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5)]">
                   <span className="text-white font-bold text-[15px] leading-none tracking-tight">
@@ -1047,7 +976,7 @@ export default async function Home() {
                   PractiX
                 </span>
               </Link>
-              <p className="text-[13.5px] text-[#4A4843] leading-[1.6] max-w-[340px]">
+              <p className="text-[13px] sm:text-[13.5px] text-[#4A4843] leading-[1.6] max-w-[340px]">
                 Matching semántico para prácticas laborales. Sin filtros
                 arbitrarios. Solo afinidad real entre vos y la práctica.
               </p>
@@ -1059,7 +988,7 @@ export default async function Home() {
               </p>
               <ul className="space-y-2.5 text-[13.5px]">
                 {[
-                  { label: "Explorar", href: "/practicas" },
+                  { label: "Prácticas", href: "/practicas" },
                   { label: "Producto", href: "#producto" },
                   { label: "Empresas", href: "#empresas" },
                   { label: "Iniciar sesión", href: "/login" },
@@ -1090,11 +1019,11 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pt-8 border-t border-black/[0.05]">
-            <p className="text-[12px] text-[#6D6A63]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-black/[0.05]">
+            <p className="text-[11.5px] sm:text-[12px] text-[#6D6A63]">
               © {new Date().getFullYear()} PractiX · Hecho en Buenos Aires
             </p>
-            <div className="flex items-center gap-2 text-[12px] text-[#6D6A63]">
+            <div className="flex items-center gap-2 text-[11.5px] sm:text-[12px] text-[#6D6A63]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#28C840] animate-pulse" />
               Todos los sistemas operativos
             </div>

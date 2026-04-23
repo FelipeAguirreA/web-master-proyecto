@@ -362,7 +362,7 @@ export default function ResetPasswordPage() {
         </Link>
 
         <div className="w-full max-w-[440px]">
-          <div className="bg-white rounded-[24px] border border-black/[0.06] shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] p-8">
+          <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] p-5 sm:p-8">
             <Suspense
               fallback={
                 <div className="h-40 flex items-center justify-center">

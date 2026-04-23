@@ -306,7 +306,7 @@ export default function RegistroPage() {
       </div>
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-7 w-full max-w-[440px]">
+      <div className="relative z-10 bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-5 sm:p-7 w-full max-w-[440px]">
         <div className="mb-6">
           <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-[#0A0909]">
             Completá tu perfil

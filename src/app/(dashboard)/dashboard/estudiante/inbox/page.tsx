@@ -9,8 +9,8 @@ export default function EstudianteInboxPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   return (
-    <div className="px-4 md:px-6 py-4 md:py-6 h-[calc(100vh-96px)]">
-      <div className="max-w-screen-2xl mx-auto h-full flex bg-white/75 backdrop-blur-xl border border-black/[0.06] rounded-[24px] shadow-[0_8px_32px_-16px_rgba(20,15,10,0.1)] overflow-hidden">
+    <div className="px-0 md:px-6 py-0 md:py-6 h-[calc(100dvh-80px)] md:h-[calc(100vh-96px)]">
+      <div className="max-w-screen-2xl mx-auto h-full flex bg-white/75 backdrop-blur-xl border border-black/[0.06] rounded-none md:rounded-[24px] shadow-[0_8px_32px_-16px_rgba(20,15,10,0.1)] overflow-hidden">
         <div
           className={`w-full md:w-80 lg:w-96 border-r border-[#E8E5DD] flex-shrink-0 ${
             activeId ? "hidden md:flex md:flex-col" : "flex flex-col"

@@ -58,7 +58,7 @@ export default function CalendarGrid({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5">
+    <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-3 sm:p-5">
       {/* Navegación */}
       <div className="flex items-center justify-between mb-4">
         <button

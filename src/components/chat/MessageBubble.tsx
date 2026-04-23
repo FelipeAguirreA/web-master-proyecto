@@ -22,7 +22,7 @@ export default function MessageBubble({
   return (
     <div className={`flex ${isMine ? "justify-end" : "justify-start"} mb-3`}>
       <div
-        className={`max-w-[75%] px-4 py-2.5 shadow-sm ${
+        className={`max-w-[85%] sm:max-w-[75%] px-3.5 sm:px-4 py-2.5 shadow-sm ${
           isMine
             ? "bg-gradient-to-br from-[#FFF0E4] to-[#FFE1CB] text-[#4A2410] border border-[#FFD4B5] rounded-[18px] rounded-br-[6px]"
             : "bg-white border border-[#E8E5DD] text-[#0A0909] rounded-[18px] rounded-bl-[6px]"

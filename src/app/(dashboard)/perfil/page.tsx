@@ -172,13 +172,13 @@ export default function PerfilPage() {
     .toUpperCase();
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 py-10">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 sm:py-10">
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D]">
             Tu cuenta
           </p>
-          <h1 className="text-[28px] md:text-[32px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1">
+          <h1 className="text-[24px] sm:text-[28px] md:text-[32px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1">
             Editar perfil
           </h1>
           <p className="text-[13.5px] text-[#6D6A63] mt-1">
@@ -194,9 +194,9 @@ export default function PerfilPage() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-[24px] border border-black/[0.06] shadow-[0_8px_32px_-12px_rgba(20,15,10,0.08)] overflow-hidden">
+      <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_8px_32px_-12px_rgba(20,15,10,0.08)] overflow-hidden">
         {/* Avatar header */}
-        <div className="relative px-8 py-9 border-b border-black/[0.05] overflow-hidden">
+        <div className="relative px-5 sm:px-8 py-6 sm:py-9 border-b border-black/[0.05] overflow-hidden">
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <div className="absolute -top-20 -left-20 w-[360px] h-[360px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.35),transparent_70%)] blur-[50px]" />
             <div className="absolute -bottom-24 -right-16 w-[320px] h-[320px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.22),transparent_70%)] blur-[50px]" />
@@ -281,7 +281,7 @@ export default function PerfilPage() {
         </div>
 
         {/* Form */}
-        <div className="px-8 py-7 space-y-5">
+        <div className="px-5 sm:px-8 py-6 sm:py-7 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={LABEL_CLS}>Nombre</label>

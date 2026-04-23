@@ -367,13 +367,14 @@ export default function ATSConfigPage() {
                 Total {totalWeight}% {weightsOk ? "·  ok" : "· debe ser 100%"}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Link
                   href={`/dashboard/empresa/candidatos/${jobId}`}
                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-[#4A4843] text-[12.5px] font-semibold rounded-xl border border-black/[0.08] hover:border-black/[0.15] hover:text-[#0A0909] transition-all"
                 >
                   <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
-                  Gestionar candidatos
+                  <span className="sm:hidden">Candidatos</span>
+                  <span className="hidden sm:inline">Gestionar candidatos</span>
                 </Link>
 
                 <button
@@ -535,7 +536,92 @@ export default function ATSConfigPage() {
             </div>
           ) : (
             <div className="bg-white border border-[#E8E5DD] rounded-[24px] overflow-hidden shadow-sm">
-              <table className="w-full">
+              {/* Mobile: cards */}
+              <div className="md:hidden divide-y divide-[#F0EDE4]">
+                {ranked.map((c, idx) => {
+                  const pipeline =
+                    PIPELINE_STYLES[c.pipelineStatus] ??
+                    PIPELINE_STYLES.PENDING;
+                  const initial = c.student.name.charAt(0).toUpperCase();
+                  const isDisqualified = !c.passedFilters;
+                  const scoreClass =
+                    c.atsScore !== null
+                      ? c.atsScore >= 80
+                        ? "bg-[#ECFDF3] text-[#047857]"
+                        : c.atsScore >= 60
+                          ? "bg-[#FFF7EC] text-[#B45309]"
+                          : "bg-[#F5F4F1] text-[#6D6A63]"
+                      : "bg-[#F5F4F1] text-[#9B9891]";
+
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedCandidate(c)}
+                      className={`p-4 cursor-pointer active:bg-[#FAFAF8] transition-colors ${
+                        isDisqualified ? "opacity-60" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                          <span className="text-[10.5px] font-bold text-[#9B9891] tabular-nums">
+                            {isDisqualified ? "—" : `#${idx + 1}`}
+                          </span>
+                          <div
+                            className={`w-10 h-10 rounded-full text-white flex items-center justify-center text-[13px] font-bold shadow-sm bg-gradient-to-br ${avatarGradient(
+                              c.student.name,
+                            )}`}
+                          >
+                            {initial}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-bold text-[#0A0909] tracking-tight truncate">
+                            {c.student.name}
+                          </p>
+                          <p className="text-[11px] text-[#9B9891] truncate mt-0.5">
+                            {c.student.studentProfile?.career ??
+                              c.student.email}
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {isDisqualified ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#B91C1C] bg-[#FEF2F2] border border-[#FEE2E2] px-2 py-0.5 rounded-full">
+                                <AlertCircle className="w-2.5 h-2.5" />
+                                {c.filterReason?.split(":")[0] ??
+                                  "Descalificado"}
+                              </span>
+                            ) : c.atsScore !== null ? (
+                              <span
+                                className={`inline-flex items-center text-[10.5px] font-bold px-2 py-0.5 rounded-full tabular-nums ${scoreClass}`}
+                              >
+                                ATS {c.atsScore}%
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center text-[10px] font-semibold text-[#9B9891] bg-[#FAFAF8] border border-[#E8E5DD] px-2 py-0.5 rounded-full">
+                                Sin calcular
+                              </span>
+                            )}
+                            {c.matchScore !== null && c.matchScore > 0 && (
+                              <span className="inline-flex items-center text-[10.5px] font-semibold text-[#4A4843] bg-[#FAFAF8] border border-[#E8E5DD] px-2 py-0.5 rounded-full tabular-nums">
+                                Match {Math.round(c.matchScore)}%
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${pipeline.className}`}
+                            >
+                              {pipeline.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <table className="hidden md:table w-full">
                 <thead>
                   <tr className="border-b border-[#E8E5DD] bg-[#FAFAF8]">
                     <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5 w-10">

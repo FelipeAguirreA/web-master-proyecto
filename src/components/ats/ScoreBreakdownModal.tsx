@@ -93,16 +93,16 @@ export default function ScoreBreakdownModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
     >
       <div
         className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative bg-white rounded-[24px] shadow-[0_32px_64px_-16px_rgba(20,15,10,0.3)] border border-black/[0.06] w-full max-w-md overflow-hidden">
+      <div className="relative bg-white rounded-t-[24px] sm:rounded-[24px] rounded-b-none sm:rounded-b-[24px] shadow-[0_32px_64px_-16px_rgba(20,15,10,0.3)] border border-black/[0.06] w-full sm:max-w-md max-h-[calc(100dvh-80px)] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-black/[0.05] flex items-center justify-between">
+        <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 px-4 sm:px-6 py-4 sm:py-5 border-b border-black/[0.05] flex items-center justify-between gap-3 rounded-t-[24px]">
           <div className="flex items-center gap-3">
             {applicant.student.image ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -127,14 +127,14 @@ export default function ScoreBreakdownModal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 inline-flex items-center justify-center rounded-xl text-[#9B9891] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
+            className="shrink-0 w-11 h-11 -mr-2 inline-flex items-center justify-center rounded-xl text-[#9B9891] hover:text-[#0A0909] hover:bg-black/[0.04] transition-all"
             aria-label="Cerrar"
           >
-            <X className="w-4 h-4" strokeWidth={2.2} />
+            <X className="w-5 h-5" strokeWidth={2.2} />
           </button>
         </div>
 
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-6">
           {/* Score general */}
           <div className="text-center mb-7">
             {applicant.atsScore === null ? (

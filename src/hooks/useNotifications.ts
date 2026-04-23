@@ -36,7 +36,25 @@ export function useNotifications() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
+  const deleteNotification = useCallback(
+    async (id: string) => {
+      const prev = notifications;
+      setNotifications((curr) => curr.filter((n) => n.id !== id));
+      const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setNotifications(prev);
+      }
+    },
+    [notifications],
+  );
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, unreadCount, markAllRead, refresh: fetch_ };
+  return {
+    notifications,
+    unreadCount,
+    markAllRead,
+    deleteNotification,
+    refresh: fetch_,
+  };
 }

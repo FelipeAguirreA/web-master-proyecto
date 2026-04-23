@@ -13,6 +13,8 @@ import {
   Building2,
   Sparkles,
 } from "lucide-react";
+import { PublicNav } from "@/components/layout/PublicNav";
+import { ADMIN_EMAIL } from "@/lib/constants";
 import type { Internship } from "@/types";
 
 type InternshipDetail = Internship & {
@@ -67,85 +69,11 @@ function AmbientMesh() {
   );
 }
 
-function Nav({ showSession }: { showSession: boolean }) {
-  return (
-    <header className="fixed top-0 inset-x-0 z-50">
-      <div className="max-w-[1240px] mx-auto px-6 pt-4">
-        <div className="flex items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl border border-black/[0.05] px-5 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-8px_rgba(0,0,0,0.06)]">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]">
-              <span className="text-white font-bold text-[15px] leading-none tracking-tight">
-                P
-              </span>
-            </span>
-            <span className="text-[17px] font-semibold tracking-[-0.015em] text-[#0A0909]">
-              PractiX
-            </span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-1 bg-black/[0.03] rounded-xl p-1">
-            <Link
-              href="/practicas"
-              className="text-[13px] font-semibold text-[#0A0909] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] px-3.5 py-1.5 rounded-lg"
-            >
-              Prácticas
-            </Link>
-            <Link
-              href="/#producto"
-              className="text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] hover:bg-white/80 transition-all px-3.5 py-1.5 rounded-lg"
-            >
-              Producto
-            </Link>
-            <Link
-              href="/#empresas"
-              className="text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] hover:bg-white/80 transition-all px-3.5 py-1.5 rounded-lg"
-            >
-              Para empresas
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            {showSession ? (
-              <Link
-                href="/dashboard"
-                className="group inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#0A0909] text-white px-4 py-2 rounded-lg hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
-              >
-                Ir al panel
-                <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                  →
-                </span>
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-[13px] font-medium text-[#4A4843] hover:text-[#0A0909] px-3 py-1.5 transition-colors"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/login"
-                  className="group inline-flex items-center gap-1.5 text-[13px] font-medium bg-[#0A0909] text-white px-4 py-2 rounded-lg hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
-                >
-                  Empezar gratis
-                  <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function SkeletonDetail() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-4">
-        <div className="bg-white rounded-[24px] border border-black/[0.06] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] animate-pulse">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+        <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] p-5 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] animate-pulse">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-16 h-16 bg-[#F4F3EF] rounded-2xl" />
             <div className="flex-1 pt-2">
@@ -263,10 +191,13 @@ export default function InternshipDetailPage() {
         style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
       >
         <AmbientMesh />
-        <Nav showSession={!!session} />
-        <main className="relative z-10 pt-[112px] pb-24">
-          <div className="max-w-[1240px] mx-auto px-6">
-            <div className="h-3 bg-[#F4F3EF] rounded w-32 mb-8 animate-pulse" />
+        <PublicNav
+          isLoggedIn={!!session}
+          isAdmin={session?.user.email === ADMIN_EMAIL}
+        />
+        <main className="relative z-10 pt-[96px] sm:pt-[112px] pb-16 sm:pb-24">
+          <div className="max-w-[1240px] mx-auto px-4 sm:px-6">
+            <div className="h-3 bg-[#F4F3EF] rounded w-32 mb-6 sm:mb-8 animate-pulse" />
             <SkeletonDetail />
           </div>
         </main>
@@ -281,16 +212,19 @@ export default function InternshipDetailPage() {
         style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
       >
         <AmbientMesh />
-        <Nav showSession={!!session} />
-        <main className="relative z-10 pt-[160px] pb-24">
-          <div className="max-w-[560px] mx-auto px-6 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE4D2] border border-[#FF6A3D]/10 mb-6">
-              <Building2 className="w-7 h-7 text-[#FF6A3D]" />
+        <PublicNav
+          isLoggedIn={!!session}
+          isAdmin={session?.user.email === ADMIN_EMAIL}
+        />
+        <main className="relative z-10 pt-[120px] sm:pt-[160px] pb-16 sm:pb-24">
+          <div className="max-w-[560px] mx-auto px-4 sm:px-6 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE4D2] border border-[#FF6A3D]/10 mb-5 sm:mb-6">
+              <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-[#FF6A3D]" />
             </div>
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-[#0A0909] mb-3">
+            <h1 className="text-[22px] sm:text-[28px] font-semibold tracking-[-0.02em] text-[#0A0909] mb-3">
               Esta práctica ya no está disponible
             </h1>
-            <p className="text-[15px] text-[#6D6A63] leading-[1.55] mb-8">
+            <p className="text-[14px] sm:text-[15px] text-[#6D6A63] leading-[1.55] mb-6 sm:mb-8">
               La empresa dio de baja esta publicación o el enlace que seguiste
               apunta a una práctica que nunca existió.
             </p>
@@ -317,33 +251,36 @@ export default function InternshipDetailPage() {
       style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
     >
       <AmbientMesh />
-      <Nav showSession={!!session} />
+      <PublicNav
+        isLoggedIn={!!session}
+        isAdmin={session?.user.email === ADMIN_EMAIL}
+      />
 
-      <main className="relative z-10 pt-[112px] pb-24">
-        <div className="max-w-[1240px] mx-auto px-6">
+      <main className="relative z-10 pt-[96px] sm:pt-[112px] pb-16 sm:pb-24">
+        <div className="max-w-[1240px] mx-auto px-4 sm:px-6">
           {/* Breadcrumb */}
           <Link
             href="/practicas"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6D6A63] hover:text-[#0A0909] mb-8 transition-colors group"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#6D6A63] hover:text-[#0A0909] mb-5 sm:mb-8 transition-colors group"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
             Volver a prácticas
           </Link>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* ========== MAIN CONTENT ========== */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="lg:col-span-2 space-y-3 sm:space-y-4">
               {/* Hero card */}
-              <div className="relative bg-white rounded-[24px] border border-black/[0.06] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="relative bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] p-5 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div
                   aria-hidden
                   className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-bl from-[#FFF3EC]/70 via-[#FFE4D2]/30 to-transparent pointer-events-none"
                 />
 
                 <div className="relative">
-                  <div className="flex items-start gap-4 mb-6">
+                  <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-[22px] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] shrink-0 overflow-hidden`}
+                      className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-[20px] sm:text-[22px] shadow-[0_4px_12px_-2px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.3)] shrink-0 overflow-hidden`}
                     >
                       {internship.company.logo ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -357,10 +294,10 @@ export default function InternshipDetailPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
-                      <h1 className="text-[clamp(1.5rem,3vw,2rem)] leading-[1.15] tracking-[-0.02em] font-semibold text-[#0A0909]">
+                      <h1 className="text-[clamp(1.25rem,4.5vw,2rem)] leading-[1.15] tracking-[-0.02em] font-semibold text-[#0A0909] break-words [overflow-wrap:anywhere]">
                         {internship.title}
                       </h1>
-                      <p className="text-[14px] text-[#6D6A63] mt-1.5">
+                      <p className="text-[13px] sm:text-[14px] text-[#6D6A63] mt-1.5 break-words">
                         en{" "}
                         <span className="font-semibold text-[#0A0909]">
                           {internship.company.companyName}
@@ -392,37 +329,39 @@ export default function InternshipDetailPage() {
               </div>
 
               {/* Description card */}
-              <div className="bg-white rounded-[20px] border border-black/[0.06] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <div className="flex items-center gap-2 mb-5">
+              <div className="bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center gap-2 mb-4 sm:mb-5">
                   <span className="w-1 h-5 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
                   <h2 className="text-[15px] font-semibold tracking-tight text-[#0A0909]">
                     Sobre esta práctica
                   </h2>
                 </div>
-                <p className="text-[14.5px] text-[#4A4843] leading-[1.7] whitespace-pre-line">
+                <p className="text-[13.5px] sm:text-[14.5px] text-[#4A4843] leading-[1.65] sm:leading-[1.7] whitespace-pre-line break-words [overflow-wrap:anywhere]">
                   {internship.description}
                 </p>
               </div>
 
               {/* Requirements card */}
               {internship.requirements.length > 0 && (
-                <div className="bg-white rounded-[20px] border border-black/[0.06] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center gap-2 mb-5">
+                <div className="bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-center gap-2 mb-4 sm:mb-5">
                     <span className="w-1 h-5 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
                     <h2 className="text-[15px] font-semibold tracking-tight text-[#0A0909]">
                       Lo que buscan en vos
                     </h2>
                   </div>
-                  <ul className="space-y-3">
+                  <ul className="space-y-2.5 sm:space-y-3">
                     {internship.requirements.map((req, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-3 text-[14px] text-[#4A4843] leading-[1.55]"
+                        className="flex items-start gap-3 text-[13.5px] sm:text-[14px] text-[#4A4843] leading-[1.55] min-w-0"
                       >
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-[#E7F8EA] to-[#C5E8C7] shrink-0 mt-0.5">
                           <CheckCircle className="w-3 h-3 text-[#1A8F3C]" />
                         </span>
-                        {req}
+                        <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+                          {req}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -431,8 +370,8 @@ export default function InternshipDetailPage() {
 
               {/* Skills card */}
               {internship.skills.length > 0 && (
-                <div className="bg-white rounded-[20px] border border-black/[0.06] p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-center gap-2 mb-5">
+                <div className="bg-white rounded-[20px] border border-black/[0.06] p-5 sm:p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                  <div className="flex items-center gap-2 mb-4 sm:mb-5">
                     <span className="w-1 h-5 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
                     <h2 className="text-[15px] font-semibold tracking-tight text-[#0A0909]">
                       Tecnologías y habilidades
@@ -442,7 +381,7 @@ export default function InternshipDetailPage() {
                     {internship.skills.map((skill) => (
                       <span
                         key={skill}
-                        className="inline-flex items-center text-[12.5px] font-medium bg-[#FAFAF8] border border-black/[0.06] text-[#0A0909] px-3 py-1.5 rounded-lg hover:border-[#FF6A3D]/30 hover:bg-[#FFF3EC]/40 transition-colors"
+                        className="inline-flex items-center text-[12px] sm:text-[12.5px] font-medium bg-[#FAFAF8] border border-black/[0.06] text-[#0A0909] px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg hover:border-[#FF6A3D]/30 hover:bg-[#FFF3EC]/40 transition-colors break-all max-w-full"
                       >
                         {skill}
                       </span>
@@ -454,9 +393,9 @@ export default function InternshipDetailPage() {
 
             {/* ========== SIDEBAR ========== */}
             <div className="lg:col-span-1">
-              <div className="sticky top-[112px] space-y-3">
+              <div className="lg:sticky lg:top-[112px] space-y-3">
                 {/* Apply card */}
-                <div className="relative bg-white rounded-[24px] border border-black/[0.06] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden">
+                <div className="relative bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] p-5 sm:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.08)] overflow-hidden">
                   <div
                     aria-hidden
                     className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-bl from-[#FFE4D2]/70 to-transparent rounded-full blur-2xl"
