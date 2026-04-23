@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-04-23
+
+### Documentation
+
+- Cierre de Fase 1 del refactor: 6 ADRs en `docs/adr/` con formato Contexto / Decisión / Consecuencias / Alternativas
+  - ADR-001 Monolito modular + Clean Architecture (Aceptado)
+  - ADR-002 Autenticación con NextAuth + JWT rotativo (Propuesto, implementación en Fase 3)
+  - ADR-003 Rate limiting con Upstash Redis (Propuesto, implementación en Fase 3)
+  - ADR-004 Testing strategy — pirámide (Aceptado parcial, completa en Fase 2)
+  - ADR-005 Observabilidad con Sentry + logger estructurado (Aceptado parcial, completa en Fase 6)
+  - ADR-006 Matching con embeddings HuggingFace + cosine similarity (Aceptado, implementado)
+- `docs/adr/README.md` con índice, formato y convenciones (un ADR no se edita una vez aceptado; se superseed)
+
+### Chore
+
+- `.gitignore`: ignorar `/test-results` y `/playwright-report` (artifacts de Playwright que se regeneran en cada corrida)
+
 ## [1.4.0] - 2026-04-22
 
 ### Added
