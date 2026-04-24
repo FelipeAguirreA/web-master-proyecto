@@ -100,8 +100,8 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - ✅ Paso 4: auth-guard.test.ts con 16 tests (commit 2f55740)
 - ✅ Paso 5: rate-limit spec + 15 tests (commit 3e510f9)
 - ✅ Paso 6: interviews.service spec + 45 tests (commit aa60005)
-- ✅ Paso 7: ats-scoring spec + scoring-engine + 5 scorers (78 tests) — NUEVO
-- ⏳ Paso 8: cv-parser spec + tests
+- ✅ Paso 7: ats-scoring spec + scoring-engine + 5 scorers (78 tests)
+- ✅ Paso 8: cv-parser spec + 20 tests — NUEVO
 - ⏳ Paso 9: component tests (CandidateCard, ModuleCard, MessageBubble, PublicNav, dashboards críticos)
 - ⏳ Paso 10: E2E flows (postulación estudiante, ranking ATS, login/forgot/reset, guard sin sesión)
 - ⏳ Paso 11: Subir thresholds en `vitest.config.ts` a 100% func / 80% lines-branches-statements
@@ -115,9 +115,9 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - [x] `interviews.service.test.ts` (commit aa60005, 45 tests)
 - [x] `ats/scoring-engine.test.ts` (Paso 7, 14 tests)
 - [x] `ats/scorers/experience.scorer.test.ts` (+ education, portfolio, languages, skills — Paso 7, 64 tests en total de scorers)
-- [ ] `server/lib/cv-parser.test.ts`
+- [x] `server/lib/cv-parser.test.ts` (Paso 8, 20 tests — mockea pdf-parse y mammoth vía Module.prototype.require)
 
-**Estado suite unit al 2026-04-24**: 221/221 en verde (14 archivos en `src/test/unit/`).
+**Estado suite unit al 2026-04-24**: 241/241 en verde (15 archivos en `src/test/unit/`).
 
 ### 2.2 Component tests
 
