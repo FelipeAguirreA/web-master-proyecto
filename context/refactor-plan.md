@@ -89,16 +89,35 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 
 ---
 
-## FASE 2 — Testing (subir coverage + tests faltantes)
+## FASE 2 — Testing (subir coverage + tests faltantes) — EN CURSO
+
+**Progreso**:
+
+- ✅ Paso 1: spec chat + spec auth-guard (commit 98922fa)
+- ✅ Paso 2a: Mock Prisma extendido + setup env (commit dea6963)
+- ✅ Paso 2b: Bug soft delete arreglado (commit 341d125, versión 1.4.2)
+- ✅ Paso 3: chat.service.test.ts con 31 tests (commit 98922fa)
+- ✅ Paso 4: auth-guard.test.ts con 16 tests (commit 2f55740)
+- ✅ Paso 5: rate-limit spec + 15 tests (commit 3e510f9)
+- ✅ Paso 6: interviews.service spec + 45 tests (commit aa60005)
+- ✅ Paso 7: ats-scoring spec + scoring-engine + 5 scorers (78 tests) — NUEVO
+- ⏳ Paso 8: cv-parser spec + tests
+- ⏳ Paso 9: component tests (CandidateCard, ModuleCard, MessageBubble, PublicNav, dashboards críticos)
+- ⏳ Paso 10: E2E flows (postulación estudiante, ranking ATS, login/forgot/reset, guard sin sesión)
+- ⏳ Paso 11: Subir thresholds en `vitest.config.ts` a 100% func / 80% lines-branches-statements
+- ⏳ Paso 12: cierre Fase 2 con commit + bump + CHANGELOG
 
 ### 2.1 Unit tests
 
-- [ ] `chat.service.test.ts`
-- [ ] `interviews.service.test.ts`
-- [ ] `ats/scoring-engine.test.ts`
-- [ ] `ats/scorers/experience.scorer.test.ts` (+ education, portfolio, languages, skills)
-- [ ] `server/lib/rate-limit.test.ts`
+- [x] `chat.service.test.ts` (commit 98922fa, 31 tests)
+- [x] `auth-guard.test.ts` (commit 2f55740, 16 tests)
+- [x] `rate-limit.test.ts` (commit 3e510f9, 15 tests)
+- [x] `interviews.service.test.ts` (commit aa60005, 45 tests)
+- [x] `ats/scoring-engine.test.ts` (Paso 7, 14 tests)
+- [x] `ats/scorers/experience.scorer.test.ts` (+ education, portfolio, languages, skills — Paso 7, 64 tests en total de scorers)
 - [ ] `server/lib/cv-parser.test.ts`
+
+**Estado suite unit al 2026-04-24**: 221/221 en verde (14 archivos en `src/test/unit/`).
 
 ### 2.2 Component tests
 
