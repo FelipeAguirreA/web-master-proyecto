@@ -45,14 +45,16 @@ describe("InternshipCard", () => {
     render(
       <InternshipCard internship={{ ...baseInternship, matchScore: 85 }} />,
     );
-    expect(screen.getByText("85%")).toBeInTheDocument();
+    // El número y el % están en spans separados en el nuevo diseño
+    expect(screen.getByText("85")).toBeInTheDocument();
+    expect(screen.getByText("%")).toBeInTheDocument();
   });
 
   it("muestra el score redondeado al entero más cercano", () => {
     render(
       <InternshipCard internship={{ ...baseInternship, matchScore: 72.7 }} />,
     );
-    expect(screen.getByText("73%")).toBeInTheDocument();
+    expect(screen.getByText("73")).toBeInTheDocument();
   });
 
   it("no muestra el matchScore cuando es undefined", () => {
@@ -74,34 +76,25 @@ describe("InternshipCard", () => {
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
-  it("aplica color verde para score >= 70", () => {
+  it("aplica color verde para score >= 90", () => {
     render(
-      <InternshipCard internship={{ ...baseInternship, matchScore: 70 }} />,
+      <InternshipCard internship={{ ...baseInternship, matchScore: 92 }} />,
     );
-    expect(screen.getByText("70%").closest("span")).toHaveClass(
-      "bg-green-50",
-      "text-green-700",
-    );
+    expect(screen.getByText("92").className).toContain("text-[#1A8F3C]");
   });
 
-  it("aplica color amarillo para score entre 40 y 69", () => {
+  it("aplica color warm (naranja) para score entre 80 y 89", () => {
+    render(
+      <InternshipCard internship={{ ...baseInternship, matchScore: 85 }} />,
+    );
+    expect(screen.getByText("85").className).toContain("text-[#FF6A3D]");
+  });
+
+  it("aplica color neutral para score menor a 80", () => {
     render(
       <InternshipCard internship={{ ...baseInternship, matchScore: 55 }} />,
     );
-    expect(screen.getByText("55%").closest("span")).toHaveClass(
-      "bg-amber-50",
-      "text-amber-700",
-    );
-  });
-
-  it("aplica color rojo para score menor a 40", () => {
-    render(
-      <InternshipCard internship={{ ...baseInternship, matchScore: 25 }} />,
-    );
-    expect(screen.getByText("25%").closest("span")).toHaveClass(
-      "bg-red-50",
-      "text-red-600",
-    );
+    expect(screen.getByText("55").className).toContain("text-[#6D6A63]");
   });
 
   it("renderiza las skills de la práctica", () => {

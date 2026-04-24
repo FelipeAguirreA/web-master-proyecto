@@ -101,8 +101,9 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - ✅ Paso 5: rate-limit spec + 15 tests (commit 3e510f9)
 - ✅ Paso 6: interviews.service spec + 45 tests (commit aa60005)
 - ✅ Paso 7: ats-scoring spec + scoring-engine + 5 scorers (78 tests)
-- ✅ Paso 8: cv-parser spec + 20 tests — NUEVO
-- ⏳ Paso 9: component tests (CandidateCard, ModuleCard, MessageBubble, PublicNav, dashboards críticos)
+- ✅ Paso 8: cv-parser spec + 20 tests
+- ✅ Paso 9: component tests base (MessageBubble 10, ModuleCard 11, CandidateCard 22, PublicNav 19) + InternshipCard legacy arreglado (16) — NUEVO
+- ⏳ Paso 9b: component tests de dashboards críticos (pendiente, si se considera necesario)
 - ⏳ Paso 10: E2E flows (postulación estudiante, ranking ATS, login/forgot/reset, guard sin sesión)
 - ⏳ Paso 11: Subir thresholds en `vitest.config.ts` a 100% func / 80% lines-branches-statements
 - ⏳ Paso 12: cierre Fase 2 con commit + bump + CHANGELOG
@@ -117,14 +118,15 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - [x] `ats/scorers/experience.scorer.test.ts` (+ education, portfolio, languages, skills — Paso 7, 64 tests en total de scorers)
 - [x] `server/lib/cv-parser.test.ts` (Paso 8, 20 tests — mockea pdf-parse y mammoth vía Module.prototype.require)
 
-**Estado suite unit al 2026-04-24**: 241/241 en verde (15 archivos en `src/test/unit/`).
+**Estado suite al 2026-04-24**: 319/319 en verde (15 archivos unit + 5 archivos components).
 
 ### 2.2 Component tests
 
-- [ ] `CandidateCard.test.tsx`
-- [ ] `ModuleCard.test.tsx`
-- [ ] `MessageBubble.test.tsx`
-- [ ] `PublicNav.test.tsx` (con drawer mobile)
+- [x] `CandidateCard.test.tsx` (Paso 9, 22 tests)
+- [x] `ModuleCard.test.tsx` (Paso 9, 11 tests)
+- [x] `MessageBubble.test.tsx` (Paso 9, 10 tests)
+- [x] `PublicNav.test.tsx` con drawer mobile (Paso 9, 19 tests)
+- [x] `InternshipCard.test.tsx` pre-existente arreglado (Paso 9, 16 tests)
 - [ ] Dashboard pages críticas
 
 ### 2.3 E2E (Playwright)
