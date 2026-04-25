@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       "unknown";
-    const rl = rateLimit(`empresa-register:${ip}`, 5, HOUR_MS);
+    const rl = await rateLimit(`empresa-register:${ip}`, 5, HOUR_MS);
     if (!rl.success) return rateLimitResponse(rl.resetAt);
 
     const body = await request.json();

@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const rl = rateLimit(`recommendations:${auth.user.id}`, 20, HOUR_MS);
+    const rl = await rateLimit(`recommendations:${auth.user.id}`, 20, HOUR_MS);
     if (!rl.success) return rateLimitResponse(rl.resetAt);
 
     const recommendations = await getRecommendations(auth.user.id);

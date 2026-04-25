@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const rl = rateLimit(`upload-cv:${auth.user.id}`, 5, HOUR_MS);
+    const rl = await rateLimit(`upload-cv:${auth.user.id}`, 5, HOUR_MS);
     if (!rl.success) return rateLimitResponse(rl.resetAt);
 
     const formData = await request.formData();

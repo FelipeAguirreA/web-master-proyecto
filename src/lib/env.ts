@@ -14,6 +14,8 @@ const envSchema = z.object({
   BREVO_API_KEY: z.string().min(1).optional(),
   BREVO_SENDER_EMAIL: z.string().email().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

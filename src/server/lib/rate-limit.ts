@@ -1,28 +1,79 @@
-interface RateLimitEntry {
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { env } from "@/lib/env";
+
+interface RateLimitResult {
+  success: boolean;
+  remaining: number;
+  resetAt: number;
+}
+
+let upstashRedis: Redis | null = null;
+let upstashWarned = false;
+const ratelimiterCache = new Map<string, Ratelimit>();
+
+function getUpstashRedis(): Redis | null {
+  if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
+    if (!upstashWarned) {
+      console.warn(
+        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN no configurados — usando fallback in-memory (no apto para producción multi-instancia)",
+      );
+      upstashWarned = true;
+    }
+    return null;
+  }
+
+  if (!upstashRedis) {
+    upstashRedis = new Redis({
+      url: env.UPSTASH_REDIS_REST_URL,
+      token: env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+  return upstashRedis;
+}
+
+function getRatelimiter(
+  redis: Redis,
+  limit: number,
+  windowMs: number,
+): Ratelimit {
+  const key = `${limit}:${windowMs}`;
+  let limiter = ratelimiterCache.get(key);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
+      prefix: "practix",
+    });
+    ratelimiterCache.set(key, limiter);
+  }
+  return limiter;
+}
+
+interface MemoryEntry {
   count: number;
   resetAt: number;
 }
 
-const store = new Map<string, RateLimitEntry>();
+const memoryStore = new Map<string, MemoryEntry>();
 
-export function rateLimit(
+function rateLimitInMemory(
   identifier: string,
   limit: number,
   windowMs: number,
-): { success: boolean; remaining: number; resetAt: number } {
+): RateLimitResult {
   const now = Date.now();
 
-  // Clean expired entries to prevent memory leaks
-  for (const [key, entry] of store.entries()) {
+  for (const [key, entry] of memoryStore.entries()) {
     if (entry.resetAt <= now) {
-      store.delete(key);
+      memoryStore.delete(key);
     }
   }
 
-  const entry = store.get(identifier);
+  const entry = memoryStore.get(identifier);
 
   if (!entry || entry.resetAt <= now) {
-    store.set(identifier, { count: 1, resetAt: now + windowMs });
+    memoryStore.set(identifier, { count: 1, resetAt: now + windowMs });
     return { success: true, remaining: limit - 1, resetAt: now + windowMs };
   }
 
@@ -36,6 +87,35 @@ export function rateLimit(
     remaining: limit - entry.count,
     resetAt: entry.resetAt,
   };
+}
+
+export async function rateLimit(
+  identifier: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  const redis = getUpstashRedis();
+
+  if (!redis) {
+    return rateLimitInMemory(identifier, limit, windowMs);
+  }
+
+  try {
+    const limiter = getRatelimiter(redis, limit, windowMs);
+    const result = await limiter.limit(identifier);
+    return {
+      success: result.success,
+      remaining: result.remaining,
+      resetAt: result.reset,
+    };
+  } catch (error) {
+    console.error("[rate-limit] Upstash error, fail-open:", error);
+    return {
+      success: true,
+      remaining: limit - 1,
+      resetAt: Date.now() + windowMs,
+    };
+  }
 }
 
 export function rateLimitResponse(resetAt: number) {

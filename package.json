@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -24,6 +24,8 @@
     "@sentry/nextjs": "^10.48.0",
     "@supabase/supabase-js": "^2.103.0",
     "@types/pdf-parse": "^1.1.5",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^1.8.0",
     "mammoth": "^1.12.0",

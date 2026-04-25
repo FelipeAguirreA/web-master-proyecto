@@ -1,18 +1,31 @@
 # Spec: Rate Limit
 
-Capa de protección contra abuso para endpoints sensibles. Implementación actual **in-memory** — **no efectiva en producción multi-instancia** (ver ADR-003 para migración a Upstash Redis, estado Propuesto).
+Capa de protección contra abuso para endpoints sensibles. Implementación **distribuida** sobre Upstash Redis (sliding window) con **fallback in-memory** automático cuando no hay credenciales (dev local). Decisión arquitectónica documentada en ADR-003.
 
-Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
+Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones:
 
-- `rateLimit(identifier, limit, windowMs)` — evaluación del límite.
-- `rateLimitResponse(resetAt)` — helper HTTP para armar la `Response` 429.
+- `rateLimit(identifier, limit, windowMs)` — **async**. Evaluación del límite contra Upstash o fallback.
+- `rateLimitResponse(resetAt)` — sync. Helper HTTP para armar la `Response` 429.
 
 ## Reglas transversales
 
-- **Ventana fija (fixed window)**, no sliding. Cada identifier acumula `count` durante `windowMs`; al vencer la ventana se resetea completo.
-- **Store in-memory**: `Map<string, { count, resetAt }>` global al proceso. NO comparte estado entre instancias de Vercel (por eso la ADR-003).
-- **GC lazy**: cada llamada barre el Map y borra entries vencidas (`resetAt <= now`) para evitar memory leak.
-- **No lanza**: siempre retorna un objeto; el caller decide si propagar 429 o seguir.
+- **Sliding window** cuando hay Upstash configurado (algoritmo de `@upstash/ratelimit`). Más preciso que fixed window contra abuso progresivo.
+- **Fixed window in-memory** como fallback cuando faltan credenciales (dev local sin Upstash, tests). Mantiene el comportamiento histórico documentado en este spec previo a la migración.
+- **Distribución**: con Upstash el conteo es global a través de todas las instancias de Vercel. El fallback in-memory NO comparte estado entre procesos — usar SOLO en dev/test.
+- **Fail-open**: si la llamada a Upstash falla (red, timeout, error de servicio), la función retorna `success: true` y loggea a `console.error`. Un fallo de nuestra infra no debe bloquear usuarios legítimos. Riesgo asumido: durante caída de Upstash un atacante puede abusar; mitigación futura es agregar layer en Cloudflare/edge.
+- **Async**: la función es asíncrona porque Upstash es network call. Los callers deben usar `await`.
+- **No lanza**: siempre retorna un objeto resuelto; el caller decide si propagar 429 o seguir.
+
+## Configuración
+
+Lee al arrancar (vía `src/lib/env.ts`):
+
+| Variable                   | Tipo             | Obligatoria | Efecto                                                                     |
+| -------------------------- | ---------------- | ----------- | -------------------------------------------------------------------------- |
+| `UPSTASH_REDIS_REST_URL`   | string URL HTTPS | No          | Si está + token presente → usa Upstash. Si falta → fallback in-memory.     |
+| `UPSTASH_REDIS_REST_TOKEN` | string no vacío  | No          | Idem (deben venir en par; tener una sin la otra cae al fallback con warn). |
+
+En producción ambas DEBEN estar configuradas. La ausencia se loggea con `console.warn` al primer uso.
 
 ---
 
@@ -22,17 +35,24 @@ Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
 
 **Parámetros**:
 
-- `identifier: string` — clave de agrupación (IP, userId, o `IP:email` según endpoint; ver ADR-003 tabla).
+- `identifier: string` — clave de agrupación (IP, userId, o `IP:email` según endpoint; ver tabla en ADR-003).
 - `limit: number` — máximo de requests permitidas por ventana.
 - `windowMs: number` — duración de la ventana en milisegundos.
 
-**Retorno**: `{ success: boolean, remaining: number, resetAt: number }`
+**Retorno**: `Promise<{ success: boolean; remaining: number; resetAt: number }>`
 
 - `success`: `true` si la request está dentro del límite, `false` si lo excede.
 - `remaining`: cuántas requests quedan disponibles en la ventana actual (nunca negativo; `0` cuando se alcanza el límite).
-- `resetAt`: timestamp epoch ms en el que se resetea la ventana del identifier.
+- `resetAt`: timestamp epoch ms en el que se resetea la ventana del identifier (con sliding window de Upstash, indica cuándo el contador habrá decaído lo suficiente para volver a permitir requests).
 
-**Comportamiento**:
+**Comportamiento — modo Upstash (config presente)**:
+
+| Caso                                 | Efecto                                                                                                         |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Request OK contra Upstash            | Retorna `{ success, remaining, resetAt }` derivados de la respuesta de `Ratelimit.limit()`.                    |
+| Error de red / Upstash 5xx / timeout | Fail-open: retorna `{ success: true, remaining: limit - 1, resetAt: now + windowMs }`. Loggea `console.error`. |
+
+**Comportamiento — modo fallback in-memory (config ausente)**:
 
 | Caso                                            | Efecto                                                                          |
 | ----------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -40,9 +60,9 @@ Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
 | Identifier con entry vigente y `count < limit`  | Incrementa `count`. Retorna `success: true`, `remaining = limit - count`.       |
 | Identifier con entry vigente y `count >= limit` | NO incrementa. Retorna `success: false`, `remaining: 0`, `resetAt` de la entry. |
 | Identifier con entry vencida (`resetAt <= now`) | Trata como primera request: reemplaza entry con `{ count: 1, resetAt: nuevo }`. |
-| Side effect en cada llamada                     | Borra todas las entries del store con `resetAt <= now` (cleanup global).        |
+| Side effect en cada llamada                     | Borra todas las entries del store con `resetAt <= now` (cleanup global lazy).   |
 
-**Reglas de negocio**:
+**Reglas de negocio (ambos modos)**:
 
 - Dos identifiers distintos no se afectan entre sí — cada uno lleva su ventana.
 - El `resetAt` devuelto en `success: false` es útil para construir el header `Retry-After` (lo consume `rateLimitResponse`).
@@ -58,7 +78,7 @@ Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
 
 - `resetAt: number` — timestamp epoch ms en el que expira la ventana (viene de `rateLimit`).
 
-**Retorno**: `Response` con:
+**Retorno**: `Response` (síncrono — no requiere await).
 
 - `status: 429`
 - Body JSON: `{ error: "Demasiadas solicitudes. Intentá de nuevo en N segundos." }` donde `N = Math.ceil((resetAt - Date.now()) / 1000)`.
@@ -68,9 +88,9 @@ Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
 
 **Reglas de negocio**:
 
-- Mensaje en español rioplatense ("Intentá", no "Intenta") — decisión producto, el proyecto es chileno pero convención del repo.
+- Mensaje en español rioplatense ("Intentá", no "Intenta") — convención del repo.
 - `Math.ceil` asegura que `Retry-After` nunca sea `0` mientras quede algún ms en la ventana — evita loops de reintento inmediato.
-- No toca Sentry ni logging — el caller decide si loggear el 429.
+- No toca Sentry ni logging — el caller decide si loggear el 429 (deferido a Fase 6).
 
 ---
 
@@ -78,7 +98,7 @@ Vive en `src/server/lib/rate-limit.ts`. Expone dos funciones puras:
 
 ```ts
 const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-const { success, resetAt } = rateLimit(`login:${ip}`, 5, 60_000);
+const { success, resetAt } = await rateLimit(`login:${ip}`, 5, 60_000);
 
 if (!success) {
   return rateLimitResponse(resetAt);
@@ -90,6 +110,7 @@ if (!success) {
 
 ## Casos NO cubiertos por este spec
 
-- **Persistencia cross-instancia**: descripto en ADR-003. La migración a Upstash debe mantener esta interfaz pública para no romper callers.
 - **Whitelisting**: no hay bypass por rol/IP. Si se agrega, va en el caller.
 - **Rate limit distribuido por usuario + global**: hoy el caller compone identifiers, la función no tiene awareness de multi-nivel.
+- **Rate limit en login y forgot-password**: gap real (callers faltantes según ADR-003 tabla). Se trackea separado.
+- **Logging estructurado del 429 a Sentry**: deferido a Fase 6 (Observabilidad).

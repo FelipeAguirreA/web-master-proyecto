@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const rl = rateLimit(`internships-post:${auth.user.id}`, 10, HOUR_MS);
+    const rl = await rateLimit(`internships-post:${auth.user.id}`, 10, HOUR_MS);
     if (!rl.success) return rateLimitResponse(rl.resetAt);
 
     const body = await request.json();

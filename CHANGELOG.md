@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-04-25
+
+### Changed
+
+- **Rate limit distribuido (Fase 3, Paso 3.1)** — `src/server/lib/rate-limit.ts` ahora usa **Upstash Redis** vía `@upstash/ratelimit` con algoritmo **sliding window**. Resuelve gap de severidad **Alta** del ADR-003: el rate limit in-memory no funcionaba en Vercel multi-instancia (cada instancia tenía su propio `Map`).
+- **Interfaz cambió a async**: `rateLimit(identifier, limit, windowMs)` ahora retorna `Promise`. Los 4 callers (`/api/internships`, `/api/auth/empresa/register`, `/api/matching/recommendations`, `/api/matching/upload-cv`) actualizados con `await`. `rateLimitResponse(resetAt)` se mantiene síncrono.
+- **Fallback in-memory automático**: si las env vars `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` no están configuradas, el módulo cae al comportamiento histórico fixed-window (útil para dev local y tests). Loguea `console.warn` la primera vez.
+- **Fail-open en error de Upstash**: si la llamada a Redis falla (red, timeout, 5xx), retorna `success: true` y loguea `console.error`. Un fallo de nuestra infra no debe bloquear usuarios legítimos. Riesgo asumido (ADR-003): durante caída de Upstash un atacante puede abusar; mitigación futura es agregar layer en Cloudflare/edge.
+- `docs/specs/rate-limit.spec.md` reescrito para reflejar contrato async, ambos modos (Upstash + fallback) y reglas de fail-open.
+
+### Added
+
+- **Variables de entorno opcionales** (`src/lib/env.ts`):
+  - `UPSTASH_REDIS_REST_URL` (URL del REST endpoint del Redis de Upstash)
+  - `UPSTASH_REDIS_REST_TOKEN` (token de acceso del REST endpoint)
+  - Ambas son opcionales en el schema (`.optional()`). En producción deben estar seteadas; en dev/test pueden faltar y el sistema cae al fallback.
+- Tests del modo Upstash en `src/test/unit/rate-limit.upstash.test.ts` (7 tests con mock de `@upstash/ratelimit` y `@upstash/redis`): instancia Redis con env, delega a `Ratelimit.limit`, mapea `reset → resetAt`, success/blocked, configuración de sliding window, cache del Ratelimit por par `(limit, windowMs)`, fail-open en error de red, reuso de instancia Redis entre llamadas.
+
+### Dependencies
+
+- `+@upstash/ratelimit ^2.0.8`
+- `+@upstash/redis ^1.37.0`
+
 ## [1.5.1] - 2026-04-25
 
 ### Documentation
