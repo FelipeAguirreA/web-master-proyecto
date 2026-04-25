@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createHash } from "crypto";
 import { hash } from "bcryptjs";
 import { prisma } from "@/server/lib/db";
+import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -15,8 +16,18 @@ const schema = z.object({
     .regex(/[^A-Za-z0-9]/, "Debe incluir un símbolo"),
 });
 
+const FIVE_MIN_MS = 5 * 60 * 1000;
+
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit por IP — protección defensiva contra brute-force del token.
+    // El token de 64 hex (256 bits) es prácticamente inmune por entropía,
+    // pero el rate limit corta el costo de intentos en caso de filtración parcial.
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await rateLimit(`reset-password:${ip}`, 10, FIVE_MIN_MS);
+    if (!rl.success) return rateLimitResponse(rl.resetAt);
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {

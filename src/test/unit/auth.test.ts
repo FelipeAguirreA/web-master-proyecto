@@ -17,19 +17,29 @@ vi.mock("next-auth", async () => {
   };
 });
 
+const { mockRateLimit } = vi.hoisted(() => ({
+  mockRateLimit: vi.fn(),
+}));
+
+vi.mock("@/server/lib/rate-limit", () => ({
+  rateLimit: mockRateLimit,
+}));
+
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions, getAuthSession } from "@/lib/auth";
 
+type AuthorizeReq = { headers?: Record<string, string> | Headers };
+type AuthorizeFn = (
+  credentials: Record<string, string> | undefined,
+  req?: AuthorizeReq,
+) => Promise<unknown>;
+
 type MaybeCredentialsProvider = {
   id?: string;
-  authorize?: (
-    credentials: Record<string, string> | undefined,
-  ) => Promise<unknown>;
+  authorize?: AuthorizeFn;
   options?: {
-    authorize?: (
-      credentials: Record<string, string> | undefined,
-    ) => Promise<unknown>;
+    authorize?: AuthorizeFn;
   };
 };
 
@@ -51,6 +61,12 @@ beforeEach(() => {
         }
       });
     }
+  });
+  // Default: rate limit OK — los tests que validan throttling lo overridean.
+  mockRateLimit.mockResolvedValue({
+    success: true,
+    remaining: 4,
+    resetAt: Date.now() + 60_000,
   });
 });
 
@@ -155,6 +171,205 @@ describe("CredentialsProvider — authorize", () => {
       name: "Empresa",
       image: "https://img.example.com/a.png",
     });
+  });
+});
+
+describe("CredentialsProvider — rate limit en login", () => {
+  it("retorna null y NO llama a Prisma cuando se excede el límite", async () => {
+    mockRateLimit.mockResolvedValueOnce({
+      success: false,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    });
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const authorize = getCredentialsAuthorize();
+
+    const result = await authorize!(
+      { email: "victim@example.com", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "1.2.3.4" }) },
+    );
+
+    expect(result).toBeNull();
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("login rate limit hit"),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("compone el identifier como `login:ip:email-lowercased` con Headers", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "u-1",
+      role: "COMPANY",
+      passwordHash: "hash",
+      email: "FOO@BAR.COM",
+      name: "F",
+      image: null,
+    });
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "FOO@BAR.COM", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "9.9.9.9" }) },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:9.9.9.9:foo@bar.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("compone el identifier desde headers como plain object", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "user@x.com", password: "x" },
+      { headers: { "x-forwarded-for": "10.0.0.1" } },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:10.0.0.1:user@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("acepta plain object con header capitalizado `X-Forwarded-For`", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "user@x.com", password: "x" },
+      { headers: { "X-Forwarded-For": "8.8.8.8" } },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:8.8.8.8:user@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("usa solo el primer IP cuando x-forwarded-for viene encadenado", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "u@x.com", password: "x" },
+      {
+        headers: new Headers({
+          "x-forwarded-for": "1.1.1.1, 2.2.2.2, 3.3.3.3",
+        }),
+      },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:1.1.1.1:u@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("usa `unknown` como IP cuando req es undefined", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "u@x.com", password: "x" });
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:unknown:u@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("usa `unknown` cuando req existe pero sin headers", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "u@x.com", password: "x" }, {});
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:unknown:u@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("usa `unknown` cuando Headers no contiene x-forwarded-for", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "u@x.com", password: "x" },
+      { headers: new Headers() },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:unknown:u@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("usa `unknown` cuando plain headers no contiene x-forwarded-for", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "u@x.com", password: "x" },
+      { headers: { "user-agent": "test-agent" } },
+    );
+
+    expect(mockRateLimit).toHaveBeenCalledWith(
+      "login:unknown:u@x.com",
+      5,
+      5 * 60 * 1000,
+    );
+  });
+
+  it("NO invoca rateLimit si faltan credentials (short-circuit antes)", async () => {
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(undefined);
+    await authorize!({ email: "", password: "x" });
+    await authorize!({ email: "a@b.com", password: "" });
+
+    expect(mockRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("cuando rate limit pasa, continúa y retorna user válido en happy path", async () => {
+    mockRateLimit.mockResolvedValueOnce({
+      success: true,
+      remaining: 3,
+      resetAt: Date.now() + 60_000,
+    });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "u-7",
+      role: "COMPANY",
+      passwordHash: "hash",
+      email: "ok@x.com",
+      name: "OK",
+      image: null,
+    });
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    const authorize = getCredentialsAuthorize();
+
+    const result = await authorize!(
+      { email: "ok@x.com", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "5.5.5.5" }) },
+    );
+
+    expect(result).toEqual({
+      id: "u-7",
+      email: "ok@x.com",
+      name: "OK",
+      image: null,
+    });
+    expect(mockRateLimit).toHaveBeenCalledTimes(1);
   });
 });
 

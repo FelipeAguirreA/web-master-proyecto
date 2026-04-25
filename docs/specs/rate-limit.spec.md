@@ -108,9 +108,26 @@ if (!success) {
 
 ---
 
+## Callers cubiertos
+
+| Endpoint                             | Limit | Ventana | Identifier              | Comportamiento al 429                                                                                             |
+| ------------------------------------ | ----- | ------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/empresa/register`    | 3     | 1 hora  | IP                      | `rateLimitResponse` (429 + Retry-After).                                                                          |
+| `POST /api/auth/forgot-password`     | 3     | 5 min   | IP                      | `rateLimitResponse` (429 + Retry-After). Mensaje no referencia el email.                                          |
+| `POST /api/auth/reset-password`      | 10    | 5 min   | IP                      | `rateLimitResponse` (429 + Retry-After). Defensa adicional al token de 256 bits.                                  |
+| `authorize` del CredentialsProvider  | 5     | 5 min   | IP + email (lowercased) | `null` (NextAuth lo traduce a "credenciales inválidas"). Loguea `console.warn`. No filtra existencia del usuario. |
+| `POST /api/internships`              | 10    | 1 min   | userId                  | `rateLimitResponse`.                                                                                              |
+| `POST /api/matching/recommendations` | 10    | 1 min   | userId                  | `rateLimitResponse`.                                                                                              |
+| `POST /api/matching/upload-cv`       | 5     | 10 min  | userId                  | `rateLimitResponse`.                                                                                              |
+
+**Decisiones de identifier**:
+
+- **Login `IP + email`**: combo limita ataques distribuidos por user sin que un atacante de una IP afecte logins legítimos de otros users desde la misma IP (ej. office NAT).
+- **Forgot/reset por IP**: el atacante no se autentica todavía, así que userId no aplica. IP es lo más restrictivo razonable.
+- **Mutaciones autenticadas por userId**: el atacante ya pasó auth; limitar por IP castigaría a usuarios legítimos detrás del mismo NAT.
+
 ## Casos NO cubiertos por este spec
 
 - **Whitelisting**: no hay bypass por rol/IP. Si se agrega, va en el caller.
 - **Rate limit distribuido por usuario + global**: hoy el caller compone identifiers, la función no tiene awareness de multi-nivel.
-- **Rate limit en login y forgot-password**: gap real (callers faltantes según ADR-003 tabla). Se trackea separado.
-- **Logging estructurado del 429 a Sentry**: deferido a Fase 6 (Observabilidad).
+- **Logging estructurado del 429 a Sentry**: deferido a Fase 6 (Observabilidad). Hoy `authorize` loguea con `console.warn`; el resto no loguea el 429.

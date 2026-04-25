@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/server/lib/db";
 import { sendPasswordResetEmail } from "@/server/lib/mail";
+import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 import { env } from "@/lib/env";
 
 const schema = z.object({
@@ -10,6 +11,7 @@ const schema = z.object({
 });
 
 const EXPIRY_MS = 60 * 60 * 1000; // 1 hora
+const FIVE_MIN_MS = 5 * 60 * 1000;
 
 // Respuesta genérica — nunca revelar si el email existe o no
 const GENERIC_OK = NextResponse.json({
@@ -18,6 +20,13 @@ const GENERIC_OK = NextResponse.json({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit por IP — protege contra spam de envíos y enumeración por timing.
+    // Mensaje 429 NO referencia el email, así que no filtra info al atacante.
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await rateLimit(`forgot-password:${ip}`, 3, FIVE_MIN_MS);
+    if (!rl.success) return rateLimitResponse(rl.resetAt);
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return GENERIC_OK;

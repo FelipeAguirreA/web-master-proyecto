@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-04-25
+
+### Added
+
+- **Rate limit en endpoints de auth (Fase 3, Paso 3.1.5)** — cierre del gap declarado en el commit `f256259`. Cubre los 3 callers que faltaban según la tabla del ADR-003:
+  - `POST /api/auth/forgot-password`: 3 req / 5 min por IP. Mensaje 429 genérico que no referencia el email (anti-enumeration).
+  - `POST /api/auth/reset-password`: 10 req / 5 min por IP. Defensa adicional al token de 256 bits.
+  - `authorize` del CredentialsProvider (`src/lib/auth.ts`): 5 req / 5 min por **IP + email** (lowercased). Al exceder retorna `null` — NextAuth lo traduce a "credenciales inválidas", indistinguible para el atacante. Loguea `console.warn` con IP y email.
+- Helper `extractClientIp(req)` en `src/lib/auth.ts` que normaliza el header `x-forwarded-for` aceptando `req.headers` como `Headers` (App Router) o plain object (capitalized incluído), tomando el primer IP de listas encadenadas.
+- 11 tests nuevos en `src/test/unit/auth.test.ts` (`describe("CredentialsProvider — rate limit en login")`): throttling con short-circuit a Prisma, identifier compuesto, ramas de `extractClientIp` (Headers/plain/encadenado/unknown), happy path. Mock hoisted de `@/server/lib/rate-limit` con default `success: true` en `beforeEach`.
+- `scripts/test-upstash-ratelimit.ts` — smoke test contra Upstash real para distinguir modo Upstash vs fallback (latencia y comportamiento de bloqueo).
+
+### Changed
+
+- `docs/specs/rate-limit.spec.md`: agrega tabla de **callers cubiertos** con limit/ventana/identifier por endpoint y las decisiones de identifier (login `IP + email` vs forgot/reset por IP vs mutaciones autenticadas por userId). Quita el gap "Rate limit en login y forgot-password" de "Casos NO cubiertos".
+- `docs/adr/003-rate-limiting-upstash.md`: status `Propuesto` → `Aceptado, implementado (Fase 3 pasos 3.1 y 3.1.5)`. Apéndice "Notas de implementación" con detalle de los dos commits y desviación de la tabla original (ventana de login 1 min → 5 min, más agresiva contra brute-force lento).
+
+### Tests
+
+- Suite total: **802 tests / 41 archivos** en verde (antes 791).
+- Coverage: **functions 100% (291/291)**, lines 99.72%, statements 98.85%, branches 94.28% — NFR mantenido.
+- `src/lib/auth.ts`: 100% func, 98.24% branches, 100% lines.
+
 ## [1.6.0] - 2026-04-25
 
 ### Changed

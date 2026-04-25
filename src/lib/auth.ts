@@ -3,8 +3,30 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/lib/db";
+import { rateLimit } from "@/server/lib/rate-limit";
 import { env } from "@/lib/env";
 export { ADMIN_EMAIL } from "@/lib/constants";
+
+const LOGIN_RATE_LIMIT = 5;
+const LOGIN_RATE_WINDOW_MS = 5 * 60 * 1000;
+
+// NextAuth pasa headers como objeto plain o Headers según versión/adapter.
+function extractClientIp(
+  req: { headers?: Record<string, string> | Headers } | undefined,
+): string {
+  const headers = req?.headers;
+  if (!headers) return "unknown";
+
+  let xff: string | null | undefined;
+  if (typeof (headers as Headers).get === "function") {
+    xff = (headers as Headers).get("x-forwarded-for");
+  } else {
+    const plain = headers as Record<string, string>;
+    xff = plain["x-forwarded-for"] ?? plain["X-Forwarded-For"];
+  }
+
+  return xff?.split(",")[0]?.trim() ?? "unknown";
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,8 +42,26 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
+
+        // Rate limit por IP+email — combo limita ataques distribuidos por user
+        // sin que un atacante de una IP afecte logins legítimos de otros users.
+        // Si excede, retornamos null (= "credenciales inválidas" desde
+        // perspectiva NextAuth). El usuario legítimo verá el mismo mensaje
+        // que con password incorrecto, pero el atacante no puede distinguir.
+        const ip = extractClientIp(req);
+        const rl = await rateLimit(
+          `login:${ip}:${credentials.email.toLowerCase()}`,
+          LOGIN_RATE_LIMIT,
+          LOGIN_RATE_WINDOW_MS,
+        );
+        if (!rl.success) {
+          console.warn(
+            `[auth] login rate limit hit — ip=${ip} email=${credentials.email.toLowerCase()}`,
+          );
+          return null;
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
