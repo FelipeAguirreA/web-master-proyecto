@@ -185,4 +185,37 @@ describe("MessageInput", () => {
       expect(onSend).not.toHaveBeenCalled();
     });
   });
+
+  describe("auto-resize del textarea (onInput)", () => {
+    it("ajusta la altura al hacer input según scrollHeight", () => {
+      render(<MessageInput onSend={() => {}} />);
+      const textarea = screen.getByPlaceholderText(
+        "Escribí un mensaje...",
+      ) as HTMLTextAreaElement;
+
+      // jsdom no calcula scrollHeight real — lo simulamos con defineProperty
+      Object.defineProperty(textarea, "scrollHeight", {
+        configurable: true,
+        value: 80,
+      });
+
+      fireEvent.input(textarea, { target: { value: "Linea 1\nLinea 2" } });
+      expect(textarea.style.height).toBe("80px");
+    });
+
+    it("limita la altura máxima a 128px aunque el scrollHeight sea mayor", () => {
+      render(<MessageInput onSend={() => {}} />);
+      const textarea = screen.getByPlaceholderText(
+        "Escribí un mensaje...",
+      ) as HTMLTextAreaElement;
+
+      Object.defineProperty(textarea, "scrollHeight", {
+        configurable: true,
+        value: 500,
+      });
+
+      fireEvent.input(textarea, { target: { value: "x".repeat(2000) } });
+      expect(textarea.style.height).toBe("128px");
+    });
+  });
 });

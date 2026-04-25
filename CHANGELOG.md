@@ -5,6 +5,39 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-04-25
+
+### Tests
+
+- Cierre de **Fase 2 del refactor (Testing)**. Pasos 11 y 12 — coverage al 100% functions + nuevos tests para llegar a la meta NFR.
+- Coverage final: **functions 100%** (287/287), **lines 99.71%**, **statements 98.81%**, **branches 94.15%** (umbrales del proyecto: 100/80/80/80).
+- 40 archivos de test en verde, 783 tests totales.
+- Unit tests nuevos:
+  - `auth.test.ts` (24 tests): cubre `authOptions.callbacks` (signIn, jwt, session), `authorize` del CredentialsProvider y `getAuthSession`. Mock de bcryptjs y next-auth. Reutiliza `prismaMock`.
+  - `cv-extractor.test.ts` (34 tests): función pura `parseCVText`. Cubre todas las ramas (skills, soft skills, experiencia por años + por rangos de fecha, educación, idiomas con nivel, portfolio links).
+- Unit tests extendidos:
+  - `applications.service.test.ts`: agrega `getMyApplications`, `notifyAcceptedApplication`, `notifyRejectedApplication` y todas las ramas de `updateApplicationStatus` (REVIEWED/ACCEPTED/REJECTED + sin notificación cuando status no mapea).
+  - `matching.service.test.ts`: agrega `processCV` (upsert con buffer + upload + embedding) y `deleteCV` (limpieza de cvUrl/cvText/embedding).
+  - `users.service.test.ts`: agrega `completeStudentRegistration`.
+  - `internships.service.test.ts`: agrega `updateInternship` (404 cuando no es dueño + update isActive).
+- Component tests extendidos:
+  - `ModuleEditModal.test.tsx`: cubre EDUCATION, LANGUAGES, PORTFOLIO completo (incluyendo TagInput preferred + hardFilter de cada tipo) y rama default (`type` no mapeado).
+  - `ChatWindow.test.tsx`: handler del payload INSERT del realtime de Supabase (filtra otros conversationIds) + scrollToBottom al llegar mensajes nuevos via polling.
+  - `MessageInput.test.tsx`: handler `onInput` del auto-resize del textarea (calcula altura según `scrollHeight`, limita a 128px).
+  - `PublicNav.test.tsx`: cierre del drawer al clickear cualquier link interno (Dashboard, Editar perfil, Panel admin, Iniciar sesión, Empezar gratis, Prácticas, logo PractiX).
+
+### Changed
+
+- `vitest.config.ts`:
+  - Thresholds elevados a `functions: 100, lines: 80, branches: 80, statements: 80` (NFR del proyecto cumplido).
+  - `coverage.exclude` ampliado con archivos sin lógica de negocio: `instrumentation-client.ts` (Sentry boot), `preset-modules.ts` (constante de configuración), `realtime-client.ts` (singleton de Supabase), `providers.tsx` (wrapper de SessionProvider), `lib/env.ts` (zod parse top-level), `lib/constants.ts` (export de string), `app/global-error.tsx` (boundary de Sentry).
+  - Coverage ahora reporta sólo código testeable como unit/component, no infra de bootstrap.
+- `package.json`: agregado `@vitest/coverage-v8` como devDep (antes corría sin reporter v8).
+
+### Chore
+
+- `Dockerfile.dev` y `.dockerignore`: copiar `prisma/` antes de `pnpm install` para que `postinstall` (que dispara `prisma generate`) no falle por falta de schema. `.dockerignore` reduce el contexto del build (excluye `node_modules`, `.next`, `coverage`, `test-results`, etc.).
+
 ## [1.4.2] - 2026-04-23
 
 ### Fixed

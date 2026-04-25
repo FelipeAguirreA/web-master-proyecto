@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -155,6 +155,20 @@ describe("PublicNav — drawer mobile", () => {
     await user.click(screen.getByLabelText("Abrir menú"));
     expect(document.body.style.overflow).toBe("hidden");
   });
+
+  it("cierra el drawer al clickear el logo PractiX dentro del drawer", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={false} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+
+    // El logo dentro del drawer (PractiX text)
+    const logoInDrawer = within(aside!).getByText("PractiX");
+    await user.click(logoInDrawer);
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
 });
 
 describe("PublicNav — drawer mobile links según rol", () => {
@@ -226,6 +240,104 @@ describe("PublicNav — drawer mobile links según rol", () => {
     await user.click(screen.getByLabelText("Abrir menú"));
 
     expect(screen.getByText("Panel admin")).toBeInTheDocument();
+  });
+});
+
+describe("PublicNav — drawer cierra al clickear links (logged-in)", () => {
+  beforeEach(() => {
+    mockUseSession.mockReturnValue({
+      data: { user: { name: "Ana", role: "STUDENT" } },
+      status: "authenticated",
+    });
+  });
+
+  it("cierra el drawer al clickear el link Dashboard del drawer", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={true} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+    expect(aside?.className).toContain("translate-x-0");
+
+    const drawerDashboard = within(aside!).getAllByText(/Dashboard/i)[0];
+    await user.click(drawerDashboard);
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
+
+  it("cierra el drawer al clickear 'Editar perfil'", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={true} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+    await user.click(within(aside!).getByText("Editar perfil"));
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
+
+  it("cierra el drawer al clickear 'Panel admin' (cuando isAdmin)", async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue({
+      data: { user: { name: "Admin", role: "COMPANY" } },
+      status: "authenticated",
+    });
+
+    render(<PublicNav isLoggedIn={true} isAdmin={true} />);
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+
+    await user.click(within(aside!).getByText("Panel admin"));
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
+});
+
+describe("PublicNav — drawer cierra al clickear CTAs (logged-out)", () => {
+  beforeEach(() => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      status: "unauthenticated",
+    });
+  });
+
+  it("cierra el drawer al clickear 'Iniciar sesión' del drawer", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={false} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+
+    const drawerLogin = within(aside!).getByText("Iniciar sesión");
+    await user.click(drawerLogin);
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
+
+  it("cierra el drawer al clickear 'Empezar gratis' del drawer", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={false} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+
+    const drawerCta = within(aside!).getByText("Empezar gratis");
+    await user.click(drawerCta);
+
+    expect(aside?.className).toContain("-translate-x-full");
+  });
+
+  it("cierra el drawer al clickear 'Prácticas' (link público) del drawer", async () => {
+    const user = userEvent.setup();
+    render(<PublicNav isLoggedIn={false} />);
+
+    await user.click(screen.getByLabelText("Abrir menú"));
+    const aside = document.querySelector("aside");
+
+    const drawerPracticas = within(aside!).getByText("Prácticas");
+    await user.click(drawerPracticas);
+
+    expect(aside?.className).toContain("-translate-x-full");
   });
 });
 

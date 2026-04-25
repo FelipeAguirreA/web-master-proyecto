@@ -4,6 +4,7 @@ import {
   getUserWithProfile,
   updateStudentProfile,
   updateCompanyProfile,
+  completeStudentRegistration,
 } from "@/server/services/users.service";
 
 beforeEach(() => {
@@ -106,6 +107,53 @@ describe("updateStudentProfile", () => {
 
     expect(prismaMock.studentProfile.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: "user-2" } }),
+    );
+  });
+});
+
+describe("completeStudentRegistration", () => {
+  it("actualiza el user con name, lastName, rut y phone", async () => {
+    const updated = {
+      id: "user-1",
+      email: "estudiante@example.com",
+      name: "Juan",
+      lastName: "Pérez",
+      rut: "12345678-9",
+      phone: "+56912345678",
+    };
+    prismaMock.user.update.mockResolvedValue(updated);
+
+    const result = await completeStudentRegistration("user-1", {
+      name: "Juan",
+      lastName: "Pérez",
+      rut: "12345678-9",
+      phone: "+56912345678",
+    });
+
+    expect(result).toEqual(updated);
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "user-1" },
+      data: {
+        name: "Juan",
+        lastName: "Pérez",
+        rut: "12345678-9",
+        phone: "+56912345678",
+      },
+    });
+  });
+
+  it("solo actualiza el user del id provisto", async () => {
+    prismaMock.user.update.mockResolvedValue({ id: "user-9" });
+
+    await completeStudentRegistration("user-9", {
+      name: "A",
+      lastName: "B",
+      rut: "1-9",
+      phone: "+1",
+    });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "user-9" } }),
     );
   });
 });

@@ -17,7 +17,14 @@ vi.mock("@/server/lib/embeddings", () => ({
 }));
 
 import { calculateMatchScore } from "@/server/lib/embeddings";
-import { getRecommendations } from "@/server/services/matching.service";
+import { uploadFile } from "@/server/lib/storage";
+import { extractTextFromCV } from "@/server/lib/cv-parser";
+import { generateEmbedding } from "@/server/lib/embeddings";
+import {
+  getRecommendations,
+  processCV,
+  deleteCV,
+} from "@/server/services/matching.service";
 
 // ─── Tests de calculateMatchScore (función pura — implementación real) ────────
 // Se testea a través del módulo real, no del mock
@@ -175,5 +182,114 @@ describe("getRecommendations", () => {
     const result = await getRecommendations("user-1");
 
     expect(result.length).toBeLessThanOrEqual(20);
+  });
+
+  it("filtra prácticas con matchScore 0 (embedding vacío)", async () => {
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [1, 0, 0],
+    });
+
+    prismaMock.internship.findMany.mockResolvedValue([
+      {
+        id: "int-with-emb",
+        title: "Con embedding",
+        embedding: [1, 0, 0],
+        company: { companyName: "Co" },
+      },
+      {
+        id: "int-no-emb",
+        title: "Sin embedding",
+        embedding: [],
+        company: { companyName: "Co" },
+      },
+    ]);
+
+    vi.mocked(calculateMatchScore).mockReturnValue(80);
+
+    const result = await getRecommendations("user-1");
+
+    // Solo se incluye la que tiene embedding (matchScore > 0)
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("int-with-emb");
+  });
+});
+
+// ─── Tests de processCV ───────────────────────────────────────────────────────
+
+describe("processCV", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("sube el archivo, extrae texto, genera embedding y upserta el perfil", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto del CV");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1, 0.2, 0.3]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({
+      userId: "user-1",
+      cvUrl: "https://cdn.example.com/cv.pdf",
+      cvText: "Texto del CV",
+      embedding: [0.1, 0.2, 0.3],
+    });
+
+    const buffer = Buffer.from("fake pdf bytes");
+    const result = await processCV(
+      "user-1",
+      buffer,
+      "application/pdf",
+      "cv.pdf",
+    );
+
+    expect(uploadFile).toHaveBeenCalledWith(
+      "documents",
+      expect.stringMatching(/^cvs\/user-1\/\d+-cv\.pdf$/),
+      buffer,
+      "application/pdf",
+    );
+    expect(extractTextFromCV).toHaveBeenCalledWith(buffer, "application/pdf");
+    expect(generateEmbedding).toHaveBeenCalledWith("Texto del CV");
+    expect(prismaMock.studentProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+      update: {
+        cvUrl: "https://cdn.example.com/cv.pdf",
+        cvText: "Texto del CV",
+        embedding: [0.1, 0.2, 0.3],
+      },
+      create: {
+        userId: "user-1",
+        cvUrl: "https://cdn.example.com/cv.pdf",
+        cvText: "Texto del CV",
+        embedding: [0.1, 0.2, 0.3],
+      },
+    });
+    expect(result).toEqual({
+      cvUrl: "https://cdn.example.com/cv.pdf",
+      embeddingSize: 3,
+    });
+  });
+});
+
+// ─── Tests de deleteCV ────────────────────────────────────────────────────────
+
+describe("deleteCV", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("limpia cvUrl, cvText y embedding mediante upsert", async () => {
+    prismaMock.studentProfile.upsert.mockResolvedValue({
+      userId: "user-1",
+      cvUrl: null,
+      cvText: null,
+      embedding: [],
+    });
+
+    await deleteCV("user-1");
+
+    expect(prismaMock.studentProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+      update: { cvUrl: null, cvText: null, embedding: [] },
+      create: { userId: "user-1" },
+    });
   });
 });

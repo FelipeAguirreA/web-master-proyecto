@@ -233,6 +233,90 @@ describe("ModuleEditModal", () => {
     });
   });
 
+  describe("tipo SKILLS — preferred (handler línea 174)", () => {
+    it("agrega y guarda skills preferidas", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "SKILLS",
+            params: { required: [], preferred: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const preferredInput = screen.getByPlaceholderText("ej: Docker, AWS");
+      fireEvent.change(preferredInput, { target: { value: "Docker" } });
+      fireEvent.keyDown(preferredInput, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.preferred).toEqual(["Docker"]);
+    });
+  });
+
+  describe("tipo EXPERIENCE — preferredRoles + hardFilter (handlers 206/211)", () => {
+    it("agrega y guarda roles preferidos", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EXPERIENCE",
+            params: { minYears: 0, preferredRoles: [], hardFilter: false },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const rolesInput = screen.getByPlaceholderText("ej: developer, analyst");
+      fireEvent.change(rolesInput, { target: { value: "developer" } });
+      fireEvent.keyDown(rolesInput, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.preferredRoles).toEqual([
+        "developer",
+      ]);
+    });
+
+    it("toggle del checkbox 'Hard filter' actualiza state en EXPERIENCE", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EXPERIENCE",
+            params: { minYears: 0, preferredRoles: [], hardFilter: false },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.click(screen.getByLabelText(/Hard filter/));
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.hardFilter).toBe(true);
+    });
+  });
+
+  describe("tipo LANGUAGES — required (handler línea 255)", () => {
+    it("agrega y guarda idiomas requeridos", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "LANGUAGES",
+            params: { required: [], preferred: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const requiredInput = screen.getByPlaceholderText(
+        "ej: Inglés B2, Portugués A2",
+      );
+      fireEvent.change(requiredInput, { target: { value: "Inglés B2" } });
+      fireEvent.keyDown(requiredInput, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.required).toEqual(["Inglés B2"]);
+    });
+  });
+
   describe("tipo EXPERIENCE", () => {
     it("renderiza input numérico de años mínimos", () => {
       render(
@@ -349,6 +433,209 @@ describe("ModuleEditModal", () => {
       );
       expect(screen.getByText("github")).toBeInTheDocument();
       expect(screen.getByText("behance")).toBeInTheDocument();
+    });
+
+    it("toggle del checkbox 'Portafolio requerido' actualiza params.required", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "PORTFOLIO",
+            params: { required: false, keywords: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.click(screen.getByLabelText(/Portafolio requerido/));
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.required).toBe(true);
+    });
+
+    it("agrega y guarda nueva palabra clave", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "PORTFOLIO",
+            params: { required: false, keywords: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const input = screen.getByPlaceholderText(
+        "ej: github, behance, portfolio",
+      );
+      fireEvent.change(input, { target: { value: "dribbble" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.keywords).toEqual(["dribbble"]);
+    });
+
+    it("toggle del checkbox 'Hard filter' actualiza params.hardFilter", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "PORTFOLIO",
+            params: { required: false, keywords: [], hardFilter: false },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.click(screen.getByLabelText(/Hard filter/));
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.hardFilter).toBe(true);
+    });
+  });
+
+  describe("tipo desconocido (default branch)", () => {
+    it("no crashea ni renderiza fields cuando el type no está mapeado", () => {
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "UNKNOWN_TYPE" as ATSModuleState["type"],
+            params: {},
+          })}
+          onSave={() => {}}
+          onClose={() => {}}
+        />,
+      );
+      // El header sigue, pero no hay campos específicos de tipo
+      expect(screen.getByText("Editar módulo")).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(/ej:/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("tipo EDUCATION", () => {
+    it("renderiza input numérico de promedio mínimo", () => {
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EDUCATION",
+            params: { minGPA: 5.5, preferredDegrees: [] },
+          })}
+          onSave={() => {}}
+          onClose={() => {}}
+        />,
+      );
+      expect(screen.getByText(/Promedio mínimo/)).toBeInTheDocument();
+      expect(screen.getByDisplayValue("5.5")).toBeInTheDocument();
+    });
+
+    it("guarda el nuevo minGPA al modificar el input", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EDUCATION",
+            params: { minGPA: 5, preferredDegrees: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.change(screen.getByDisplayValue("5"), {
+        target: { value: "6.5" },
+      });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.minGPA).toBe(6.5);
+    });
+
+    it("agrega y guarda carreras preferidas", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EDUCATION",
+            params: { minGPA: 0, preferredDegrees: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const input = screen.getByPlaceholderText(
+        "ej: Ingeniería, Computer Science",
+      );
+      fireEvent.change(input, { target: { value: "Ingeniería" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.preferredDegrees).toEqual([
+        "Ingeniería",
+      ]);
+    });
+
+    it("toggle de hardFilter actualiza el state", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "EDUCATION",
+            params: { minGPA: 0, preferredDegrees: [], hardFilter: false },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.click(screen.getByLabelText(/Hard filter/));
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.hardFilter).toBe(true);
+    });
+  });
+
+  describe("tipo LANGUAGES", () => {
+    it("renderiza tags iniciales de idiomas requeridos", () => {
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "LANGUAGES",
+            params: { required: ["Inglés B2"], preferred: [] },
+          })}
+          onSave={() => {}}
+          onClose={() => {}}
+        />,
+      );
+      expect(screen.getByText("Inglés B2")).toBeInTheDocument();
+    });
+
+    it("agrega y guarda idiomas preferidos", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "LANGUAGES",
+            params: { required: [], preferred: [] },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      const input = screen.getByPlaceholderText("ej: Francés A1");
+      fireEvent.change(input, { target: { value: "Portugués A2" } });
+      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.preferred).toEqual([
+        "Portugués A2",
+      ]);
+    });
+
+    it("toggle de hardFilter actualiza el state", () => {
+      const onSave = vi.fn();
+      render(
+        <ModuleEditModal
+          module={buildModule({
+            type: "LANGUAGES",
+            params: { required: [], preferred: [], hardFilter: false },
+          })}
+          onSave={onSave}
+          onClose={() => {}}
+        />,
+      );
+      fireEvent.click(screen.getByLabelText(/Hard filter/));
+      fireEvent.click(screen.getByText("Guardar cambios"));
+      expect(onSave.mock.calls[0][0].params.hardFilter).toBe(true);
     });
   });
 

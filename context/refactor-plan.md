@@ -89,7 +89,7 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 
 ---
 
-## FASE 2 — Testing (subir coverage + tests faltantes) — EN CURSO
+## FASE 2 — Testing (subir coverage + tests faltantes) ✅ CERRADA
 
 **Progreso**:
 
@@ -105,8 +105,8 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - ✅ Paso 9: component tests base (MessageBubble 10, ModuleCard 11, CandidateCard 22, PublicNav 19) + InternshipCard legacy arreglado (16)
 - ✅ Paso 9b: component tests extendidos (MessageInput 19, ConversationItem 23, ConversationList 13, InterviewMessageCard 11, ATSToggle 14, ModuleEditModal 23) — 103 tests nuevos
 - ✅ Paso 10: E2E suite completa (4 specs nuevos + arreglos de 3 specs pre-existentes desfasados con UI rediseñada). Seed parchado con `passwordHash` para empresas (Test1234!) y reparación de linkage huérfano
-- ⏳ Paso 11: Subir thresholds en `vitest.config.ts` a 100% func / 80% lines-branches-statements
-- ⏳ Paso 12: cierre Fase 2 con commit + bump + CHANGELOG
+- ✅ Paso 11: thresholds 100% func / 80% lines-branches-statements en `vitest.config.ts`. Suite final: **287/287 funcs cubiertas (100%)**, lines 99.71%, statements 98.81%, branches 94.15%. Tests adicionales: `auth.test.ts` (24), `cv-extractor.test.ts` (34), extensiones de los 4 service tests (services al 100% func) y de 4 component tests (ModuleEditModal EDUCATION/LANGUAGES/PORTFOLIO + default; ChatWindow handler realtime + scroll on new msg; MessageInput auto-resize; PublicNav links del drawer).
+- ✅ Paso 12: cierre Fase 2 con bump 1.4.2 → **1.5.0** + entrada CHANGELOG.
 
 **Login empresa con credentials para E2E**: `techcorp@example.com` / `Test1234!` (seed)
 

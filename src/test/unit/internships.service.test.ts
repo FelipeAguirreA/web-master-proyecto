@@ -4,6 +4,7 @@ import {
   listInternships,
   getInternshipById,
   createInternship,
+  updateInternship,
   deleteInternship,
 } from "@/server/services/internships.service";
 
@@ -156,6 +157,68 @@ describe("createInternship", () => {
       expect.objectContaining({
         data: expect.objectContaining({ companyId: "cp-1" }),
       }),
+    );
+  });
+});
+
+describe("updateInternship", () => {
+  it("lanza error si el usuario no tiene CompanyProfile", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue(null);
+
+    await expect(
+      updateInternship("int-1", "user-1", { title: "Nuevo título" }),
+    ).rejects.toThrow("Not found or not authorized");
+  });
+
+  it("lanza error si la práctica no pertenece a la empresa", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+    });
+    prismaMock.internship.findFirst.mockResolvedValue(null);
+
+    await expect(
+      updateInternship("int-1", "user-1", { title: "X" }),
+    ).rejects.toThrow("Not found or not authorized");
+  });
+
+  it("actualiza la práctica cuando el usuario es dueño", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+    });
+    prismaMock.internship.findFirst.mockResolvedValue(mockInternship);
+    prismaMock.internship.update.mockResolvedValue({
+      ...mockInternship,
+      title: "Nuevo título",
+    });
+
+    const result = await updateInternship("int-1", "user-1", {
+      title: "Nuevo título",
+    });
+
+    expect(result.title).toBe("Nuevo título");
+    expect(prismaMock.internship.update).toHaveBeenCalledWith({
+      where: { id: "int-1" },
+      data: { title: "Nuevo título" },
+    });
+  });
+
+  it("permite actualizar isActive (re-activar/desactivar)", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+    });
+    prismaMock.internship.findFirst.mockResolvedValue(mockInternship);
+    prismaMock.internship.update.mockResolvedValue({
+      ...mockInternship,
+      isActive: false,
+    });
+
+    await updateInternship("int-1", "user-1", { isActive: false });
+
+    expect(prismaMock.internship.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isActive: false } }),
     );
   });
 });
