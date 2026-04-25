@@ -5,6 +5,13 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-04-25
+
+### Documentation
+
+- Cierre formal de **Fase 1 del refactor (ADRs)** en `context/refactor-plan.md`: sección "FASE 1 ✅ CERRADA" con tabla de status de los 6 ADRs y referencia al commit principal `a325ea9`.
+- ADR 006 — apéndice "Notas de implementación" documentando que el modelo concreto cambió de `sentence-transformers/all-MiniLM-L6-v2` a `BAAI/bge-small-en-v1.5` (ambos 384 dims). El cambio se debe a que HuggingFace Inference API rutea los modelos `sentence-transformers/*` al `SentenceSimilarityPipeline` en el free tier, lo que impide obtener embeddings individuales (solo retorna scores entre pares). La decisión de stack (HF API + 384 dims + cosine + `Float[]`) se mantiene; solo cambia el modelo concreto. Se respeta la convención del README de ADRs: el cuerpo aceptado no se edita; se agrega un apéndice fechado.
+
 ## [1.5.0] - 2026-04-25
 
 ### Tests

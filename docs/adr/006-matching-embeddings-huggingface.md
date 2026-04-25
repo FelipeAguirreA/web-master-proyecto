@@ -74,3 +74,22 @@ Esto permite que la empresa ajuste pesos según lo que le importa para cada prá
 - **Full-text search PostgreSQL (ts_vector)**: más rápido pero sin semántica; podría servir de fallback.
 - **Custom model fine-tuning**: overkill para el scale actual, requeriría dataset labeled.
 - **ElasticSearch**: infra extra sin beneficio significativo a este scale.
+
+## Notas de implementación
+
+### 2026-04-25 — Modelo concreto cambió a `BAAI/bge-small-en-v1.5`
+
+Durante la implementación se observó que HuggingFace Inference API rutea los modelos `sentence-transformers/*` (y `intfloat/*`) al `SentenceSimilarityPipeline` en el free tier, que solo retorna similarity scores entre pares de textos y NO permite obtener embeddings individuales — que es lo que necesita el pipeline (almacenar embedding del CV y de cada práctica para comparar después).
+
+Se reemplazó el modelo concreto por **`BAAI/bge-small-en-v1.5`** (también 384 dimensiones, soporta feature-extraction nativa en el router de HuggingFace, ranking competitivo en MTEB Retrieval).
+
+La **decisión de stack** se mantiene en su totalidad:
+
+- HuggingFace Inference API (free tier)
+- 384 dimensiones por embedding
+- Cosine similarity normalizada 0-100
+- Storage en `Float[]` de Prisma (`StudentProfile.cvEmbedding` e `Internship.embedding`)
+
+Solo cambia el **modelo concreto**. La sección "Decisión" original queda como referencia histórica de la evaluación inicial.
+
+Referencia en código: [`src/server/lib/embeddings.ts:6-8`](../../src/server/lib/embeddings.ts).

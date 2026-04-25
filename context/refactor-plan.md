@@ -72,20 +72,25 @@ Cada fase termina con: commit conventional + CHANGELOG + bump semver + CI verde.
 
 ---
 
-## FASE 1 — ADRs (documentación fundacional)
+## FASE 1 — ADRs (documentación fundacional) ✅ CERRADA
 
-Crear `docs/adr/` con:
+**Resultado**: 6 ADRs creados en `docs/adr/` con formato `Contexto / Decisión / Consecuencias / Alternativas consideradas` + README índice. Commit principal `a325ea9` (2026-04-23, bump 1.4.0 → 1.4.1). Cierre formal con fix de hechos en ADR 006 (commit posterior, bump 1.5.0 → 1.5.1).
 
-| #   | ADR                                                     | Contenido                                                                           |
-| --- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 001 | Monolito modular + Clean Architecture                   | Por qué Next.js full-stack, separación por capas, regla "services no importan next" |
-| 002 | Autenticación con NextAuth + JWT rotativo               | Decisión JWT 15min + refresh, tradeoffs vs sesiones largas                          |
-| 003 | Rate limiting con Upstash/Vercel KV                     | Por qué no in-memory, límite multi-instancia                                        |
-| 004 | Testing strategy (pirámide)                             | 70% unit / 20% integration / 10% E2E, coverage 100% func / 80% lines                |
-| 005 | Observabilidad con Sentry + logger estructurado         | Qué se captura, qué thresholds                                                      |
-| 006 | Matching con embeddings HuggingFace + cosine similarity | Por qué embeddings vs keywords, modelo 384-dim                                      |
+| #   | ADR                                                                                                           | Status                                        |
+| --- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 001 | [Monolito modular + Clean Architecture](../docs/adr/001-monolito-modular-clean-architecture.md)               | Aceptado                                      |
+| 002 | [Autenticación con NextAuth + JWT rotativo](../docs/adr/002-auth-nextauth-jwt-rotativo.md)                    | Propuesto (impl en Fase 3)                    |
+| 003 | [Rate limiting con Upstash Redis](../docs/adr/003-rate-limiting-upstash.md)                                   | Propuesto (impl en Fase 3)                    |
+| 004 | [Testing strategy — pirámide](../docs/adr/004-testing-strategy-piramide.md)                                   | Aceptado parcial (cerrado en Fase 2)          |
+| 005 | [Observabilidad con Sentry + logger estructurado](../docs/adr/005-observabilidad-sentry-logger.md)            | Aceptado parcial (logger + alertas en Fase 6) |
+| 006 | [Matching con embeddings HuggingFace + cosine similarity](../docs/adr/006-matching-embeddings-huggingface.md) | Aceptado, implementado                        |
 
-Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas consideradas`.
+**Output de esta fase**:
+
+- `docs/adr/001..006-*.md` (6 archivos) + `docs/adr/README.md` con índice y convenciones
+- ADR 006 lleva apéndice "Notas de implementación" documentando el cambio de modelo de `sentence-transformers/all-MiniLM-L6-v2` → `BAAI/bge-small-en-v1.5` (ambos 384 dims; el primero queda ruteado al `SentenceSimilarityPipeline` por HuggingFace en el free tier y no permite obtener embeddings individuales). La decisión de stack (HF Inference API + 384 dims + cosine similarity + `Float[]` de Prisma) se mantiene.
+
+**Lección metodológica**: cuando el código diverge del ADR aceptado por una restricción operativa (no por cambio de decisión), la convención del repo permite editarlo agregando un apéndice "Notas de implementación" con fecha. NO se reescribe el cuerpo aceptado; se anexa la realidad debajo.
 
 ---
 
