@@ -17,7 +17,9 @@ test.describe("Listado de Prácticas", () => {
     const allCards = page.locator("a[href^='/practicas/']");
     const totalBefore = await allCards.count();
 
-    await page.getByPlaceholder("Buscar prácticas...").fill("Frontend");
+    await page
+      .getByPlaceholder(/buscar por rol, empresa o habilidad/i)
+      .fill("Frontend");
     await page.waitForLoadState("networkidle");
 
     const filteredCards = page.locator("a[href^='/practicas/']");
@@ -31,11 +33,11 @@ test.describe("Listado de Prácticas", () => {
     page,
   }) => {
     await page
-      .getByPlaceholder("Buscar prácticas...")
+      .getByPlaceholder(/buscar por rol, empresa o habilidad/i)
       .fill("zzz-inexistente-zzz");
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByText(/no se encontraron prácticas/i)).toBeVisible();
+    await expect(page.getByText(/nada que coincida/i)).toBeVisible();
   });
 
   test("el filtro por modalidad funciona", async ({ page }) => {

@@ -102,11 +102,13 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - ✅ Paso 6: interviews.service spec + 45 tests (commit aa60005)
 - ✅ Paso 7: ats-scoring spec + scoring-engine + 5 scorers (78 tests)
 - ✅ Paso 8: cv-parser spec + 20 tests
-- ✅ Paso 9: component tests base (MessageBubble 10, ModuleCard 11, CandidateCard 22, PublicNav 19) + InternshipCard legacy arreglado (16) — NUEVO
-- ⏳ Paso 9b: component tests de dashboards críticos (pendiente, si se considera necesario)
-- ⏳ Paso 10: E2E flows (postulación estudiante, ranking ATS, login/forgot/reset, guard sin sesión)
+- ✅ Paso 9: component tests base (MessageBubble 10, ModuleCard 11, CandidateCard 22, PublicNav 19) + InternshipCard legacy arreglado (16)
+- ✅ Paso 9b: component tests extendidos (MessageInput 19, ConversationItem 23, ConversationList 13, InterviewMessageCard 11, ATSToggle 14, ModuleEditModal 23) — 103 tests nuevos
+- ✅ Paso 10: E2E suite completa (4 specs nuevos + arreglos de 3 specs pre-existentes desfasados con UI rediseñada). Seed parchado con `passwordHash` para empresas (Test1234!) y reparación de linkage huérfano
 - ⏳ Paso 11: Subir thresholds en `vitest.config.ts` a 100% func / 80% lines-branches-statements
 - ⏳ Paso 12: cierre Fase 2 con commit + bump + CHANGELOG
+
+**Login empresa con credentials para E2E**: `techcorp@example.com` / `Test1234!` (seed)
 
 ### 2.1 Unit tests
 
@@ -118,7 +120,8 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - [x] `ats/scorers/experience.scorer.test.ts` (+ education, portfolio, languages, skills — Paso 7, 64 tests en total de scorers)
 - [x] `server/lib/cv-parser.test.ts` (Paso 8, 20 tests — mockea pdf-parse y mammoth vía Module.prototype.require)
 
-**Estado suite al 2026-04-24**: 319/319 en verde (15 archivos unit + 5 archivos components).
+**Estado suite al 2026-04-24 (post Paso 9b)**: 422/422 unit+component en verde (15 archivos unit + 11 archivos components).
+**Estado suite E2E (post Paso 10)**: 53 tests pasando, 3 skipped (Google OAuth no automatizable), 8 archivos de specs.
 
 ### 2.2 Component tests
 
@@ -127,14 +130,36 @@ Formato por ADR: `Contexto / Decisión / Consecuencias / Alternativas considerad
 - [x] `MessageBubble.test.tsx` (Paso 9, 10 tests)
 - [x] `PublicNav.test.tsx` con drawer mobile (Paso 9, 19 tests)
 - [x] `InternshipCard.test.tsx` pre-existente arreglado (Paso 9, 16 tests)
-- [ ] Dashboard pages críticas
+- [x] `MessageInput.test.tsx` (Paso 9b, 19 tests)
+- [x] `ConversationItem.test.tsx` (Paso 9b, 23 tests)
+- [x] `ConversationList.test.tsx` (Paso 9b, 13 tests — mockea useSession + fetch)
+- [x] `InterviewMessageCard.test.tsx` (Paso 9b, 11 tests)
+- [x] `ATSToggle.test.tsx` (Paso 9b, 14 tests — mockea window.confirm)
+- [x] `ModuleEditModal.test.tsx` (Paso 9b, 23 tests)
+- [ ] Dashboard pages críticas (deferido a E2E del Paso 10)
 
-### 2.3 E2E (Playwright)
+### 2.3 E2E (Playwright) — 53 tests en verde, 3 skipped (Google OAuth no automatizable)
 
-- [ ] Registro estudiante → subir CV → ver recomendaciones → postularse
-- [ ] Registro empresa → crear práctica → ver ranking ATS → aprobar candidato
-- [ ] Login / forgot-password / reset-password
-- [ ] Guard: acceder a dashboard sin sesión → redirect a login
+**Cobertura conseguida**:
+
+- [x] Login empresa con credentials (5 tests — `auth-credentials.spec.ts`)
+- [x] Forgot-password / reset-password (13 tests — `forgot-reset-password.spec.ts`, anti-enumeration verificado)
+- [x] Registro empresa (10 tests de validaciones — `registro-empresa.spec.ts`)
+- [x] Dashboard empresa autenticado (7 tests — `dashboard-empresa.spec.ts`, modal detalle, ATS, cookies)
+- [x] Guard sin sesión (3 tests — `auth.spec.ts`)
+- [x] Listado público de prácticas (7 tests — `internships.spec.ts`)
+- [x] Landing pública (5 tests — `landing.spec.ts`)
+- [x] Middleware (2 tests — `middleware.spec.ts`)
+
+**Cobertura diferida** (requiere fixture de sesión NextAuth — Google OAuth):
+
+- [ ] Postulación estudiante (necesita login Google)
+- [ ] Ranking ATS desde sesión empresa con applications reales (cubierto parcialmente; falta el flujo de aprobar candidato)
+
+**Infraestructura agregada**:
+
+- `e2e/helpers/auth.ts` con `loginAsCompany()` que usa el flow real de credentials login UI
+- `prisma/seed.ts` parchado con `passwordHash` bcrypt en empresas TechCorp/StartupX (`Test1234!`) + reparación de linkage de internships en cada run
 
 ### 2.4 Update coverage thresholds
 

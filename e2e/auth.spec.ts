@@ -33,7 +33,11 @@ test.describe("Autenticación", () => {
 
   test("la página de login muestra el logo de PractiX", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByText("PractiX")).toBeVisible();
+    // El logo es un Link cuyo accessible name es "PractiX" (el "P" del ícono
+    // también se incluye, ej. "P PractiX"). Usamos regex flexible.
+    await expect(
+      page.getByRole("link", { name: /practix/i }).first(),
+    ).toBeVisible();
   });
 
   // El flujo completo de Google OAuth no se puede automatizar en E2E sin un

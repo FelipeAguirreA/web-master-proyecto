@@ -2,8 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { config } from "dotenv";
+import { hashSync } from "bcryptjs";
 
 config({ path: ".env.local" });
+
+// Password de empresas seed para E2E con credentials login.
+// Cumple las reglas del registro: 8+ chars, mayúscula, minúscula, número, símbolo.
+const SEED_COMPANY_PASSWORD = "Test1234!";
+const SEED_COMPANY_PASSWORD_HASH = hashSync(SEED_COMPANY_PASSWORD, 12);
 
 const rawUrl = new URL(process.env.DATABASE_URL!);
 rawUrl.searchParams.delete("sslmode");
@@ -50,11 +56,12 @@ async function main() {
   // Empresas
   const techcorp = await prisma.user.upsert({
     where: { email: "techcorp@example.com" },
-    update: {},
+    update: { passwordHash: SEED_COMPANY_PASSWORD_HASH },
     create: {
       email: "techcorp@example.com",
       name: "TechCorp",
       role: "COMPANY",
+      passwordHash: SEED_COMPANY_PASSWORD_HASH,
       companyProfile: {
         create: {
           companyName: "TechCorp",
@@ -69,11 +76,12 @@ async function main() {
 
   const startupx = await prisma.user.upsert({
     where: { email: "startupx@example.com" },
-    update: {},
+    update: { passwordHash: SEED_COMPANY_PASSWORD_HASH },
     create: {
       email: "startupx@example.com",
       name: "StartupX",
       role: "COMPANY",
+      passwordHash: SEED_COMPANY_PASSWORD_HASH,
       companyProfile: {
         create: {
           companyName: "StartupX",
@@ -207,14 +215,19 @@ async function main() {
     const text = `${internship.title} ${internship.description} ${internship.skills.join(" ")}`;
     const embedding = await generateEmbedding(text);
 
+    // El update incluye companyId para reparar linkage si el companyProfile cambió
+    // (ej. user fue recreado y dejó companyProfile huérfano).
     await prisma.internship.upsert({
       where: { id: internship.id },
-      update: { embedding },
+      update: { embedding, companyId: internship.companyId, isActive: true },
       create: { ...internship, embedding },
     });
   }
 
   console.log("✓ 6 prácticas creadas con embeddings");
+  console.log(
+    `✓ Empresas seed login: techcorp@example.com / startupx@example.com (password: ${SEED_COMPANY_PASSWORD})`,
+  );
   console.log("Seed completado.");
 }
 
