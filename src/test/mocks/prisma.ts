@@ -23,6 +23,7 @@ const baseMock = {
   message: createModelMock(),
   interview: createModelMock(),
   notification: createModelMock(),
+  refreshToken: createModelMock(),
 };
 
 export const prismaMock = baseMock as typeof baseMock & {

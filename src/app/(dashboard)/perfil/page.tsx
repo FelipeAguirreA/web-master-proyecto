@@ -12,6 +12,7 @@ import {
   Lock,
 } from "lucide-react";
 import Link from "next/link";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type ProfileData = {
   id: string;
@@ -54,7 +55,7 @@ export default function PerfilPage() {
   const [imageBroken, setImageBroken] = useState(false);
 
   useEffect(() => {
-    fetch("/api/perfil")
+    fetchWithRefresh("/api/perfil")
       .then((r) => r.json())
       .then((data: ProfileData) => {
         setProfile(data);
@@ -94,7 +95,7 @@ export default function PerfilPage() {
         setSavingAvatar(true);
         const form = new FormData();
         form.append("avatar", avatarFile);
-        const avatarRes = await fetch("/api/perfil/avatar", {
+        const avatarRes = await fetchWithRefresh("/api/perfil/avatar", {
           method: "POST",
           body: form,
         });
@@ -107,7 +108,7 @@ export default function PerfilPage() {
         newImageUrl = url;
       }
 
-      const dataRes = await fetch("/api/perfil", {
+      const dataRes = await fetchWithRefresh("/api/perfil", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

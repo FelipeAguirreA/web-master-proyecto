@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 export function useUnreadCount() {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     const fetch_ = () => {
-      fetch("/api/chat/conversations")
+      fetchWithRefresh("/api/chat/conversations")
         .then((r) => r.json())
         .then((data: { unreadCount?: number }[]) => {
           if (!Array.isArray(data)) return;

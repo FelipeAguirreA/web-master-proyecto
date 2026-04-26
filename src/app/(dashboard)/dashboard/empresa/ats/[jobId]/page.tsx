@@ -24,6 +24,7 @@ import ModuleEditModal from "@/components/ats/ModuleEditModal";
 import { PRESET_MODULES } from "@/server/lib/ats/preset-modules";
 import type { CandidateData } from "@/components/ats/CandidateCard";
 import ScoreBreakdownModal from "@/components/ats/ScoreBreakdownModal";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 const MODULE_ICONS: Record<string, string> = {
   SKILLS: "⚡",
@@ -121,7 +122,9 @@ export default function ATSConfigPage() {
 
   const loadCandidates = useCallback(
     async (skipAutoScore = false) => {
-      const res = await fetch(`/api/applications/internship/${jobId}`);
+      const res = await fetchWithRefresh(
+        `/api/applications/internship/${jobId}`,
+      );
       if (!res.ok) return;
       const data: CandidateData[] = (await res.json()) ?? [];
 
@@ -132,8 +135,10 @@ export default function ATSConfigPage() {
       ) {
         setScoring(true);
         try {
-          await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
-          const refreshed = await fetch(
+          await fetchWithRefresh(`/api/ats/score/job/${jobId}`, {
+            method: "POST",
+          });
+          const refreshed = await fetchWithRefresh(
             `/api/applications/internship/${jobId}`,
           );
           if (refreshed.ok) {
@@ -155,7 +160,7 @@ export default function ATSConfigPage() {
   const loadConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/ats/config/${jobId}`);
+      const res = await fetchWithRefresh(`/api/ats/config/${jobId}`);
       const data = await res.json();
       if (data.config) {
         setAtsActive(data.config.isActive);
@@ -245,7 +250,7 @@ export default function ATSConfigPage() {
   const handleRecalculate = async () => {
     setScoring(true);
     try {
-      await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+      await fetchWithRefresh(`/api/ats/score/job/${jobId}`, { method: "POST" });
       await loadCandidates(true);
     } finally {
       setScoring(false);
@@ -267,7 +272,7 @@ export default function ATSConfigPage() {
     }));
 
     try {
-      const res = await fetch("/api/ats/config", {
+      const res = await fetchWithRefresh("/api/ats/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

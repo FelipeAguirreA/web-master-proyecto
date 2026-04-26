@@ -16,6 +16,7 @@ import {
 import { PublicNav } from "@/components/layout/PublicNav";
 import { ADMIN_EMAIL } from "@/lib/constants";
 import type { Internship } from "@/types";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type InternshipDetail = Internship & {
   company: { companyName: string; logo: string | null };
@@ -115,7 +116,7 @@ export default function InternshipDetailPage() {
   useEffect(() => {
     const fetchInternship = async () => {
       try {
-        const res = await fetch(`/api/internships/${id}`);
+        const res = await fetchWithRefresh(`/api/internships/${id}`);
         if (res.status === 404) {
           setNotFound(true);
           return;
@@ -137,7 +138,7 @@ export default function InternshipDetailPage() {
 
     const checkApplied = async () => {
       try {
-        const res = await fetch("/api/applications/my");
+        const res = await fetchWithRefresh("/api/applications/my");
         if (!res.ok) return;
         const apps: Array<{ internshipId: string }> = await res.json();
         if (apps.some((a) => a.internshipId === id)) {
@@ -162,7 +163,7 @@ export default function InternshipDetailPage() {
     setApplyError("");
 
     try {
-      const res = await fetch("/api/applications", {
+      const res = await fetchWithRefresh("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ internshipId: id }),

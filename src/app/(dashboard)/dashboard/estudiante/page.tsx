@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import InternshipCard from "@/components/ui/InternshipCard";
 import type { Internship, Application } from "@/types";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type InternshipWithCompany = Internship & {
   company: { companyName: string; logo: string | null };
@@ -113,7 +114,7 @@ export default function StudentDashboard() {
 
   const loadRecommendations = async () => {
     try {
-      const res = await fetch("/api/matching/recommendations");
+      const res = await fetchWithRefresh("/api/matching/recommendations");
       if (res.ok) {
         const data = await res.json();
         setRecommendations(data ?? []);
@@ -125,7 +126,7 @@ export default function StudentDashboard() {
 
   const loadUser = async () => {
     try {
-      const res = await fetch("/api/users/me");
+      const res = await fetchWithRefresh("/api/users/me");
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -138,7 +139,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!session) return;
     loadUser();
-    fetch("/api/applications/my")
+    fetchWithRefresh("/api/applications/my")
       .then((r) => r.json())
       .then((data) => setApplications(data ?? []))
       .catch(() => setApplications([]));
@@ -154,7 +155,7 @@ export default function StudentDashboard() {
     try {
       const formData = new FormData();
       formData.append("cv", file);
-      const res = await fetch("/api/matching/upload-cv", {
+      const res = await fetchWithRefresh("/api/matching/upload-cv", {
         method: "POST",
         body: formData,
       });
@@ -177,7 +178,9 @@ export default function StudentDashboard() {
   const handleCVDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch("/api/matching/upload-cv", { method: "DELETE" });
+      const res = await fetchWithRefresh("/api/matching/upload-cv", {
+        method: "DELETE",
+      });
       if (res.ok) {
         await Promise.all([loadUser(), loadRecommendations()]);
       }

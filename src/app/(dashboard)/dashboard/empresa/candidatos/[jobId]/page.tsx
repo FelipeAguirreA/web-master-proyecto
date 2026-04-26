@@ -19,6 +19,7 @@ import Link from "next/link";
 import type { CandidateData } from "@/components/ats/CandidateCard";
 import ScoreBreakdownModal from "@/components/ats/ScoreBreakdownModal";
 import KanbanColumn from "@/components/ats/KanbanColumn";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type View = "ranking" | "kanban";
 
@@ -66,8 +67,8 @@ export default function CandidatesPage() {
       setLoading(true);
       try {
         const [res, atsRes] = await Promise.all([
-          fetch(`/api/applications/internship/${jobId}`),
-          fetch(`/api/ats/config/${jobId}`),
+          fetchWithRefresh(`/api/applications/internship/${jobId}`),
+          fetchWithRefresh(`/api/ats/config/${jobId}`),
         ]);
         const data: CandidateData[] = (await res.json()) ?? [];
         const atsData = await atsRes.json();
@@ -82,7 +83,9 @@ export default function CandidatesPage() {
           data.length > 0 &&
           data.some((c) => c.atsScore === null)
         ) {
-          await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+          await fetchWithRefresh(`/api/ats/score/job/${jobId}`, {
+            method: "POST",
+          });
           await loadCandidates(true);
         }
       } catch {
@@ -101,7 +104,7 @@ export default function CandidatesPage() {
   const handleRecalculate = async () => {
     setRecalculating(true);
     try {
-      await fetch(`/api/ats/score/job/${jobId}`, { method: "POST" });
+      await fetchWithRefresh(`/api/ats/score/job/${jobId}`, { method: "POST" });
       await loadCandidates();
     } finally {
       setRecalculating(false);
@@ -120,7 +123,7 @@ export default function CandidatesPage() {
     };
     const syncedStatus = PIPELINE_TO_STATUS[newStatus] ?? "PENDING";
 
-    await fetch(`/api/ats/pipeline/${candidateId}`, {
+    await fetchWithRefresh(`/api/ats/pipeline/${candidateId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
@@ -146,7 +149,7 @@ export default function CandidatesPage() {
     status: "ACCEPTED" | "REJECTED",
   ) => {
     try {
-      const res = await fetch(`/api/applications/${applicationId}`, {
+      const res = await fetchWithRefresh(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -185,11 +188,14 @@ export default function CandidatesPage() {
     type: "accepted" | "rejected",
   ) => {
     try {
-      const res = await fetch(`/api/applications/${applicationId}/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
+      const res = await fetchWithRefresh(
+        `/api/applications/${applicationId}/notify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+        },
+      );
       if (res.ok) setEmailSentIds((prev) => new Set(prev).add(applicationId));
     } catch {
       /* silencioso */
@@ -198,7 +204,7 @@ export default function CandidatesPage() {
 
   const handleContact = async (applicationId: string) => {
     try {
-      const res = await fetch("/api/chat/conversations", {
+      const res = await fetchWithRefresh("/api/chat/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ applicationId }),
@@ -218,7 +224,7 @@ export default function CandidatesPage() {
     window.open(cvUrl, "_blank", "noopener noreferrer");
     const target = candidates.find((c) => c.id === applicationId);
     if (target?.status === "PENDING") {
-      await fetch(`/api/applications/${applicationId}`, {
+      await fetchWithRefresh(`/api/applications/${applicationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "REVIEWED" }),

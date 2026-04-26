@@ -5,6 +5,42 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-04-26
+
+### Added
+
+- **JWT 15 min + refresh token rotation (Fase 3, Paso 3.2)** — cierre del último P0 de seguridad de Fase 3, según ADR-002. Reduce la ventana de ataque por token comprometido de 24 horas a 15 minutos.
+  - **Access token** JWT con `maxAge: 15 * 60` (15 min). Cookie `next-auth.session-token` (HTTP) o `__Secure-next-auth.session-token` (HTTPS). Firmado con `NEXTAUTH_SECRET` vía `next-auth/jwt encode()` desde `/api/auth/refresh` para mantener payload indistinguible del emitido en signIn.
+  - **Refresh token** opaco: 32 bytes random hex, almacenado hasheado SHA-256 en tabla `refresh_tokens`. TTL 7 días. Cookie `practix.refresh-token` (HTTP) o `__Host-practix.refresh-token` (HTTPS).
+- **Tabla `refresh_tokens`** en Prisma schema con `id, userId, tokenHash UNIQUE, expiresAt, revokedAt, replacedBy, createdAt`. Índices en `userId` y `expiresAt`. `onDelete: Cascade` desde User.
+- **Service `src/server/services/refresh-tokens.service.ts`**: `issueRefreshToken`, `validateAndRotate`, `revokeRefreshToken`, `revokeAllForUser`. Resultado discriminado `{ kind: "ok" | "invalid" | "reuse-detected" }` en `validateAndRotate`. **Reuse detection**: usar refresh revocado dispara revocación masiva de todos los tokens activos del user (asume compromiso).
+- **Helpers**: `src/server/lib/auth-jwt.ts` (`buildJwtPayload` reproduce el shape del callback `jwt`; `encodeAccessJwt` firma con TTL 15min) y `src/server/lib/auth-cookies.ts` (nombres y opciones según protocolo HTTP/HTTPS).
+- **Endpoint `POST /api/auth/refresh`**: lee cookie del refresh, valida + rota, emite nuevo access JWT y setea ambas cookies. Rate limit 10 req / 1 min por IP. Mensajes 401 distinguibles por caso (sin sesión / inválido / reuse-detected) con `console.warn` para reuse.
+- **Endpoint `POST /api/auth/logout`**: revoca refresh activo, limpia ambas cookies. Idempotente.
+- **`events.signIn` en `src/lib/auth.ts`**: al completar cualquier sign-in (Google OAuth o Credentials), emite refresh inicial y setea cookie con `cookies()` de `next/headers`. Fail-soft: si la emisión falla, el sign-in NO se bloquea (mejor degradación parcial que login bloqueado).
+- **Wrapper cliente `src/lib/client/fetch-with-refresh.ts`**: intercepta 401, llama a `/api/auth/refresh`, reintenta UNA vez. **Single-flight** por tab (variable module-level con `.finally()` que limpia). Anti-loop para `/api/auth/refresh` y `/api/auth/logout`. Redirect a `/login?callbackUrl=...` preservando pathname+search en falla. NO altera shape del fetch (no añade `credentials: "same-origin"` por default — fetch a mismo origen ya envía cookies).
+
+### Changed
+
+- **Migración a `fetchWithRefresh`** en 14 archivos cliente (50 llamadas) — pages del dashboard, hooks, componentes de chat. Páginas en `(auth)` (login, registro, forgot, reset) mantienen `fetch` directo porque NO usan sesión activa.
+- `src/lib/auth.ts`: `session.maxAge: 24 * 60 * 60 → ACCESS_TOKEN_MAX_AGE_S` (15 min).
+- `src/test/mocks/prisma.ts`: agrega `refreshToken: createModelMock()` para que el mock de Prisma cubra el nuevo modelo.
+
+### Tests
+
+- Suite total: **850 tests / 45 archivos** verde (antes 802).
+- Coverage: **functions 100% (310/310)**, lines 99.74%, statements 98.86%, branches 94.16% — NFR mantenido.
+- Tests nuevos:
+  - `refresh-tokens.service.test.ts` (19 tests): issue genera hash y nunca persiste raw; rotación happy path con replacedBy; reuse detection revoca masivo; expirado/invalid retorna `kind: "invalid"`; revoke idempotente; helpers de hash/random determinísticos.
+  - `fetch-with-refresh.test.ts` (13 tests): happy path; interceptor 401 con retry; redirect a /login con callbackUrl preservado; single-flight (2 requests paralelos comparten 1 sola llamada a /refresh); anti-loop para /refresh y /logout; permite nuevo refresh tras uno completado.
+  - `auth-cookies.test.ts` (4 tests): nombres según HTTP/HTTPS, shape de session/refresh/clear cookies.
+  - `auth-jwt.test.ts` (8 tests): `buildJwtPayload` para STUDENT (con/sin rut), COMPANY (con/sin profile, con/sin companyName); `encodeAccessJwt` delega a `next-auth/jwt encode()` con secret y maxAge correcto.
+  - `auth.test.ts` extendido con 4 tests de `events.signIn`: emisión OK con cookie seteada; noop sin email; noop si user no existe en DB; fail-soft con `console.error` en error de emisión.
+
+### Migration
+
+Schema cambió. **Hay que correr `pnpm db:push` con la DB local arriba (`docker compose up`)** después de pull. La tabla `refresh_tokens` no tiene datos existentes que migrar — los usuarios actuales tendrán que volver a iniciar sesión la primera vez (sin refresh token previo, el wrapper recibirá 401 al primer intento de refresh y los redirigirá a /login).
+
 ## [1.7.1] - 2026-04-26
 
 ### Fixed

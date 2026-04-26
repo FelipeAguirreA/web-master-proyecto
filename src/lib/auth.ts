@@ -1,9 +1,15 @@
 import { NextAuthOptions, getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/lib/db";
 import { rateLimit } from "@/server/lib/rate-limit";
+import { issueRefreshToken } from "@/server/services/refresh-tokens.service";
+import {
+  buildRefreshCookie,
+  ACCESS_TOKEN_MAX_AGE_S,
+} from "@/server/lib/auth-cookies";
 import { env } from "@/lib/env";
 export { ADMIN_EMAIL } from "@/lib/constants";
 
@@ -185,7 +191,44 @@ export const authOptions: NextAuthOptions = {
     },
   },
 
-  session: { maxAge: 24 * 60 * 60 },
+  session: { maxAge: ACCESS_TOKEN_MAX_AGE_S },
+
+  events: {
+    // Al completar sign-in (cualquier provider), emitimos un refresh token y
+    // lo guardamos hasheado en DB. La cookie del refresh queda seteada en la
+    // misma respuesta que NextAuth devuelve al cliente.
+    async signIn({ user }) {
+      try {
+        const email = user?.email;
+        if (!email) return;
+        const dbUser = await prisma.user.findUnique({
+          where: { email },
+          select: { id: true },
+        });
+        if (!dbUser) return;
+
+        const issued = await issueRefreshToken(dbUser.id);
+        const opts = buildRefreshCookie(issued.rawToken);
+        const cookieStore = await cookies();
+        cookieStore.set(opts.name, opts.value, {
+          httpOnly: opts.httpOnly,
+          secure: opts.secure,
+          sameSite: opts.sameSite,
+          path: opts.path,
+          maxAge: opts.maxAge,
+        });
+      } catch (err) {
+        // Si la emisión del refresh falla, NO bloqueamos el sign-in. El
+        // cliente arrancará con cookie de access válida 15 min y al primer
+        // intento de refresh fallará → re-login. Mejor degradación parcial
+        // que login bloqueado.
+        console.error(
+          "[auth/events.signIn] refresh token issuance failed",
+          err,
+        );
+      }
+    },
+  },
 
   pages: { signIn: "/login" },
 };

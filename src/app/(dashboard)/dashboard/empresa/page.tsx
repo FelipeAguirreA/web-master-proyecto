@@ -20,6 +20,7 @@ import {
   Bot,
   TrendingUp,
 } from "lucide-react";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Internship = {
   id: string;
@@ -108,7 +109,7 @@ export default function CompanyDashboard() {
 
   const loadInternships = async () => {
     try {
-      const res = await fetch("/api/company/internships");
+      const res = await fetchWithRefresh("/api/company/internships");
       const data = await res.json();
       setInternships(data.internships ?? []);
       if (data.companyStatus) setCompanyStatus(data.companyStatus);
@@ -149,7 +150,7 @@ export default function CompanyDashboard() {
         .map((s) => s.trim())
         .filter(Boolean);
     try {
-      const res = await fetch("/api/internships", {
+      const res = await fetchWithRefresh("/api/internships", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -172,7 +173,7 @@ export default function CompanyDashboard() {
   const handleComplete = async (internshipId: string) => {
     setProcessing(internshipId);
     try {
-      const res = await fetch(`/api/internships/${internshipId}`, {
+      const res = await fetchWithRefresh(`/api/internships/${internshipId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: false }),
@@ -195,9 +196,12 @@ export default function CompanyDashboard() {
     if (!confirmDeleteId) return;
     setProcessing(confirmDeleteId);
     try {
-      const res = await fetch(`/api/internships/${confirmDeleteId}`, {
-        method: "DELETE",
-      });
+      const res = await fetchWithRefresh(
+        `/api/internships/${confirmDeleteId}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (res.ok) {
         setInternships((prev) => prev.filter((i) => i.id !== confirmDeleteId));
         if (detailInternship?.id === confirmDeleteId) setDetailInternship(null);
@@ -212,7 +216,9 @@ export default function CompanyDashboard() {
   const viewApplicants = async (internshipId: string) => {
     setSelectedInternship(internshipId);
     try {
-      const res = await fetch(`/api/applications/internship/${internshipId}`);
+      const res = await fetchWithRefresh(
+        `/api/applications/internship/${internshipId}`,
+      );
       const data = await res.json();
       setApplicants(data ?? []);
     } catch {

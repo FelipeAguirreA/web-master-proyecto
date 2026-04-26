@@ -17,12 +17,22 @@ vi.mock("next-auth", async () => {
   };
 });
 
-const { mockRateLimit } = vi.hoisted(() => ({
+const { mockRateLimit, mockIssueRefresh, mockCookieSet } = vi.hoisted(() => ({
   mockRateLimit: vi.fn(),
+  mockIssueRefresh: vi.fn(),
+  mockCookieSet: vi.fn(),
 }));
 
 vi.mock("@/server/lib/rate-limit", () => ({
   rateLimit: mockRateLimit,
+}));
+
+vi.mock("@/server/services/refresh-tokens.service", () => ({
+  issueRefreshToken: mockIssueRefresh,
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({ set: mockCookieSet })),
 }));
 
 import bcrypt from "bcryptjs";
@@ -68,6 +78,8 @@ beforeEach(() => {
     remaining: 4,
     resetAt: Date.now() + 60_000,
   });
+  mockIssueRefresh.mockReset();
+  mockCookieSet.mockReset();
 });
 
 describe("CredentialsProvider — authorize", () => {
@@ -660,6 +672,72 @@ describe("session callback", () => {
     });
 
     expect(session).toEqual({});
+  });
+});
+
+describe("events.signIn — emisión inicial de refresh token", () => {
+  function getEventsSignIn() {
+    return authOptions.events?.signIn;
+  }
+
+  it("emite refresh token y setea cookie cuando user.email existe", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u-99" });
+    mockIssueRefresh.mockResolvedValue({
+      id: "rt-1",
+      rawToken: "raw-token-x",
+      expiresAt: new Date(),
+    });
+
+    const event = getEventsSignIn();
+    expect(event).toBeDefined();
+    await event!({ user: { email: "x@y.com" } } as never);
+
+    expect(mockIssueRefresh).toHaveBeenCalledWith("u-99");
+    expect(mockCookieSet).toHaveBeenCalledWith(
+      "practix.refresh-token",
+      "raw-token-x",
+      expect.objectContaining({
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+      }),
+    );
+  });
+
+  it("noop si user no tiene email", async () => {
+    const event = getEventsSignIn();
+    await event!({ user: { email: null } } as never);
+
+    expect(mockIssueRefresh).not.toHaveBeenCalled();
+    expect(mockCookieSet).not.toHaveBeenCalled();
+  });
+
+  it("noop si findUnique no encuentra el user en DB", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    const event = getEventsSignIn();
+    await event!({ user: { email: "ghost@x.com" } } as never);
+
+    expect(mockIssueRefresh).not.toHaveBeenCalled();
+    expect(mockCookieSet).not.toHaveBeenCalled();
+  });
+
+  it("loggea error y NO bloquea sign-in si la emisión falla", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u-1" });
+    mockIssueRefresh.mockRejectedValue(new Error("DB down"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const event = getEventsSignIn();
+    // No debe arrojar.
+    await expect(
+      event!({ user: { email: "x@y.com" } } as never),
+    ).resolves.toBeUndefined();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("[auth/events.signIn]"),
+      expect.any(Error),
+    );
+    errorSpy.mockRestore();
   });
 });
 

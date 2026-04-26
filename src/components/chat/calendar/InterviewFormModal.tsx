@@ -10,6 +10,7 @@ import {
   Pencil,
   ArrowRight,
 } from "lucide-react";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Internship = {
   id: string;
@@ -108,7 +109,9 @@ export default function InterviewFormModal({
     }
 
     setLoadingCandidates(true);
-    fetch(`/api/interviews/available-candidates/${form.internshipId}`)
+    fetchWithRefresh(
+      `/api/interviews/available-candidates/${form.internshipId}`,
+    )
       .then((r) => r.json())
       .then((data) => setCandidates(data ?? []))
       .catch(console.error)

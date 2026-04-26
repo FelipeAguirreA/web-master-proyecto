@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 export type AppNotification = {
   id: string;
@@ -19,7 +20,7 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const fetch_ = useCallback(() => {
-    fetch("/api/notifications")
+    fetchWithRefresh("/api/notifications")
       .then((r) => (r.ok ? r.json() : []))
       .then((data: AppNotification[]) => setNotifications(data ?? []))
       .catch(() => {});
@@ -32,7 +33,7 @@ export function useNotifications() {
   }, [fetch_]);
 
   const markAllRead = useCallback(async () => {
-    await fetch("/api/notifications/read-all", { method: "PATCH" });
+    await fetchWithRefresh("/api/notifications/read-all", { method: "PATCH" });
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
@@ -40,7 +41,9 @@ export function useNotifications() {
     async (id: string) => {
       const prev = notifications;
       setNotifications((curr) => curr.filter((n) => n.id !== id));
-      const res = await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+      const res = await fetchWithRefresh(`/api/notifications/${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         setNotifications(prev);
       }

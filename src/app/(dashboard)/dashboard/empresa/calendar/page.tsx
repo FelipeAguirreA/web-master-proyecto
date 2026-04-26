@@ -5,6 +5,7 @@ import { Plus, Calendar as CalendarIcon, Filter } from "lucide-react";
 import CalendarGrid from "@/components/chat/calendar/CalendarGrid";
 import InterviewListItem from "@/components/chat/calendar/InterviewListItem";
 import InterviewFormModal from "@/components/chat/calendar/InterviewFormModal";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Interview = {
   id: string;
@@ -81,7 +82,7 @@ export default function EmpresaCalendarPage() {
     const params = new URLSearchParams();
     if (filterInternshipId) params.set("internshipId", filterInternshipId);
 
-    const res = await fetch(`/api/interviews?${params}`);
+    const res = await fetchWithRefresh(`/api/interviews?${params}`);
     if (res.ok) {
       const data = await res.json();
       setInterviews(data ?? []);
@@ -90,7 +91,7 @@ export default function EmpresaCalendarPage() {
   }, [filterInternshipId]);
 
   const loadInternships = useCallback(async () => {
-    const res = await fetch("/api/company/internships");
+    const res = await fetchWithRefresh("/api/company/internships");
     if (res.ok) {
       const data = await res.json();
       setInternships(data.internships ?? []);
@@ -162,11 +163,14 @@ export default function EmpresaCalendarPage() {
     };
 
     if (editingInterview) {
-      const res = await fetch(`/api/interviews/${editingInterview.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const res = await fetchWithRefresh(
+        `/api/interviews/${editingInterview.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
       if (!res.ok) {
         const err = await res.json();
         const detail = err.issues
@@ -175,7 +179,7 @@ export default function EmpresaCalendarPage() {
         throw new Error((err.error ?? "Error al actualizar") + detail);
       }
     } else {
-      const res = await fetch("/api/interviews", {
+      const res = await fetchWithRefresh("/api/interviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -195,9 +199,12 @@ export default function EmpresaCalendarPage() {
   };
 
   const handleSendToChat = async (interviewId: string) => {
-    const res = await fetch(`/api/interviews/${interviewId}/send-to-chat`, {
-      method: "POST",
-    });
+    const res = await fetchWithRefresh(
+      `/api/interviews/${interviewId}/send-to-chat`,
+      {
+        method: "POST",
+      },
+    );
     if (!res.ok) {
       const err = await res.json();
       alert(err.error ?? "Error al enviar");
@@ -207,7 +214,7 @@ export default function EmpresaCalendarPage() {
   };
 
   const handleDelete = async (interviewId: string) => {
-    const res = await fetch(`/api/interviews/${interviewId}`, {
+    const res = await fetchWithRefresh(`/api/interviews/${interviewId}`, {
       method: "DELETE",
     });
     if (!res.ok) {

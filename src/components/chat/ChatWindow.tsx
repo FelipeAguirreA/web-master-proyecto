@@ -8,6 +8,7 @@ import InterviewMessageCard from "./InterviewMessageCard";
 import MessageInput from "./MessageInput";
 import { ArrowLeft, Calendar, MessageSquare, Building2 } from "lucide-react";
 import Link from "next/link";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Sender = {
   id: string;
@@ -109,8 +110,10 @@ export default function ChatWindow({
       setLoading(true);
       try {
         const [metaRes, msgsRes] = await Promise.all([
-          fetch(`/api/chat/conversations/${conversationId}`),
-          fetch(`/api/chat/conversations/${conversationId}/messages?limit=50`),
+          fetchWithRefresh(`/api/chat/conversations/${conversationId}`),
+          fetchWithRefresh(
+            `/api/chat/conversations/${conversationId}/messages?limit=50`,
+          ),
         ]);
 
         if (!metaRes.ok || !msgsRes.ok) return;
@@ -148,7 +151,7 @@ export default function ChatWindow({
 
   const refetchMessages = useCallback(async () => {
     if (hasPendingOptimistic.current) return;
-    const res = await fetch(
+    const res = await fetchWithRefresh(
       `/api/chat/conversations/${conversationId}/messages?limit=50`,
     );
     if (res.ok) {
@@ -212,7 +215,7 @@ export default function ChatWindow({
     setMessages((prev) => [...prev, optimisticMsg]);
     setTimeout(() => scrollToBottom(true), 30);
 
-    fetch(`/api/chat/conversations/${conversationId}/messages`, {
+    fetchWithRefresh(`/api/chat/conversations/${conversationId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),

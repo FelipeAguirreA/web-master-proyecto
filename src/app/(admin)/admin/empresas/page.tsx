@@ -14,6 +14,7 @@ import {
   Briefcase,
   CalendarDays,
 } from "lucide-react";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type CompanyStatus = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -84,7 +85,7 @@ export default function AdminEmpresasPage() {
 
   const load = async () => {
     try {
-      const res = await fetch("/api/admin/empresas");
+      const res = await fetchWithRefresh("/api/admin/empresas");
       const data = await res.json();
       setCompanies(data.companies ?? []);
     } catch {
@@ -104,7 +105,7 @@ export default function AdminEmpresasPage() {
   ) => {
     setProcessing(companyId);
     try {
-      const res = await fetch(`/api/admin/empresas/${companyId}`, {
+      const res = await fetchWithRefresh(`/api/admin/empresas/${companyId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),

@@ -7,6 +7,7 @@ import InternshipCard from "@/components/ui/InternshipCard";
 import { ADMIN_EMAIL } from "@/lib/constants";
 import { PublicNav } from "@/components/layout/PublicNav";
 import type { Internship } from "@/types";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type InternshipWithCompany = Internship & {
   company: { companyName: string; logo: string | null };
@@ -90,7 +91,7 @@ export default function PracticasPage() {
         if (modality) params.set("modality", modality);
         params.set("page", String(page));
         params.set("limit", "9");
-        const res = await fetch(`/api/internships?${params}`);
+        const res = await fetchWithRefresh(`/api/internships?${params}`);
         const data = await res.json();
         setInternships(data.internships ?? []);
         setTotalPages(data.totalPages ?? 1);
