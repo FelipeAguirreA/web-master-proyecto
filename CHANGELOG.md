@@ -5,6 +5,37 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.2] - 2026-04-26
+
+### Security
+
+- **CI: `pnpm audit` sube de `--audit-level=high` a `--audit-level=moderate` (Fase 3 paso 3.4 / P1.2)** — cierra el segundo P1 de seguridad de Fase 3 según `context/refactor-plan.md`. Antes el job dejaba pasar vulnerabilidades de severidad `moderate`; ahora cualquier advisory `moderate-or-higher` rompe CI.
+  - Resueltas 9 vulnerabilidades activas detectadas en el audit local previo al cambio: **4 HIGH** (`@xmldom/xmldom <0.8.13` vía `mammoth`: uncontrolled recursion DoS + 3 variantes de XML node injection — `GHSA-2v35-w6hq-6mfw`, `GHSA-f6ww-3ggp-fr8h`, `GHSA-x6wf-f3px-wcqx`, `GHSA-j759-j44w-7fr8`); **1 moderate** `@hono/node-server <1.19.13` (middleware bypass vía repeated slashes — `GHSA-92pp-h63x-v22m`, dev-only vía `prisma>@prisma/dev`); **1 moderate** `hono <4.12.14` (HTML injection en `hono/jsx` SSR — `GHSA-458j-xx4x-4375`, dev-only vía `prisma>@prisma/dev`); **1 moderate** `uuid <14.0.0` (missing buffer bounds check en `v3/v5/v6` cuando `buf` es provisto — `GHSA-w5hq-g745-h8pq`, NO aplicable al call-site de `next-auth@4.24.13` que usa `v4()` sin `buf`, pero subimos versión por higiene); **2 moderate** `postcss <8.5.10` (XSS vía `</style>` en CSS stringify — `GHSA-qx2v-qp2m-jg93`, vía `next` y `@tailwindcss/postcss`).
+
+### Added
+
+- **`pnpm.overrides` en `package.json`** — fuerza versiones parchadas en dependencias transitivas:
+  - `@xmldom/xmldom: ">=0.8.13"` (0.8.12 → 0.9.10) — mammoth aún no bumpeó, override puente.
+  - `@hono/node-server: ">=1.19.13"` (1.19.11 → 2.0.0) — major bump aceptado por ser dev-only de prisma.
+  - `hono: ">=4.12.14"` (4.12.12 → 4.12.15) — patch.
+  - `postcss: ">=8.5.10"` (8.4.31/8.5.9 → 8.5.12) — patch.
+  - `uuid: "^14.0.0"` (8.3.2 → 14.0.0) — major bump validado contra `next-auth@4.24.13` (export `v4` preservado en v14).
+
+### Changed
+
+- **`.github/workflows/ci.yml:75`**: `--audit-level=high` → `--audit-level=moderate`.
+
+### Tests
+
+- Suite total: **873 tests / 46 archivos** verde (antes 869). Sin tocar tests; el override `uuid: ^14` se validó corriendo la suite completa + `tsc --noEmit` después de reinstalar.
+
+### Notes
+
+- `pnpm audit --audit-level=moderate` local: `No known vulnerabilities found`.
+- **Lección sobre `uuid <14`**: el advisory pedía v14 por bounds check en `v3/v5/v6`. `next-auth@4` usa solo `v4()` sin `buf`, así que NO estaba afectado en runtime. Igual se actualizó porque `pnpm audit` no diferencia call-site, y mantener el flag a nivel `moderate` requiere que el report quede limpio. Plan B (ignore-CVE) quedó como fallback documentado, no necesario.
+- **Lección sobre `@hono/node-server@2.0.0`**: salto major dentro de `prisma@7.7.0 > @prisma/dev > @hono/node-server`. `prisma generate` (postinstall) corrió OK, suite verde — riesgo cubierto, pero conviene reverificar al próximo bump de `prisma`.
+- **Pendientes Fase 3 P2** (3 tareas): audit `/api/*` (requireAuth + Zod + no leak de datos ajenos), login attempts a Sentry con breadcrumbs, headers extra (`X-Permitted-Cross-Domain-Policies`, `Cross-Origin-Opener-Policy`).
+
 ## [1.10.1] - 2026-04-26
 
 ### Fixed

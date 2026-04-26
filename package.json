@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -46,6 +46,15 @@
     "*.{json,md,css}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "@xmldom/xmldom": ">=0.8.13",
+      "@hono/node-server": ">=1.19.13",
+      "hono": ">=4.12.14",
+      "postcss": ">=8.5.10",
+      "uuid": "^14.0.0"
+    }
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
