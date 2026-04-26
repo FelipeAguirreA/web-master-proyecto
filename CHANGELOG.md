@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1] - 2026-04-26
+
+### Fixed
+
+- **Migración pendiente de `refresh_tokens` aplicada en Supabase.** El modelo `RefreshToken` se agregó a `prisma/schema.prisma` en el cierre del paso 3.2 (commit `040f1e8`, bump 1.8.0), pero la tabla nunca se creó en la DB de Supabase. El bug se manifestaba como `P2021 / TableDoesNotExist` en cada login (Google OAuth o Credentials) cuando `events.signIn` invocaba `issueRefreshToken`. Por el manejo fail-soft del callback, el login NO se bloqueaba — pero el refresh token rotation no funcionaba y cada login dejaba el error en logs.
+  - Causa raíz: el proyecto nunca usó `prisma migrate` para sincronizar el schema con Supabase. Hasta el commit `5863dee`, además, las migraciones via pooler de pgBouncer estaban rotas. Por convención del repo se aplica la migración via SQL manual + Supabase SQL Editor (mismo workflow que `add_fk_cascades.sql` del 2026-04-26).
+
+### Added
+
+- **`prisma/manual-migrations/2026-04-26_create_refresh_tokens.sql`** — SQL manual reviewable como audit trail. Crea `refresh_tokens` con sus 3 índices (`tokenHash` UNIQUE, `userId`, `expiresAt`) y el FK a `users(id)` con `ON DELETE CASCADE` (declarado en schema con `onDelete: Cascade`). Incluye sección de rollback comentada al final.
+
+### Notes
+
+- Suite verde sin cambios: **869 tests / 46 archivos**. El bug era de operación de DB, no afectaba ni runtime ni tests (los tests usan mock de Prisma vía `src/test/mocks/prisma.ts`, que YA tenía `refreshToken: createModelMock()` desde 1.8.0).
+- Validado contra Supabase: aplicado el SQL en SQL Editor; reiniciado `pnpm dev`; login con Google completó sin `P2021` en logs.
+
 ## [1.10.0] - 2026-04-26
 
 ### Added
