@@ -11,18 +11,18 @@ dimensiones. La similitud de coseno entre ambos vectores produce un score de afi
 
 ## Stack
 
-| Tecnología | Servicio |
-|------------|----------|
-| Next.js 16 + React 19 | Framework full-stack |
-| TypeScript | Lenguaje |
-| Tailwind CSS v4 | Estilos |
-| Prisma 7 + PostgreSQL | Base de datos |
-| Supabase | Hosting DB + Storage |
-| NextAuth.js | Autenticación Google OAuth |
-| HuggingFace Inference API | Embeddings IA |
-| Brevo | Emails transaccionales |
-| Sentry | Monitoreo de errores |
-| Vercel | Deploy |
+| Tecnología                | Servicio                   |
+| ------------------------- | -------------------------- |
+| Next.js 16 + React 19     | Framework full-stack       |
+| TypeScript                | Lenguaje                   |
+| Tailwind CSS v4           | Estilos                    |
+| Prisma 7 + PostgreSQL     | Base de datos              |
+| Supabase                  | Hosting DB + Storage       |
+| NextAuth.js               | Autenticación Google OAuth |
+| HuggingFace Inference API | Embeddings IA              |
+| Brevo                     | Emails transaccionales     |
+| Sentry                    | Monitoreo de errores       |
+| Vercel                    | Deploy                     |
 
 ## Cómo funciona
 
@@ -94,19 +94,20 @@ pnpm dev
 
 ## Variables de entorno
 
-| Variable | Descripción | Dónde obtenerla |
-|----------|-------------|-----------------|
-| `DATABASE_URL` | PostgreSQL connection string | Supabase → Settings → Database → Transaction Pooler (puerto 6543) |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase | Supabase → Settings → API |
-| `SUPABASE_SERVICE_KEY` | Service role key | Supabase → Settings → API |
-| `NEXTAUTH_URL` | URL base de la app | `http://localhost:3000` en dev, URL de Vercel en prod |
-| `NEXTAUTH_SECRET` | Secreto para firmar tokens | `openssl rand -base64 32` |
-| `GOOGLE_CLIENT_ID` | OAuth Client ID | Google Cloud Console → APIs & Services → Credentials |
-| `GOOGLE_CLIENT_SECRET` | OAuth Client Secret | Google Cloud Console → APIs & Services → Credentials |
-| `HUGGINGFACE_API_KEY` | Token de HuggingFace | huggingface.co → Settings → Access Tokens |
-| `BREVO_API_KEY` | API Key de Brevo | Brevo → Settings → SMTP & API → API Keys |
-| `BREVO_SENDER_EMAIL` | Email del remitente | Email verificado en Brevo |
-| `NEXT_PUBLIC_SENTRY_DSN` | DSN de Sentry | sentry.io → Project → Settings → Client Keys |
+| Variable                   | Descripción                                                                                                                                                                    | Dónde obtenerla                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `DATABASE_URL`             | PostgreSQL connection string usado por el cliente Prisma (queries)                                                                                                             | Supabase → Settings → Database → Transaction Pooler (puerto 6543) |
+| `DIRECT_URL`               | Conexión directa para migraciones (`db push`, `migrate`). El pooler de pgBouncer no soporta todas las queries que usa la CLI. Opcional en dev local con Docker (no hay pooler) | Supabase → Settings → Database → Direct connection (puerto 5432)  |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase                                                                                                                                                      | Supabase → Settings → API                                         |
+| `SUPABASE_SERVICE_KEY`     | Service role key                                                                                                                                                               | Supabase → Settings → API                                         |
+| `NEXTAUTH_URL`             | URL base de la app                                                                                                                                                             | `http://localhost:3000` en dev, URL de Vercel en prod             |
+| `NEXTAUTH_SECRET`          | Secreto para firmar tokens                                                                                                                                                     | `openssl rand -base64 32`                                         |
+| `GOOGLE_CLIENT_ID`         | OAuth Client ID                                                                                                                                                                | Google Cloud Console → APIs & Services → Credentials              |
+| `GOOGLE_CLIENT_SECRET`     | OAuth Client Secret                                                                                                                                                            | Google Cloud Console → APIs & Services → Credentials              |
+| `HUGGINGFACE_API_KEY`      | Token de HuggingFace                                                                                                                                                           | huggingface.co → Settings → Access Tokens                         |
+| `BREVO_API_KEY`            | API Key de Brevo                                                                                                                                                               | Brevo → Settings → SMTP & API → API Keys                          |
+| `BREVO_SENDER_EMAIL`       | Email del remitente                                                                                                                                                            | Email verificado en Brevo                                         |
+| `NEXT_PUBLIC_SENTRY_DSN`   | DSN de Sentry                                                                                                                                                                  | sentry.io → Project → Settings → Client Keys                      |
 
 ## Deploy en Vercel
 
@@ -119,22 +120,22 @@ pnpm dev
 
 ## API Endpoints
 
-| Método | Ruta | Descripción | Auth |
-|--------|------|-------------|------|
-| GET | `/api/health` | Estado del servidor y base de datos | No |
-| GET | `/api/users/me` | Perfil del usuario autenticado | Sí |
-| PUT | `/api/users/me` | Actualizar perfil | Sí |
-| GET | `/api/internships` | Listar prácticas (filtros + paginación) | No |
-| POST | `/api/internships` | Crear práctica | COMPANY |
-| GET | `/api/internships/:id` | Detalle de práctica | No |
-| PUT | `/api/internships/:id` | Actualizar práctica | COMPANY |
-| DELETE | `/api/internships/:id` | Desactivar práctica (soft delete) | COMPANY |
-| POST | `/api/applications` | Postularse a una práctica | STUDENT |
-| GET | `/api/applications/my` | Mis postulaciones | STUDENT |
-| GET | `/api/applications/internship/:id` | Postulantes de una práctica | COMPANY |
-| PATCH | `/api/applications/:id/status` | Cambiar estado de postulación | COMPANY |
-| POST | `/api/matching/upload-cv` | Subir CV y generar embedding | STUDENT |
-| GET | `/api/matching/recommendations` | Prácticas recomendadas con score | STUDENT |
+| Método | Ruta                               | Descripción                             | Auth    |
+| ------ | ---------------------------------- | --------------------------------------- | ------- |
+| GET    | `/api/health`                      | Estado del servidor y base de datos     | No      |
+| GET    | `/api/users/me`                    | Perfil del usuario autenticado          | Sí      |
+| PUT    | `/api/users/me`                    | Actualizar perfil                       | Sí      |
+| GET    | `/api/internships`                 | Listar prácticas (filtros + paginación) | No      |
+| POST   | `/api/internships`                 | Crear práctica                          | COMPANY |
+| GET    | `/api/internships/:id`             | Detalle de práctica                     | No      |
+| PUT    | `/api/internships/:id`             | Actualizar práctica                     | COMPANY |
+| DELETE | `/api/internships/:id`             | Desactivar práctica (soft delete)       | COMPANY |
+| POST   | `/api/applications`                | Postularse a una práctica               | STUDENT |
+| GET    | `/api/applications/my`             | Mis postulaciones                       | STUDENT |
+| GET    | `/api/applications/internship/:id` | Postulantes de una práctica             | COMPANY |
+| PATCH  | `/api/applications/:id/status`     | Cambiar estado de postulación           | COMPANY |
+| POST   | `/api/matching/upload-cv`          | Subir CV y generar embedding            | STUDENT |
+| GET    | `/api/matching/recommendations`    | Prácticas recomendadas con score        | STUDENT |
 
 ## Licencia
 

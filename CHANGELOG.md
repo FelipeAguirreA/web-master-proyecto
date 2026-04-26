@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-04-26
+
+### Fixed
+
+- **`prisma.config.ts`: migraciones a Supabase corrían por el pooler en vez de la conexión directa.** Prisma 7.0 eliminó el campo `datasource.directUrl` del config — el `directUrl` que quedó del setup anterior era ignorado silenciosamente (verificado con `node -e "require('prisma/config').defineConfig({...})"`). El `url` que se pasaba era `DATABASE_URL` (pooler de pgBouncer en Supabase, puerto 6543), pero pgBouncer no soporta todas las queries que usa `prisma migrate`. La nueva forma en Prisma 7: el `url` del config TS es el que la CLI usa para migraciones (el cliente runtime sigue leyendo `DATABASE_URL` del env por convención, sin pasar por este config).
+  - Cambio: `url: process.env.DIRECT_URL ?? process.env.DATABASE_URL`. Si hay `DIRECT_URL` (Supabase) la CLI usa la conexión directa (5432); si no (Docker local: solo hay una conexión directa al postgres del container) cae a `DATABASE_URL`.
+  - Removido el `@ts-expect-error` y `directUrl: process.env.DIRECT_URL` (era código muerto en runtime).
+
+### Changed
+
+- `README.md`: documenta la variable `DIRECT_URL` en la tabla de variables de entorno (antes no aparecía aunque ya estaba en `src/lib/env.ts` como opcional). Aclara que `DATABASE_URL` lo usa el cliente Prisma (queries) y `DIRECT_URL` la CLI (migraciones).
+
+### Notes
+
+- Suite verde sin cambios: **850 tests / 45 archivos**. El bug era de configuración CLI, no afectaba ni runtime ni tests.
+- Cómo verificar en producción: correr `pnpm db:push` con `DIRECT_URL` en `.env.local`. La CLI debería conectar al puerto 5432 directo (no al 6543 pooler). Si la migración antes fallaba con "prepared statement does not exist" o similar, este era el motivo.
+
 ## [1.8.0] - 2026-04-26
 
 ### Added
