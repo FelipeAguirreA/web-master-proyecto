@@ -35,7 +35,7 @@ function scoreModule(
   cv: CVData,
   module: ATSModuleInput,
 ): { score: number; passed: boolean; reason?: string } {
-  const params = module.params ?? {};
+  const params = (module.params ?? {}) as unknown;
 
   switch (module.type) {
     case "SKILLS":

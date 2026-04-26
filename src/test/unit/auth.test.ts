@@ -591,6 +591,14 @@ describe("jwt callback", () => {
   });
 });
 
+type SessionUserExt = {
+  id?: string;
+  role?: string;
+  registrationCompleted?: boolean;
+  companyStatus?: string;
+  name?: string | null;
+};
+
 describe("session callback", () => {
   it("mapea id, role y registrationCompleted al session.user", async () => {
     const session = await authOptions.callbacks!.session!({
@@ -605,9 +613,10 @@ describe("session callback", () => {
       trigger: "update",
     });
 
-    expect(session.user!.id).toBe("u-1");
-    expect(session.user!.role).toBe("STUDENT");
-    expect(session.user!.registrationCompleted).toBe(false);
+    const user = session.user as SessionUserExt;
+    expect(user.id).toBe("u-1");
+    expect(user.role).toBe("STUDENT");
+    expect(user.registrationCompleted).toBe(false);
   });
 
   it("usa true como default si registrationCompleted está undefined en token", async () => {
@@ -619,7 +628,7 @@ describe("session callback", () => {
       trigger: "update",
     });
 
-    expect(session.user!.registrationCompleted).toBe(true);
+    expect((session.user as SessionUserExt).registrationCompleted).toBe(true);
   });
 
   it("propaga companyStatus y name de empresa al session.user", async () => {
@@ -636,8 +645,9 @@ describe("session callback", () => {
       trigger: "update",
     });
 
-    expect(session.user!.companyStatus).toBe("APPROVED");
-    expect(session.user!.name).toBe("TechCorp");
+    const user = session.user as SessionUserExt;
+    expect(user.companyStatus).toBe("APPROVED");
+    expect(user.name).toBe("TechCorp");
   });
 
   it("retorna la session intacta cuando no hay user", async () => {

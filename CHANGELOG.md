@@ -5,6 +5,28 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-04-26
+
+### Fixed
+
+- **Errores de TypeScript acumulados en `master` que vitest no detectaba** (transpila sin chequear tipos). `tsc --noEmit` quedó verde tras estos arreglos:
+  - `prisma.config.ts`: Prisma 7 ya no declara `directUrl` en el config type. Marcado con `@ts-expect-error` + comentario apuntando a revisión en Fase 4/6 — confirmar que las migraciones a Supabase siguen tomando `DIRECT_URL` desde env (no se reproduce en runtime el `directUrl` del `defineConfig` con esta versión).
+  - `src/server/lib/ats/scoring-engine.ts`: cast de `module.params` a `unknown` para que las conversiones a `PortfolioParams` (campos no opcionales) no fallen el check de overlap parcial.
+  - `src/app/api/ats/score/[applicationId]/route.ts` y `src/app/api/ats/score/job/[jobId]/route.ts`: `moduleScores` se castea a `Prisma.InputJsonValue` (era `ModuleScoreDetail[]`, sin index signature compatible con `Json`).
+  - `src/app/api/auth/reset-password/route.ts`: `parsed.error.errors` → `parsed.error.issues` (Zod 4 renombró la propiedad).
+  - `src/app/(dashboard)/dashboard/estudiante/page.tsx`: removido `@ts-expect-error` muerto sobre `<Icon />` (ya no había error que esperar).
+  - `src/test/components/ChatWindow.test.tsx`: `onMock` tipado con `(..._args: unknown[])` para que `mock.calls[0]?.[2]` no sea `never`. El handler se castea inline al shape `(payload: { new: { conversationId: string } }) => Promise<void> | void`.
+  - `src/test/components/KanbanColumn.test.tsx`: `buildCandidate` recibe `Record<string, unknown>` (los tests pasan `name` flat que no existe en `CandidateData`); el cast final pasa por `unknown` para deslindar overlap. `dataTransfer` mock con `as unknown as DataTransfer`.
+  - `src/test/unit/auth.test.ts`: alias local `SessionUserExt` para acceder a `id`/`role`/`registrationCompleted`/`companyStatus`/`name` en `session.user` sin chocar con la unión del tipo de NextAuth.
+  - `src/test/unit/cv-parser.test.ts`: anotación `this: unknown` en el patch de `Module.prototype.require`.
+  - `src/test/unit/mail.test.ts`: signature de `lastCallBody` afloja a `{ mock: { calls: unknown[][] } }` (el `vi.spyOn<typeof globalThis, "fetch">` no compilaba con la constraint de keys de globalThis).
+
+### Notes
+
+- Suite verde sin cambios: **802 tests / 41 archivos**.
+- `tsc --noEmit` ahora es bloqueante de verdad — la presencia de `.next/dev/types/validator.ts` corrupto ocultaba estos errores con fallas de parser en archivos generados.
+- Boy Scout previo al cierre de Fase 3 paso 3.2 (refresh tokens). El paso 3.2 introducía nuevo código sobre estos archivos y hubiese mezclado el fix de tipos con la feature.
+
 ## [1.7.0] - 2026-04-25
 
 ### Added

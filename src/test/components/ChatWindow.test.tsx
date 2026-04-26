@@ -9,7 +9,7 @@ const {
   onMock,
 } = vi.hoisted(() => {
   const subscribeMock = vi.fn();
-  const onMock = vi.fn(() => ({ subscribe: subscribeMock }));
+  const onMock = vi.fn((..._args: unknown[]) => ({ subscribe: subscribeMock }));
   const channelMock = vi.fn(() => ({ on: onMock, subscribe: subscribeMock }));
   const removeChannelMock = vi.fn();
   return {
@@ -599,7 +599,11 @@ describe("ChatWindow", () => {
       );
 
       // El handler del INSERT está en el segundo argumento de onMock
-      const handler = onMock.mock.calls[0]?.[2];
+      const handler = onMock.mock.calls[0]?.[2] as
+        | ((payload: {
+            new: { conversationId: string };
+          }) => Promise<void> | void)
+        | undefined;
       expect(typeof handler).toBe("function");
 
       const callsBefore = fetchSpy.mock.calls.length;
@@ -617,7 +621,11 @@ describe("ChatWindow", () => {
         expect(screen.getByText("Juan Pérez")).toBeInTheDocument(),
       );
 
-      const handler = onMock.mock.calls[0]?.[2];
+      const handler = onMock.mock.calls[0]?.[2] as
+        | ((payload: {
+            new: { conversationId: string };
+          }) => Promise<void> | void)
+        | undefined;
       const callsBefore = fetchSpy.mock.calls.length;
       await handler!({ new: { conversationId: "otra-conv" } });
       expect(fetchSpy.mock.calls.length).toBe(callsBefore);

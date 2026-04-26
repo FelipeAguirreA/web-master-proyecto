@@ -40,9 +40,7 @@ beforeEach(() => {
 
 const okResponse = () => new Response("{}", { status: 200 });
 
-const lastCallBody = (
-  fetchSpy: ReturnType<typeof vi.spyOn<typeof globalThis, "fetch">>,
-) =>
+const lastCallBody = (fetchSpy: { mock: { calls: unknown[][] } }) =>
   JSON.parse(
     (fetchSpy.mock.calls[fetchSpy.mock.calls.length - 1][1] as RequestInit)
       .body as string,

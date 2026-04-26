@@ -20,7 +20,7 @@ const mockExtractRawText = vi.fn();
 const originalRequire = Module.prototype.require;
 
 beforeAll(() => {
-  Module.prototype.require = function (id: string) {
+  Module.prototype.require = function (this: unknown, id: string) {
     if (id === "pdf-parse") return mockPdfParse;
     if (id === "mammoth") return { extractRawText: mockExtractRawText };
     // eslint-disable-next-line prefer-rest-params

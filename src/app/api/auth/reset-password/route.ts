@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
-      const firstError = parsed.error.errors[0]?.message ?? "Datos inválidos";
+      const firstError = parsed.error.issues[0]?.message ?? "Datos inválidos";
       return NextResponse.json({ error: firstError }, { status: 400 });
     }
 

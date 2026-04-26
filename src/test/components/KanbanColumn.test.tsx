@@ -18,7 +18,7 @@ vi.mock("@/components/ats/CandidateCard", () => ({
 }));
 
 const buildCandidate = (
-  overrides: Partial<CandidateData> = {},
+  overrides: Record<string, unknown> = {},
 ): CandidateData =>
   ({
     id: "c-1",
@@ -31,7 +31,7 @@ const buildCandidate = (
     filterReason: null,
     appliedAt: "2026-04-25T00:00:00.000Z",
     ...overrides,
-  }) as CandidateData;
+  }) as unknown as CandidateData;
 
 const baseProps = {
   status: "PENDING",
@@ -106,7 +106,7 @@ describe("KanbanColumn", () => {
     const { container } = render(<KanbanColumn {...baseProps} />);
     const column = container.firstChild as HTMLElement;
 
-    const dataTransfer = { dropEffect: "" } as DataTransfer;
+    const dataTransfer = { dropEffect: "" } as unknown as DataTransfer;
     const event = new Event("dragover", { bubbles: true, cancelable: true });
     Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
 

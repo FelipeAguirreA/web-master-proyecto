@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/server/lib/db";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { scoreApplication } from "@/server/lib/ats/scoring-engine";
@@ -70,7 +71,7 @@ export async function POST(
         where: { id: app.id },
         data: {
           atsScore: result.atsScore,
-          moduleScores: result.moduleScores,
+          moduleScores: result.moduleScores as unknown as Prisma.InputJsonValue,
           passedFilters: result.passedFilters,
           filterReason: result.filterReason,
         },

@@ -274,7 +274,6 @@ export default function StudentDashboard() {
                     key={i}
                     className="flex items-center gap-2 text-[13px] text-[#4A4843]"
                   >
-                    {/* @ts-expect-error icon is a component */}
                     <Icon className="w-4 h-4 text-[#FF6A3D]/70 shrink-0" />
                     {label as string}
                   </div>
