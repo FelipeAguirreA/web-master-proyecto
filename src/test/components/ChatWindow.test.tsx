@@ -48,8 +48,20 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("@/components/chat/MessageBubble", () => ({
-  default: ({ content, isMine }: { content: string; isMine: boolean }) => (
-    <div data-testid="message-bubble" data-is-mine={isMine}>
+  default: ({
+    content,
+    isMine,
+    senderName,
+  }: {
+    content: string;
+    isMine: boolean;
+    senderName: string;
+  }) => (
+    <div
+      data-testid="message-bubble"
+      data-is-mine={isMine}
+      data-sender-name={senderName}
+    >
       {content}
     </div>
   ),
@@ -116,9 +128,14 @@ const buildMessage = (
   overrides: Partial<{
     id: string;
     content: string;
-    senderId: string;
+    senderId: string | null;
     type: "TEXT" | "INTERVIEW";
-    sender: { id: string; name: string; image: string | null; role: string };
+    sender: {
+      id: string;
+      name: string;
+      image: string | null;
+      role: string;
+    } | null;
   }> = {},
 ) => ({
   id: "msg-1",
@@ -473,6 +490,30 @@ describe("ChatWindow", () => {
         const bubbles = screen.getAllByTestId("message-bubble");
         expect(bubbles[0].getAttribute("data-is-mine")).toBe("true");
         expect(bubbles[1].getAttribute("data-is-mine")).toBe("false");
+      });
+    });
+
+    it("muestra 'Usuario eliminado' cuando sender es null (user borrado)", async () => {
+      setSession("COMPANY", "comp-1");
+      mockFetch(buildMeta(), {
+        messages: [
+          buildMessage({
+            id: "ghost",
+            senderId: null,
+            sender: null,
+            content: "msg de un user borrado",
+          }),
+        ],
+      });
+
+      render(<ChatWindow conversationId="conv-1" />);
+
+      await waitFor(() => {
+        const bubble = screen.getByTestId("message-bubble");
+        expect(bubble.getAttribute("data-sender-name")).toBe(
+          "Usuario eliminado",
+        );
+        expect(bubble.getAttribute("data-is-mine")).toBe("false");
       });
     });
   });

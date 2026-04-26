@@ -5,6 +5,31 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-04-26
+
+### Added
+
+- **Política `onDelete` explícita en 8 FKs** — auditoría del schema reveló 8 relaciones que defaulteaban a `NO ACTION` de Postgres (= bloqueo silencioso). Borrar un `User` con entrevistas asociadas fallaba por FK violation; admin panel para rechazar empresas y baja GDPR rotos en producción. Ver `docs/specs/db-cascades.spec.md`.
+  - 7 FKs pasan a `Cascade`: `Conversation.company/student → User`, `Interview.{company,student,internship,application,conversation}`.
+  - 1 FK pasa a `SetNull`: `Message.sender → User`. Preserva el historial visible para la contraparte cuando se borra un user. Implica `Message.senderId String?` (breaking en tipos TypeScript — `MessageBubble` ahora muestra "Usuario eliminado" cuando `sender` es null).
+- **Suite de tests de integración con DB real** — primer caso del proyecto. `src/test/integration/db-cascades.test.ts` con los 6 escenarios del spec corriendo contra Postgres en Docker. Config aislado (`vitest.integration.config.ts`) y script `pnpm test:integration` separado del default (no corre en CI ni en `pnpm test` para no requerir DB up).
+- **`prisma/manual-migrations/2026-04-26_add_fk_cascades.sql`** — SQL manual reviewable como audit trail. Aplicable con `psql` o desde el SQL Editor de Supabase. Incluye sección de rollback comentada al final.
+- **`docker-compose.yml`**: puerto del postgres dev cambiado de `5432` a `5433` para evitar conflicto con instalaciones nativas de Postgres en Windows (que ganan el listen sobre Docker).
+
+### Changed
+
+- **`prisma/schema.prisma`**: las 8 FKs declaran su política `onDelete` explícita. `Message.senderId` y `Message.sender` son nullables.
+- **`src/components/chat/ChatWindow.tsx`**: tipos `Message.senderId` y `Message.sender` aceptan null; render con fallback `"Usuario eliminado"` cuando `sender` es null.
+- **`src/components/chat/ConversationList.tsx`**: tipo `lastMessage.senderId` aceptado nullable.
+- **`src/test/components/ChatWindow.test.tsx`**: mock de `MessageBubble` extendido con `data-sender-name`. Nuevo test del caso `sender = null`.
+- **`vitest.config.ts`**: excluye `src/test/integration/**` de la suite default.
+
+### Notes
+
+- Suite total: **851 tests / 45 archivos** (+1 test nuevo del caso sender null). Coverage: 100% functions (310/310), lines 99.74%, branches 94.19%.
+- Tests de integración: 6/6 verde contra Docker en `localhost:5433`.
+- **Pendiente operativo**: aplicar el SQL manual a Supabase. La migración es ALTER (no destructiva): solo redefine política para deletes futuros, los registros existentes no se tocan.
+
 ## [1.8.1] - 2026-04-26
 
 ### Fixed

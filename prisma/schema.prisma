@@ -229,8 +229,8 @@ model Conversation {
   companyId      String
   studentId      String
   applicationId  String       @unique
-  company        User         @relation("CompanyConversations", fields: [companyId], references: [id])
-  student        User         @relation("StudentConversations", fields: [studentId], references: [id])
+  company        User         @relation("CompanyConversations", fields: [companyId], references: [id], onDelete: Cascade)
+  student        User         @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
   application    Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   messages       Message[]
   interviews     Interview[]
@@ -245,9 +245,9 @@ model Conversation {
 model Message {
   id             String       @id @default(cuid())
   conversationId String
-  senderId       String
+  senderId       String?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id])
+  sender         User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
   content        String       @db.Text
   type           MessageType  @default(TEXT)
   metadata       Json?
@@ -266,11 +266,11 @@ model Interview {
   internshipId   String
   applicationId  String          @unique
   conversationId String
-  company        User            @relation("CompanyInterviews", fields: [companyId], references: [id])
-  student        User            @relation("StudentInterviews", fields: [studentId], references: [id])
-  internship     Internship      @relation(fields: [internshipId], references: [id])
-  application    Application     @relation(fields: [applicationId], references: [id])
-  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  company        User            @relation("CompanyInterviews", fields: [companyId], references: [id], onDelete: Cascade)
+  student        User            @relation("StudentInterviews", fields: [studentId], references: [id], onDelete: Cascade)
+  internship     Internship      @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  application    Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   title          String
   scheduledAt    DateTime
   durationMins   Int             @default(60)

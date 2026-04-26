@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -16,6 +16,7 @@
     "test": "vitest",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "docker:dev": "docker compose up"
   },
   "dependencies": {

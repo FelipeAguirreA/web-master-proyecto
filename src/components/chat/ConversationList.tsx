@@ -17,7 +17,7 @@ type Conversation = {
     content: string;
     type: "TEXT" | "INTERVIEW";
     createdAt: string;
-    senderId: string;
+    senderId: string | null;
     isRead: boolean;
   } | null;
   unreadCount: number;

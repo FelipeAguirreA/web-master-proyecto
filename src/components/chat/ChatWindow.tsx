@@ -20,11 +20,11 @@ type Sender = {
 type Message = {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   content: string;
   type: "TEXT" | "INTERVIEW";
   createdAt: string;
-  sender: Sender;
+  sender: Sender | null;
 };
 
 type ConversationMeta = {
@@ -350,8 +350,8 @@ export default function ChatWindow({
               key={msg.id}
               content={msg.content}
               isMine={msg.senderId === userId}
-              senderName={msg.sender.name}
-              senderImage={msg.sender.image}
+              senderName={msg.sender?.name ?? "Usuario eliminado"}
+              senderImage={msg.sender?.image ?? null}
               createdAt={msg.createdAt}
             />
           );
