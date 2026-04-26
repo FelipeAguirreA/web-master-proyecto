@@ -181,15 +181,17 @@ thresholds: {
 
 ## FASE 3 — Seguridad (OWASP Top 10 aplicado)
 
-| Prioridad | Tarea                                                                                         | Valida con                                     |
-| --------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| P0        | JWT a 15min + refresh token rotation                                                          | Test unit de jwt callback + E2E de expiración  |
-| P0        | Rate limit → Upstash/Vercel KV (distribuido)                                                  | Test de integración con 2 instancias simuladas |
-| P1        | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | DevTools console sin errores CSP               |
-| P1        | CI: `pnpm audit --audit-level=moderate`                                                       | Job verde                                      |
-| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | Checklist en PR                                |
-| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | Disparar failed login → ver en Sentry          |
-| P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | Network tab                                    |
+| Prioridad | Tarea                                                                                         | Estado | Valida con                                  |
+| --------- | --------------------------------------------------------------------------------------------- | ------ | ------------------------------------------- |
+| P0        | JWT a 15min + refresh token rotation                                                          | ✅     | Cerrado en commit `040f1e8` (1.8.0)         |
+| P0        | Rate limit → Upstash/Vercel KV (distribuido)                                                  | ✅     | Cerrado en commits `f256259` + `7026f2c`    |
+| P1.1      | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | ✅     | Cerrado en commit de bump 1.10.0 (paso 3.3) |
+| P1.2      | CI: `pnpm audit --audit-level=moderate`                                                       | ⏳     | Job verde                                   |
+| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | ⏳     | Checklist en PR                             |
+| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ⏳     | Disparar failed login → ver en Sentry       |
+| P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | ⏳     | Network tab                                 |
+
+**Cierre P1.1 (paso 3.3)**: CSP movido de `next.config.ts` a `src/proxy.ts` con nonces dinámicos por request. Producción 100% locked (`script-src` solo `'self' 'nonce-X' 'strict-dynamic' sentry.io`). Dev agrega `'unsafe-eval'` solo porque React 19 lo necesita para callstacks de devtools. Sumadas directivas `base-uri`, `form-action`, `object-src`. `style-src` mantiene `'unsafe-inline'` a propósito (Tailwind/Radix/next-font). Spec en `docs/specs/csp.spec.md`. Tests: 22 unit (`csp.test.ts`) + 6 E2E (`csp.spec.ts`). 869/869 tests verde.
 
 ---
 

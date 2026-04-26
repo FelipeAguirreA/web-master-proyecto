@@ -5,6 +5,35 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-04-26
+
+### Added
+
+- **CSP estricto con nonces dinámicos por request (Fase 3, Paso 3.3 / P1.1)** — cierra el primer P1 de seguridad de Fase 3. Sustituye el CSP estático laxo de `next.config.ts` (que tenía `'unsafe-eval' 'unsafe-inline'` en `script-src`) por una política locked con nonce dinámico por request, generado en `src/proxy.ts`. Ver `docs/specs/csp.spec.md`.
+  - **`script-src`** prod: `'self' 'nonce-X' 'strict-dynamic' https://*.sentry.io`. Sin `unsafe-eval`, sin `unsafe-inline`. `'strict-dynamic'` necesario para que los chunks dinámicos de Next que un script con nonce válido carga, hereden el permiso.
+  - **`script-src`** dev: idem + `'unsafe-eval'`. **Asimetría documentada**: React 19 dev mode usa `eval()` para reconstruir callstacks de devtools (`"React requires eval() in development mode"`); en prod NO. La diferencia es controlada por el flag `isDev` que `proxy.ts` deriva de `process.env.NODE_ENV`.
+  - **Directivas nuevas**: `base-uri 'self'` (anti `<base href>` injection), `form-action 'self'` (anti form-exfiltration), `object-src 'none'` (bloquea legacy `<object>/<embed>/<applet>`).
+  - **`style-src`** mantiene `'unsafe-inline'` a propósito: Tailwind v4, next/font y Radix-style libs emiten `<style>` y `style="..."` inline. Sacarlo rompería UI; threat model de CSS injection es bajo. Decisión documentada en el spec.
+- **Helper `src/server/lib/csp.ts`** con `generateNonce()` (UUID v4 → base64) y `buildCspHeader(nonce, isDev)` (puro, testeable).
+
+### Changed
+
+- **`src/proxy.ts`**: genera nonce, inyecta `x-nonce` en el request (Next lo detecta automáticamente y lo aplica a sus scripts internos: `__NEXT_DATA__`, RSC payload streaming, hydration, font/css preloads). Setea `Content-Security-Policy` en el response con el mismo nonce. Helper local `withSecurity(res)` factoriza la lógica de aplicar `x-request-id` + CSP a passthrough y a los 5 redirects de auth.
+- **`next.config.ts`**: removido el `cspHeader` estático y la línea `{ key: "Content-Security-Policy", value: cspHeader }`. Los demás headers (HSTS, X-Frame, X-Content-Type, Referrer-Policy, Permissions-Policy) quedan donde estaban. Comentario explica que CSP ahora vive en `proxy.ts`.
+
+### Tests
+
+- Suite total: **869 tests / 46 archivos** verde (antes 851). Coverage: **functions 100%**, lines 99.74%, branches 94.19% — NFR mantenido.
+- Tests nuevos:
+  - `csp.test.ts` (22 tests): `generateNonce` (no vacío, base64, valores distintos consecutivos); `buildCspHeader` modo prod (default-src, nonce, NO unsafe-eval, NO unsafe-inline en script-src, presencia de strict-dynamic, hosts de Sentry/Supabase/HF/Brevo/Google Fonts, frame-ancestors/base-uri/form-action/object-src, separación con `;`); `buildCspHeader` modo dev (agrega unsafe-eval al script-src; conserva nonce y strict-dynamic; sigue sin unsafe-inline).
+- E2E nuevo `e2e/csp.spec.ts` (6 tests): header CSP presente en `/`, nonce con formato base64, sin `'unsafe-eval'` en producción, dos requests con nonces distintos, sin violaciones CSP en console al cargar `/`, `/login`, `/practicas` y `/dashboard/empresa` (autenticado). NO corrido en CI todavía — validado vía dev server local.
+
+### Notes
+
+- Validación manual sobre dev server: 62/62 `<script>` del HTML inicial llevan `nonce` aplicado por Next.js. Login con Google completó el flow sin warnings de CSP en console.
+- **`promps/PROMP/modulo-12-deploy.md`** queda con CSP viejo a propósito (es material didáctico del módulo, no convención del proyecto). Si en algún momento se sincroniza, se actualiza ahí también.
+- **Pendiente Fase 3 P1**: el otro P1 (`pnpm audit --audit-level=moderate` en CI) no se tocó en este commit.
+
 ## [1.9.0] - 2026-04-26
 
 ### Added

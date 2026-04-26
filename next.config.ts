@@ -1,16 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-const cspHeader = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.sentry.io",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
-  "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api-inference.huggingface.co https://api.brevo.com",
-  "frame-ancestors 'none'",
-].join("; ");
-
+// Content-Security-Policy lives in src/proxy.ts because nonces are per-request.
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["pdf-parse", "mammoth"],
@@ -37,7 +28,6 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
-          { key: "Content-Security-Policy", value: cspHeader },
         ],
       },
     ];
