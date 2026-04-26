@@ -5,6 +5,22 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.3] - 2026-04-26
+
+### Added
+
+- **Headers extra de seguridad (Fase 3 paso 3.5 / P2 — tarea 3 de 3)** — sumados a la lista estática de `next.config.ts`:
+  - **`X-Permitted-Cross-Domain-Policies: none`** — bloquea Adobe Flash/PDF cargando archivos `crossdomain.xml` que permitan acceso cross-origin. Vector legacy pero recomendado por OWASP Secure Headers Project.
+  - **`Cross-Origin-Opener-Policy: same-origin`** — aísla el browsing context: si una página abre `window.open()` a un origen distinto, el handle queda neutralizado (no `window.opener` cross-origin). Mitiga ataques tipo Spectre/side-channel via opener y tabnabbing reverso.
+
+### Notes
+
+- **COOP no rompe Google OAuth** porque NextAuth usa redirect flow (no popup). Validado con la suite E2E `e2e/auth-credentials.spec.ts` (login empresa con credentials) y por inspección del código de NextAuth — no usa `window.opener` ni `postMessage` cross-origin. Si en el futuro se agrega popup login, COOP `same-origin` puede romper la comunicación con la ventana popup; en ese caso evaluar `same-origin-allow-popups`.
+- **No se agregó `Cross-Origin-Embedder-Policy: require-corp`** a propósito: rompería imágenes y recursos cross-origin (avatares de Google `lh3.googleusercontent.com`, archivos de Supabase Storage). El beneficio (`crossOriginIsolated = true`) no es relevante hoy porque PractiX no usa `SharedArrayBuffer` ni APIs que lo requieran.
+- **No se agregó `Cross-Origin-Resource-Policy`** porque el default `same-origin` que aplican algunos browsers a recursos sin header explícito ya es razonable, y forzar `same-site` rompería las imágenes externas de avatar/storage.
+- Validación en producción: `curl -I https://practix.vercel.app/` debe mostrar las dos cabeceras nuevas. Suite 873/873 verde — sin tests nuevos porque la convención del repo ya no testea presencia de headers estáticos (los HSTS/X-Frame/etc. tampoco están testeados unit/E2E).
+- **Pendientes Fase 3 P2** (2 tareas restantes): audit `/api/*` (`requireAuth` + Zod + no leak) y login attempts a Sentry con breadcrumbs.
+
 ## [1.10.2] - 2026-04-26
 
 ### Security
