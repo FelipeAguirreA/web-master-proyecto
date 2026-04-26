@@ -5,6 +5,31 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.4] - 2026-04-26
+
+### Added
+
+- **Telemetría de login attempts a Sentry (Fase 3 paso 3.6 / P2 — tarea 2 de 3)** — cada intento de login fallido al `CredentialsProvider` emite `Sentry.captureMessage("Failed login attempt", { level: "warning" })` con tags `{ auth: "failed_login", reason: <X> }` y extras `{ email_hash, ip }`. Cada intento exitoso deja un `Sentry.addBreadcrumb({ category: "auth.login", level: "info" })` que da contexto sin saturar el inbox de Sentry. Los 4 valores de `reason` cubren los 4 paths de retorno `null` del `authorize`:
+  - **`missing_credentials`** — sin `email` o sin `password` en el payload.
+  - **`rate_limited`** — el rate limit (5 intentos / 5 min por IP+email) cortó el flujo.
+  - **`user_not_found_or_not_company`** — el email no está en `User`, el `role` no es `COMPANY` o el user no tiene `passwordHash`.
+  - **`invalid_password`** — bcrypt no matcheó el hash.
+
+### Security / Privacy
+
+- **Email hasheado, no plaintext.** En lugar de loguear el email del intento, se hashea con `crypto.createHash("sha256")` y se truncan los primeros 8 chars hex. Permite correlacionar intentos del mismo atacante en una ventana sin guardar PII en Sentry. El password NUNCA aparece en el payload (ni siquiera en los breadcrumbs). El IP sí va en plaintext porque ya es necesario para correlación de ataques distribuidos y aparece en los logs de Vercel/Sentry de todos modos.
+- El hash es **case-insensitive** (`email.toLowerCase()` antes de hashear) — `FOO@BAR.COM` y `foo@bar.com` colapsan al mismo hash, igual que el rate limit.
+
+### Tests
+
+- Suite total: **882 tests / 46 archivos** verde (antes 873). +9 tests en `src/test/unit/auth.test.ts` cubriendo: cada `reason` con su payload, success path → solo breadcrumb, hash case-insensitive, **payload no contiene plaintext email ni password** (verificado con `JSON.stringify(call).not.toContain(...)`).
+- Mock de `@sentry/nextjs` agregado al test file (`captureMessage` y `addBreadcrumb` como `vi.fn()` hoisted).
+
+### Notes
+
+- **Cobertura del callback `signIn` (Google OAuth)**: en este commit NO se sumó telemetría al callback `signIn` cuando el create de DB falla y retorna `false` (ya capturado por el global error handler de Sentry vía `instrumentation.ts`). Si en el futuro se quiere distinguir "fallo de DB en create de student" de un error genérico, sumar `Sentry.captureException` en ese path.
+- **Pendientes Fase 3 P2** (1 tarea restante): audit `/api/*` (`requireAuth` + Zod + no leak de datos ajenos).
+
 ## [1.10.3] - 2026-04-26
 
 ### Added

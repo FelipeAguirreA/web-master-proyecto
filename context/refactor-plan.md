@@ -188,7 +188,7 @@ thresholds: {
 | P1.1      | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | ✅     | Cerrado en commit de bump 1.10.0 (paso 3.3) |
 | P1.2      | CI: `pnpm audit --audit-level=moderate`                                                       | ✅     | Cerrado en commit de bump 1.10.2 (paso 3.4) |
 | P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | ⏳     | Checklist en PR                             |
-| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ⏳     | Disparar failed login → ver en Sentry       |
+| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ✅     | Cerrado en commit de bump 1.10.4 (paso 3.6) |
 | P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | ✅     | Cerrado en commit de bump 1.10.3 (paso 3.5) |
 
 **Cierre P1.1 (paso 3.3)**: CSP movido de `next.config.ts` a `src/proxy.ts` con nonces dinámicos por request. Producción 100% locked (`script-src` solo `'self' 'nonce-X' 'strict-dynamic' sentry.io`). Dev agrega `'unsafe-eval'` solo porque React 19 lo necesita para callstacks de devtools. Sumadas directivas `base-uri`, `form-action`, `object-src`. `style-src` mantiene `'unsafe-inline'` a propósito (Tailwind/Radix/next-font). Spec en `docs/specs/csp.spec.md`. Tests: 22 unit (`csp.test.ts`) + 6 E2E (`csp.spec.ts`). 869/869 tests verde.
@@ -196,6 +196,8 @@ thresholds: {
 **Cierre P1.2 (paso 3.4)**: CI sube a `--audit-level=moderate`. Resueltas 9 vulns activas (4 HIGH `@xmldom/xmldom`, 1 mod `@hono/node-server`, 1 mod `hono`, 1 mod `uuid`, 2 mod `postcss`) vía `pnpm.overrides`. `uuid: ^14` se validó contra `next-auth@4` (873/873 verde, `tsc --noEmit` clean). `pnpm audit --audit-level=moderate` local: `No known vulnerabilities found`.
 
 **Cierre P2 — headers extra (paso 3.5)**: sumados `X-Permitted-Cross-Domain-Policies: none` y `Cross-Origin-Opener-Policy: same-origin` a `next.config.ts`. COOP no rompe Google OAuth porque NextAuth usa redirect flow. Decisión documentada de NO sumar `COEP: require-corp` ni `CORP: same-site` (romperían imágenes externas de Google/Supabase sin beneficio actual).
+
+**Cierre P2 — login attempts a Sentry (paso 3.6)**: `Sentry.captureMessage` (level warning) en cada path de fallo del `authorize` con `reason ∈ {missing_credentials, rate_limited, user_not_found_or_not_company, invalid_password}`. Success → `addBreadcrumb` (no satura). Privacy: email hasheado con `sha256` truncado a 8 chars; password nunca aparece en payload. +9 tests en `auth.test.ts`. Suite 882/882 verde.
 
 ---
 

@@ -3,6 +3,8 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import * as Sentry from "@sentry/nextjs";
+import { createHash } from "crypto";
 import { prisma } from "@/server/lib/db";
 import { rateLimit } from "@/server/lib/rate-limit";
 import { issueRefreshToken } from "@/server/services/refresh-tokens.service";
@@ -15,6 +17,37 @@ export { ADMIN_EMAIL } from "@/lib/constants";
 
 const LOGIN_RATE_LIMIT = 5;
 const LOGIN_RATE_WINDOW_MS = 5 * 60 * 1000;
+
+type FailedLoginReason =
+  | "missing_credentials"
+  | "rate_limited"
+  | "user_not_found_or_not_company"
+  | "invalid_password";
+
+// sha256 truncado a 8 chars: identificador estable para correlacionar intentos
+// en Sentry sin guardar el email en plaintext (PII). Colisiones en 8 hex chars
+// son ~4B-1, suficiente para distinguir attackers en una ventana corta.
+function hashEmail(email: string): string {
+  return createHash("sha256")
+    .update(email.toLowerCase())
+    .digest("hex")
+    .slice(0, 8);
+}
+
+function reportFailedLogin(
+  reason: FailedLoginReason,
+  email: string | undefined,
+  ip: string,
+): void {
+  Sentry.captureMessage("Failed login attempt", {
+    level: "warning",
+    tags: { auth: "failed_login", reason },
+    extra: {
+      email_hash: email ? hashEmail(email) : undefined,
+      ip,
+    },
+  });
+}
 
 // NextAuth pasa headers como objeto plain o Headers según versión/adapter.
 function extractClientIp(
@@ -49,14 +82,18 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        if (!credentials?.email || !credentials?.password) return null;
+        const ip = extractClientIp(req);
+
+        if (!credentials?.email || !credentials?.password) {
+          reportFailedLogin("missing_credentials", credentials?.email, ip);
+          return null;
+        }
 
         // Rate limit por IP+email — combo limita ataques distribuidos por user
         // sin que un atacante de una IP afecte logins legítimos de otros users.
         // Si excede, retornamos null (= "credenciales inválidas" desde
         // perspectiva NextAuth). El usuario legítimo verá el mismo mensaje
         // que con password incorrecto, pero el atacante no puede distinguir.
-        const ip = extractClientIp(req);
         const rl = await rateLimit(
           `login:${ip}:${credentials.email.toLowerCase()}`,
           LOGIN_RATE_LIMIT,
@@ -66,6 +103,7 @@ export const authOptions: NextAuthOptions = {
           console.warn(
             `[auth] login rate limit hit — ip=${ip} email=${credentials.email.toLowerCase()}`,
           );
+          reportFailedLogin("rate_limited", credentials.email, ip);
           return null;
         }
 
@@ -74,6 +112,11 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user || user.role !== "COMPANY" || !user.passwordHash) {
+          reportFailedLogin(
+            "user_not_found_or_not_company",
+            credentials.email,
+            ip,
+          );
           return null;
         }
 
@@ -81,7 +124,19 @@ export const authOptions: NextAuthOptions = {
           credentials.password,
           user.passwordHash,
         );
-        if (!valid) return null;
+        if (!valid) {
+          reportFailedLogin("invalid_password", credentials.email, ip);
+          return null;
+        }
+
+        // Login OK: solo breadcrumb (no genera evento, da contexto si hay
+        // error posterior en la misma request). Mantiene Sentry sin saturar.
+        Sentry.addBreadcrumb({
+          category: "auth.login",
+          level: "info",
+          message: "Successful credentials login",
+          data: { email_hash: hashEmail(user.email), ip },
+        });
 
         return {
           id: user.id,

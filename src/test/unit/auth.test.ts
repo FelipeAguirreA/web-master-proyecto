@@ -17,10 +17,18 @@ vi.mock("next-auth", async () => {
   };
 });
 
-const { mockRateLimit, mockIssueRefresh, mockCookieSet } = vi.hoisted(() => ({
+const {
+  mockRateLimit,
+  mockIssueRefresh,
+  mockCookieSet,
+  mockSentryCaptureMessage,
+  mockSentryAddBreadcrumb,
+} = vi.hoisted(() => ({
   mockRateLimit: vi.fn(),
   mockIssueRefresh: vi.fn(),
   mockCookieSet: vi.fn(),
+  mockSentryCaptureMessage: vi.fn(),
+  mockSentryAddBreadcrumb: vi.fn(),
 }));
 
 vi.mock("@/server/lib/rate-limit", () => ({
@@ -35,9 +43,22 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ set: mockCookieSet })),
 }));
 
+vi.mock("@sentry/nextjs", () => ({
+  captureMessage: mockSentryCaptureMessage,
+  addBreadcrumb: mockSentryAddBreadcrumb,
+}));
+
 import bcrypt from "bcryptjs";
+import { createHash } from "crypto";
 import { getServerSession } from "next-auth";
 import { authOptions, getAuthSession } from "@/lib/auth";
+
+function expectedHash(email: string): string {
+  return createHash("sha256")
+    .update(email.toLowerCase())
+    .digest("hex")
+    .slice(0, 8);
+}
 
 type AuthorizeReq = { headers?: Record<string, string> | Headers };
 type AuthorizeFn = (
@@ -80,6 +101,8 @@ beforeEach(() => {
   });
   mockIssueRefresh.mockReset();
   mockCookieSet.mockReset();
+  mockSentryCaptureMessage.mockReset();
+  mockSentryAddBreadcrumb.mockReset();
 });
 
 describe("CredentialsProvider — authorize", () => {
@@ -382,6 +405,180 @@ describe("CredentialsProvider — rate limit en login", () => {
       image: null,
     });
     expect(mockRateLimit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CredentialsProvider — Sentry telemetría de login attempts", () => {
+  it("failed login con missing_credentials cuando no hay credentials", async () => {
+    const authorize = getCredentialsAuthorize();
+    await authorize!(undefined);
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        level: "warning",
+        tags: expect.objectContaining({
+          auth: "failed_login",
+          reason: "missing_credentials",
+        }),
+        extra: expect.objectContaining({ email_hash: undefined }),
+      }),
+    );
+  });
+
+  it("missing_credentials con email pero sin password incluye email_hash", async () => {
+    const authorize = getCredentialsAuthorize();
+    await authorize!({ email: "user@x.com", password: "" });
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        tags: expect.objectContaining({ reason: "missing_credentials" }),
+        extra: expect.objectContaining({
+          email_hash: expectedHash("user@x.com"),
+        }),
+      }),
+    );
+  });
+
+  it("rate_limited captura con email_hash + ip cuando excede el límite", async () => {
+    mockRateLimit.mockResolvedValueOnce({
+      success: false,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "victim@x.com", password: "x" },
+      { headers: new Headers({ "x-forwarded-for": "1.2.3.4" }) },
+    );
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        level: "warning",
+        tags: expect.objectContaining({
+          auth: "failed_login",
+          reason: "rate_limited",
+        }),
+        extra: { email_hash: expectedHash("victim@x.com"), ip: "1.2.3.4" },
+      }),
+    );
+  });
+
+  it("user_not_found_or_not_company cuando el user no existe", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "ghost@x.com", password: "x" });
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          reason: "user_not_found_or_not_company",
+        }),
+        extra: expect.objectContaining({
+          email_hash: expectedHash("ghost@x.com"),
+        }),
+      }),
+    );
+  });
+
+  it("user_not_found_or_not_company cuando role no es COMPANY", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "u-1",
+      role: "STUDENT",
+      passwordHash: "hash",
+      email: "student@x.com",
+      name: null,
+      image: null,
+    });
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "student@x.com", password: "x" });
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          reason: "user_not_found_or_not_company",
+        }),
+      }),
+    );
+  });
+
+  it("invalid_password cuando bcrypt no matchea", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "u-1",
+      role: "COMPANY",
+      passwordHash: "hash",
+      email: "ok@x.com",
+      name: null,
+      image: null,
+    });
+    vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "ok@x.com", password: "wrong" });
+
+    expect(mockSentryCaptureMessage).toHaveBeenCalledWith(
+      "Failed login attempt",
+      expect.objectContaining({
+        tags: expect.objectContaining({ reason: "invalid_password" }),
+      }),
+    );
+  });
+
+  it("login OK NO llama captureMessage y deja breadcrumb info", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: "u-1",
+      role: "COMPANY",
+      passwordHash: "hash",
+      email: "ok@x.com",
+      name: "OK",
+      image: null,
+    });
+    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!(
+      { email: "ok@x.com", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "5.5.5.5" }) },
+    );
+
+    expect(mockSentryCaptureMessage).not.toHaveBeenCalled();
+    expect(mockSentryAddBreadcrumb).toHaveBeenCalledWith({
+      category: "auth.login",
+      level: "info",
+      message: "Successful credentials login",
+      data: { email_hash: expectedHash("ok@x.com"), ip: "5.5.5.5" },
+    });
+  });
+
+  it("email_hash es case-insensitive (lowercase antes de hashear)", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "FOO@BAR.COM", password: "x" });
+
+    const call = mockSentryCaptureMessage.mock.calls[0];
+    const extra = (call?.[1] as { extra?: { email_hash?: string } })?.extra;
+    expect(extra?.email_hash).toBe(expectedHash("foo@bar.com"));
+  });
+
+  it("captureMessage NO incluye plaintext email ni password en extras", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    const authorize = getCredentialsAuthorize();
+
+    await authorize!({ email: "leak@x.com", password: "s3cret" });
+
+    const call = mockSentryCaptureMessage.mock.calls[0];
+    const serialized = JSON.stringify(call);
+    expect(serialized).not.toContain("leak@x.com");
+    expect(serialized).not.toContain("s3cret");
   });
 });
 
