@@ -187,7 +187,7 @@ thresholds: {
 | P0        | Rate limit → Upstash/Vercel KV (distribuido)                                                  | ✅     | Cerrado en commits `f256259` + `7026f2c`    |
 | P1.1      | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | ✅     | Cerrado en commit de bump 1.10.0 (paso 3.3) |
 | P1.2      | CI: `pnpm audit --audit-level=moderate`                                                       | ✅     | Cerrado en commit de bump 1.10.2 (paso 3.4) |
-| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | ⏳     | Checklist en PR                             |
+| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | 🟡     | Paso 3.7: doc auditable + fixes por commit  |
 | P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ✅     | Cerrado en commit de bump 1.10.4 (paso 3.6) |
 | P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | ✅     | Cerrado en commit de bump 1.10.3 (paso 3.5) |
 
@@ -198,6 +198,18 @@ thresholds: {
 **Cierre P2 — headers extra (paso 3.5)**: sumados `X-Permitted-Cross-Domain-Policies: none` y `Cross-Origin-Opener-Policy: same-origin` a `next.config.ts`. COOP no rompe Google OAuth porque NextAuth usa redirect flow. Decisión documentada de NO sumar `COEP: require-corp` ni `CORP: same-site` (romperían imágenes externas de Google/Supabase sin beneficio actual).
 
 **Cierre P2 — login attempts a Sentry (paso 3.6)**: `Sentry.captureMessage` (level warning) en cada path de fallo del `authorize` con `reason ∈ {missing_credentials, rate_limited, user_not_found_or_not_company, invalid_password}`. Success → `addBreadcrumb` (no satura). Privacy: email hasheado con `sha256` truncado a 8 chars; password nunca aparece en payload. +9 tests en `auth.test.ts`. Suite 882/882 verde.
+
+**Paso 3.7 — Audit `/api/*` (P2 último ítem, en curso)**: el audit es un work-stream propio dado el scope (~41 archivos `route.ts`, ~60 handlers entre GET/POST/PUT/PATCH/DELETE). Approach:
+
+1. **Inventario**: doc auditable en `docs/security-audit-api.md` con tabla por área (`auth`, `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`). Por cada handler: método, path, autorización aplicada (`requireAuth(role?)` o público intencional), validación de input (schema Zod o N/A si es GET sin body), revisión de output (no leak de datos ajenos a la sesión). Estado: ✅ ok / ⚠️ observación / 🛑 fix requerido.
+2. **Findings**: cualquier 🛑 abre commit propio (`fix(security): ...`) con tests. Cualquier ⚠️ se evalúa caso a caso (puede convertirse en 🛑 o quedar documentado como decisión consciente).
+3. **Cierre**: cuando todos los handlers estén ✅ o documentados, P2 cierra y se marca paso 3.7 ✅ + Fase 3 ✅.
+
+Estado al 2026-04-27:
+
+- Doc auditable creado en `docs/security-audit-api.md` (este commit).
+- Área `auth` ✅ cerrada: 6 handlers revisados. Finding `#A1` (enumeration por timing en `auth/empresa/register`) queda como ⚠️ aceptado — el rate limit `5/h por IP` mitiga el ataque a un costo razonable. Finding `#A2` (reuse de refresh token solo iba a `console.warn`) ✅ cerrado en bump **1.10.5**: ahora emite `Sentry.captureMessage` level `error` con tags `{ auth: "refresh_reuse" }`. +9 tests, suite 891/891 verde.
+- Áreas pendientes (11): `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
 
 ---
 
