@@ -211,7 +211,8 @@ Estado al 2026-04-27:
 - Área `auth` ✅ cerrada: 6 handlers revisados. Finding `#A1` (enumeration por timing en `auth/empresa/register`) queda como ⚠️ aceptado — el rate limit `5/h por IP` mitiga el ataque a un costo razonable. Finding `#A2` (reuse de refresh token solo iba a `console.warn`) ✅ cerrado en bump **1.10.5**: ahora emite `Sentry.captureMessage` level `error` con tags `{ auth: "refresh_reuse" }`. +9 tests, suite 891/891 verde.
 - Área `admin` ✅ cerrada: 2 handlers revisados. 3 findings ⚠️ cerrados en bump **1.10.6** (`#B1` Zod body, `#B2` P2025 → 404, `#B3` fallo de mail a Sentry). +12 tests, suite 903/903 verde.
 - Área `users` ✅ cerrada: originalmente 5 handlers. Finding `#C1` (🛑) en bump **1.10.7**: `PATCH /api/users/role` eliminado por dead code + superficie de role-escalation marginal. Cero callers en frontend (única referencia: `promps/PROMP/modulo-10-company.md`, también limpiado). Los 4 handlers restantes (`me`, `registro`, `profile/student`, `profile/company`) ✅ con `requireAuth(role)` + Zod + uso de `auth.user.id` para evitar leak.
-- Áreas pendientes (9): `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+- Área `applications` ✅ cerrada: 5 handlers. **2 IDORs (OWASP #1 Broken Access Control) detectados y cerrados en bump 1.10.8**: `#D1` `PATCH /api/applications/[id]` permitía a cualquier COMPANY mutar applications de prácticas ajenas; `#D2` `POST /api/applications/[id]/notify` permitía spam/phishing disparando emails a students ajenos. Fix con helper privado `findOwnedApplication(applicationId, companyUserId)` que filtra por `internship.companyId`. Más: `#D3` body sin Zod en notify (patrón #B1) y `#D4` mail a Sentry (patrón #B3). +7 tests netos, suite 909/909 verde.
+- Áreas pendientes (8): `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
 
 ---
 

@@ -1,9 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prismaMock } from "../mocks/prisma";
 
+const { mockSentryCaptureException } = vi.hoisted(() => ({
+  mockSentryCaptureException: vi.fn(),
+}));
+
 vi.mock("@/server/lib/mail", () => ({
   sendNewApplicationEmail: vi.fn().mockResolvedValue(undefined),
   sendStatusUpdateEmail: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: mockSentryCaptureException,
 }));
 
 import {
@@ -14,13 +22,25 @@ import {
   notifyRejectedApplication,
   notifyAcceptedApplication,
 } from "@/server/services/applications.service";
-import { sendStatusUpdateEmail } from "@/server/lib/mail";
+import {
+  sendNewApplicationEmail,
+  sendStatusUpdateEmail,
+} from "@/server/lib/mail";
 
 beforeEach(() => {
   Object.values(prismaMock).forEach((model) =>
     Object.values(model).forEach((fn) =>
       (fn as ReturnType<typeof vi.fn>).mockReset(),
     ),
+  );
+  mockSentryCaptureException.mockReset();
+  (sendNewApplicationEmail as ReturnType<typeof vi.fn>).mockReset();
+  (sendNewApplicationEmail as ReturnType<typeof vi.fn>).mockResolvedValue(
+    undefined,
+  );
+  (sendStatusUpdateEmail as ReturnType<typeof vi.fn>).mockReset();
+  (sendStatusUpdateEmail as ReturnType<typeof vi.fn>).mockResolvedValue(
+    undefined,
   );
 });
 
@@ -48,6 +68,12 @@ const mockApplication = {
   internship: { title: "Practicante Frontend" },
   student: { email: "estudiante@example.com", name: "Juan Pérez" },
 };
+
+// Helper: simula ownership OK — companyProfile existe + application del owner.
+function mockOwnershipOK(application = mockApplication) {
+  prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1" });
+  prismaMock.application.findFirst.mockResolvedValue(application);
+}
 
 describe("applyToInternship", () => {
   it("lanza error si la práctica no existe", async () => {
@@ -98,6 +124,39 @@ describe("applyToInternship", () => {
         }),
       }),
     );
+  });
+});
+
+describe("applyToInternship — mail failure → Sentry (#D4)", () => {
+  it("si sendNewApplicationEmail falla, va a Sentry con tag mail=new_application", async () => {
+    prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue({ embedding: [] });
+    prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
+    prismaMock.application.create.mockResolvedValue(mockApplication);
+    const mailErr = new Error("brevo down");
+    (sendNewApplicationEmail as ReturnType<typeof vi.fn>).mockRejectedValue(
+      mailErr,
+    );
+
+    await applyToInternship("user-1", "int-1");
+    await new Promise((r) => setImmediate(r));
+
+    expect(mockSentryCaptureException).toHaveBeenCalledWith(mailErr, {
+      tags: { mail: "new_application" },
+      extra: { internshipId: "int-1", studentUserId: "user-1" },
+    });
+  });
+
+  it("si el mail OK, Sentry NO se llama", async () => {
+    prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue({ embedding: [] });
+    prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
+    prismaMock.application.create.mockResolvedValue(mockApplication);
+
+    await applyToInternship("user-1", "int-1");
+    await new Promise((r) => setImmediate(r));
+
+    expect(mockSentryCaptureException).not.toHaveBeenCalled();
   });
 });
 
@@ -166,23 +225,57 @@ describe("getMyApplications", () => {
   });
 });
 
-describe("updateApplicationStatus", () => {
-  it("lanza error si la postulación no existe", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(null);
+describe("updateApplicationStatus — ownership (#D1)", () => {
+  it("lanza 'Not found or not authorized' si la company del session user no existe", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue(null);
 
     await expect(
-      updateApplicationStatus("nonexistent", "REVIEWED"),
-    ).rejects.toThrow("Application not found");
+      updateApplicationStatus("app-1", "REVIEWED", "fake-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(prismaMock.application.update).not.toHaveBeenCalled();
   });
 
-  it("actualiza el estado a REVIEWED y crea notificación", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(mockApplication);
+  it("lanza 'Not found or not authorized' si la application no pertenece al company owner", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1" });
+    // findFirst retorna null cuando el WHERE { id, internship: { companyId } } no matchea
+    prismaMock.application.findFirst.mockResolvedValue(null);
+
+    await expect(
+      updateApplicationStatus("app-foreign", "REJECTED", "company-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(prismaMock.application.update).not.toHaveBeenCalled();
+  });
+
+  it("filtra el findFirst por id + internship.companyId del owner", async () => {
+    mockOwnershipOK();
     prismaMock.application.update.mockResolvedValue({
       ...mockApplication,
       status: "REVIEWED",
     });
 
-    const result = await updateApplicationStatus("app-1", "REVIEWED");
+    await updateApplicationStatus("app-1", "REVIEWED", "company-user");
+
+    expect(prismaMock.application.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "app-1", internship: { companyId: "cp-1" } },
+      }),
+    );
+  });
+});
+
+describe("updateApplicationStatus — happy paths", () => {
+  it("actualiza el estado a REVIEWED y crea notificación", async () => {
+    mockOwnershipOK();
+    prismaMock.application.update.mockResolvedValue({
+      ...mockApplication,
+      status: "REVIEWED",
+    });
+
+    const result = await updateApplicationStatus(
+      "app-1",
+      "REVIEWED",
+      "company-user",
+    );
 
     expect(result.status).toBe("REVIEWED");
     expect(prismaMock.notification.create).toHaveBeenCalledWith(
@@ -196,13 +289,13 @@ describe("updateApplicationStatus", () => {
   });
 
   it("setea pipelineStatus INTERVIEW al pasar a ACCEPTED", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(mockApplication);
+    mockOwnershipOK();
     prismaMock.application.update.mockResolvedValue({
       ...mockApplication,
       status: "ACCEPTED",
     });
 
-    await updateApplicationStatus("app-1", "ACCEPTED");
+    await updateApplicationStatus("app-1", "ACCEPTED", "company-user");
 
     expect(prismaMock.application.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -220,13 +313,13 @@ describe("updateApplicationStatus", () => {
   });
 
   it("setea pipelineStatus REJECTED al pasar a REJECTED", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(mockApplication);
+    mockOwnershipOK();
     prismaMock.application.update.mockResolvedValue({
       ...mockApplication,
       status: "REJECTED",
     });
 
-    await updateApplicationStatus("app-1", "REJECTED");
+    await updateApplicationStatus("app-1", "REJECTED", "company-user");
 
     expect(prismaMock.application.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -244,45 +337,56 @@ describe("updateApplicationStatus", () => {
   });
 
   it("no crea notificación si el status no está mapeado (PENDING)", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(mockApplication);
+    mockOwnershipOK();
     prismaMock.application.update.mockResolvedValue({
       ...mockApplication,
       status: "PENDING",
     });
 
-    await updateApplicationStatus("app-1", "PENDING");
+    await updateApplicationStatus("app-1", "PENDING", "company-user");
 
     expect(prismaMock.notification.create).not.toHaveBeenCalled();
   });
 });
 
-describe("notifyRejectedApplication", () => {
-  it("lanza error si la postulación no existe", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(null);
+describe("notifyRejectedApplication — ownership (#D2)", () => {
+  it("lanza 'Not found or not authorized' si la company no existe", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue(null);
 
-    await expect(notifyRejectedApplication("missing")).rejects.toThrow(
-      "Application not found",
-    );
+    await expect(
+      notifyRejectedApplication("app-1", "fake-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(sendStatusUpdateEmail).not.toHaveBeenCalled();
   });
 
-  it("lanza error si la postulación no está rechazada", async () => {
-    prismaMock.application.findUnique.mockResolvedValue({
+  it("lanza 'Not found or not authorized' si la app es de otra company", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1" });
+    prismaMock.application.findFirst.mockResolvedValue(null);
+
+    await expect(
+      notifyRejectedApplication("app-foreign", "company-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(sendStatusUpdateEmail).not.toHaveBeenCalled();
+  });
+
+  it("lanza error si la postulación no está rechazada (con ownership OK)", async () => {
+    mockOwnershipOK({
       ...mockApplication,
       status: "PENDING",
     });
 
-    await expect(notifyRejectedApplication("app-1")).rejects.toThrow(
-      "La postulación no está rechazada",
-    );
+    await expect(
+      notifyRejectedApplication("app-1", "company-user"),
+    ).rejects.toThrow("La postulación no está rechazada");
   });
 
-  it("envía email de rechazo cuando la postulación está REJECTED", async () => {
-    prismaMock.application.findUnique.mockResolvedValue({
+  it("envía email de rechazo cuando ownership OK + status REJECTED", async () => {
+    mockOwnershipOK({
       ...mockApplication,
       status: "REJECTED",
     });
 
-    await notifyRejectedApplication("app-1");
+    await notifyRejectedApplication("app-1", "company-user");
 
     expect(sendStatusUpdateEmail).toHaveBeenCalledWith(
       "estudiante@example.com",
@@ -293,33 +397,44 @@ describe("notifyRejectedApplication", () => {
   });
 });
 
-describe("notifyAcceptedApplication", () => {
-  it("lanza error si la postulación no existe", async () => {
-    prismaMock.application.findUnique.mockResolvedValue(null);
+describe("notifyAcceptedApplication — ownership (#D2)", () => {
+  it("lanza 'Not found or not authorized' si la company no existe", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue(null);
 
-    await expect(notifyAcceptedApplication("missing")).rejects.toThrow(
-      "Application not found",
-    );
+    await expect(
+      notifyAcceptedApplication("app-1", "fake-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(sendStatusUpdateEmail).not.toHaveBeenCalled();
   });
 
-  it("lanza error si la postulación no está aceptada", async () => {
-    prismaMock.application.findUnique.mockResolvedValue({
+  it("lanza 'Not found or not authorized' si la app es de otra company", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({ id: "cp-1" });
+    prismaMock.application.findFirst.mockResolvedValue(null);
+
+    await expect(
+      notifyAcceptedApplication("app-foreign", "company-user"),
+    ).rejects.toThrow("Not found or not authorized");
+    expect(sendStatusUpdateEmail).not.toHaveBeenCalled();
+  });
+
+  it("lanza error si la postulación no está aceptada (con ownership OK)", async () => {
+    mockOwnershipOK({
       ...mockApplication,
       status: "PENDING",
     });
 
-    await expect(notifyAcceptedApplication("app-1")).rejects.toThrow(
-      "La postulación no está aceptada",
-    );
+    await expect(
+      notifyAcceptedApplication("app-1", "company-user"),
+    ).rejects.toThrow("La postulación no está aceptada");
   });
 
-  it("envía email de aceptación cuando la postulación está ACCEPTED", async () => {
-    prismaMock.application.findUnique.mockResolvedValue({
+  it("envía email de aceptación cuando ownership OK + status ACCEPTED", async () => {
+    mockOwnershipOK({
       ...mockApplication,
       status: "ACCEPTED",
     });
 
-    await notifyAcceptedApplication("app-1");
+    await notifyAcceptedApplication("app-1", "company-user");
 
     expect(sendStatusUpdateEmail).toHaveBeenCalledWith(
       "estudiante@example.com",

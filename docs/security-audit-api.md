@@ -28,7 +28,7 @@
 | `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado) |
 | `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)       |
 | `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                |
-| `applications`  | 5        | ⏳ pendiente                                        |
+| `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)     |
 | `internships`   | 3        | ⏳ pendiente                                        |
 | `ats`           | 5        | ⏳ pendiente                                        |
 | `chat`          | 4        | ⏳ pendiente                                        |
@@ -123,7 +123,31 @@
 - Los 4 handlers restantes son ejemplo de patrón limpio: `requireAuth(role)` específico, Zod en el body, services llamados con `auth.user.id` (no body-controlled), respuestas que solo incluyen datos del owner.
 - `POST /api/users/registro` usa `parse` (no `safeParse`) y captura `ZodError` en el catch. Es un patrón distinto al `safeParse` de admin pero igualmente correcto. NO bloquea — preferencia estilística que se puede unificar en un sweep futuro.
 
-## `applications` (5 handlers) — pendiente
+## `applications` (5 handlers)
+
+| Método | Path                                | AuthZ                       | Zod                                                      | Output                                         | Estado                          |
+| ------ | ----------------------------------- | --------------------------- | -------------------------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| POST   | `/api/applications`                 | `requireAuth("STUDENT")` ✅ | `applySchema` ✅                                         | application creada con `auth.user.id`          | ✅                              |
+| GET    | `/api/applications/my`              | `requireAuth("STUDENT")` ✅ | N/A                                                      | solo `studentId === auth.user.id`              | ✅                              |
+| GET    | `/api/applications/internship/[id]` | `requireAuth("COMPANY")` ✅ | N/A                                                      | service chequea ownership ✅                   | ✅                              |
+| PATCH  | `/api/applications/[id]`            | `requireAuth("COMPANY")` ✅ | `updateStatusSchema` ✅                                  | application del owner (404 si no es del owner) | ✅ (#D1 cerrado en 1.10.8)      |
+| POST   | `/api/applications/[id]/notify`     | `requireAuth("COMPANY")` ✅ | `z.object({ type: z.enum(["accepted","rejected"]) })` ✅ | `{success}` (404 si no es del owner)           | ✅ (#D2+#D3 cerrados en 1.10.8) |
+
+### Findings cerrados
+
+**🛑 #D1 — IDOR en `PATCH /api/applications/[id]`** (cerrado en 1.10.8). El service `updateApplicationStatus(applicationId, status)` no validaba que la application pertenezca a una internship de la company del session user. Cualquier `COMPANY` autenticada podía modificar postulaciones ajenas (rechazarlas, aceptarlas y notificar al student). **Severidad alta — OWASP Top 10 #1 Broken Access Control**. Fix: nueva firma `updateApplicationStatus(applicationId, status, companyUserId)` + helper privado `findOwnedApplication` que filtra por `internship.companyId`. Si no matchea → throw `"Not found or not authorized"` → 404.
+
+**🛑 #D2 — IDOR en `POST /api/applications/[id]/notify`** (cerrado en 1.10.8). Mismo patrón: `notifyAcceptedApplication(applicationId)` y `notifyRejectedApplication(applicationId)` permitían disparar emails de aceptación/rechazo a students de prácticas ajenas (vector de phishing). Fix: ambas funciones reciben `companyUserId` y usan el mismo `findOwnedApplication` helper.
+
+**✅ #D3 — body validation con Zod en `[id]/notify`** (cerrado en 1.10.8). Antes: cast `as { type }`. Ahora: `safeParse` con enum `["accepted", "rejected"]`.
+
+**✅ #D4 — `sendNewApplicationEmail.catch(console.error)` a Sentry** (cerrado en 1.10.8). `Sentry.captureException(err, { tags: { mail: "new_application" }, extra: { internshipId, studentUserId } })`.
+
+### Notas
+
+- **Decisión 404 vs 403**: ownership check fallido devuelve 404 (no 403) para no leak la existencia del recurso. Consistente con el patrón ya usado en `getApplicantsByInternship`.
+- **Helper `findOwnedApplication`** centraliza el control de acceso. Si más adelante aparece IDOR en otras áreas que dependen de ownership de applications, este helper se exporta y se reusa.
+- **Frontend compatible** — los cambios son de firma interna del service; los handlers mantienen el mismo contrato HTTP.
 
 ## `internships` (3 handlers) — pendiente
 

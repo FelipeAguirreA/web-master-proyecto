@@ -17,18 +17,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = updateStatusSchema.parse(body);
 
-    const application = await updateApplicationStatus(id, data.status);
+    const application = await updateApplicationStatus(
+      id,
+      data.status,
+      auth.user.id,
+    );
     return NextResponse.json(application);
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (error instanceof Error) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

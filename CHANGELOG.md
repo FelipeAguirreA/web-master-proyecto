@@ -5,6 +5,27 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.8] - 2026-04-27
+
+### Security
+
+- **IDOR + hardening en `/api/applications/*` (Fase 3 paso 3.7 / findings #D1, #D2, #D3, #D4)** — el audit detectó dos **Broken Access Control** (OWASP Top 10 #1) en el área `applications` que permitían que cualquier usuario autenticado como `COMPANY` mutara o notificara postulaciones que NO le pertenecían. Cuarto lote de fixes derivado del audit `/api/*`.
+  - **#D1 — IDOR en `PATCH /api/applications/[id]`**. Antes: `updateApplicationStatus(applicationId, status)` solo recibía el id de la postulación; el service hacía `prisma.application.update` sin chequear ownership. Una empresa autenticada podía hacer `PATCH /api/applications/<id-de-otra-empresa>` con `{ status: "REJECTED" }` y modificar postulaciones de prácticas de competencia (o aceptarlas y disparar notificaciones falsas al student). Ahora: la firma incluye `companyUserId`, el service usa el helper privado `findOwnedApplication(applicationId, companyUserId)` que filtra por `where: { id, internship: { companyId } }`. Si no matchea → throw `"Not found or not authorized"` → handler devuelve 404 (sin leak de existence).
+  - **#D2 — IDOR en `POST /api/applications/[id]/notify`**. Mismo patrón: `notifyAcceptedApplication(applicationId)` y `notifyRejectedApplication(applicationId)` no validaban ownership, así que cualquier company autenticada podía disparar emails "tu postulación fue aceptada/rechazada" a students de prácticas ajenas (vector de phishing). Ahora ambos reciben `companyUserId` y usan el mismo `findOwnedApplication` helper.
+  - **#D3 — body sin Zod en `[id]/notify`** (patrón #B1 emergente). Antes: cast `as { type: "accepted" | "rejected" }`. Ahora: `z.object({ type: z.enum(["accepted", "rejected"]) })` con `safeParse`. Body roto / type inválido → 400 con `details` de Zod.
+  - **#D4 — fallo de `sendNewApplicationEmail` a Sentry** (patrón #B3 emergente). Antes: `.catch(console.error)` se perdía en Vercel. Ahora: `Sentry.captureException(err, { tags: { mail: "new_application" }, extra: { internshipId, studentUserId } })`.
+
+### Tests
+
+- Suite total: **909 tests / 48 archivos** verde (antes 903 / 48). Refactor de `src/test/unit/applications.service.test.ts` (18 → 25 tests) sumando: ownership tests (`#D1` + `#D2`) cubriendo company inexistente y application de otra company (3 tests por cada uno de los 3 services owned), happy paths actualizados a la nueva firma con `companyUserId`, **mail failure → Sentry con tags y extras correctos** (`#D4`), mail OK → no Sentry. Verificación explícita que `findFirst` filtra por `internship.companyId`.
+
+### Notes
+
+- **Decisión 404 vs 403 en IDOR**: el service throw `"Not found or not authorized"` → handler devuelve 404 (no 403). Razón: 403 confirma que el recurso existe y solo bloquea acceso; 404 no leak la existencia. Para endpoints donde el atacante puede iterar IDs, 404 es la respuesta correcta (consistente con el patrón ya usado en `getApplicantsByInternship`).
+- **Patrón emergente reforzado**: el helper `findOwnedApplication(applicationId, companyUserId)` es la solución compartida del IDOR — devuelve null si la company no existe O si la application no es del owner. Todo el control de acceso queda en una función chica y testeable. Si más adelante aparece IDOR en `interviews` o `ats`, ese patrón se replica.
+- **Compatibilidad con frontend**: cambios solo de firma interna del service. Los handlers exponen el mismo contrato HTTP (mismo body schema en PATCH, mismo body en notify). El frontend no necesita cambios.
+- **Paso 3.7**: 4/12 áreas cerradas (`auth`, `admin`, `users`, `applications`). Pendientes: `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+
 ## [1.10.7] - 2026-04-27
 
 ### Removed

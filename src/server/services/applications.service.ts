@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/server/lib/db";
 import { calculateMatchScore } from "@/server/lib/embeddings";
 import {
@@ -44,12 +45,18 @@ export async function applyToInternship(
       },
     });
 
+    // Email no bloqueante. Si falla, va a Sentry con tag para alertas.
     sendNewApplicationEmail(
       internship.company.user.email,
       internship.company.companyName,
       studentUser?.name ?? "Un estudiante",
       internship.title,
-    ).catch(console.error);
+    ).catch((err) =>
+      Sentry.captureException(err, {
+        tags: { mail: "new_application" },
+        extra: { internshipId, studentUserId },
+      }),
+    );
 
     return application;
   } catch (error) {
@@ -122,19 +129,36 @@ export async function getApplicantsByInternship(
   });
 }
 
-export async function updateApplicationStatus(
+// Resuelve la application sólo si pertenece a una internship de la company
+// del companyUserId. Devuelve null si no existe o si no es del owner —
+// los callers traducen ambos casos al mismo error "Not found or not authorized"
+// para no leak de existence.
+async function findOwnedApplication(
   applicationId: string,
-  status: string,
+  companyUserId: string,
 ) {
-  const existing = await prisma.application.findUnique({
-    where: { id: applicationId },
+  const company = await prisma.companyProfile.findUnique({
+    where: { userId: companyUserId },
+    select: { id: true },
+  });
+  if (!company) return null;
+
+  return prisma.application.findFirst({
+    where: { id: applicationId, internship: { companyId: company.id } },
     include: {
       internship: { select: { title: true } },
       student: { select: { email: true, name: true } },
     },
   });
+}
 
-  if (!existing) throw new Error("Application not found");
+export async function updateApplicationStatus(
+  applicationId: string,
+  status: string,
+  companyUserId: string,
+) {
+  const existing = await findOwnedApplication(applicationId, companyUserId);
+  if (!existing) throw new Error("Not found or not authorized");
 
   const updated = await prisma.application.update({
     where: { id: applicationId },
@@ -180,16 +204,12 @@ export async function updateApplicationStatus(
   return updated;
 }
 
-export async function notifyRejectedApplication(applicationId: string) {
-  const app = await prisma.application.findUnique({
-    where: { id: applicationId },
-    include: {
-      internship: { select: { title: true } },
-      student: { select: { email: true, name: true } },
-    },
-  });
-
-  if (!app) throw new Error("Application not found");
+export async function notifyRejectedApplication(
+  applicationId: string,
+  companyUserId: string,
+) {
+  const app = await findOwnedApplication(applicationId, companyUserId);
+  if (!app) throw new Error("Not found or not authorized");
   if (app.status !== "REJECTED")
     throw new Error("La postulación no está rechazada");
 
@@ -201,16 +221,12 @@ export async function notifyRejectedApplication(applicationId: string) {
   );
 }
 
-export async function notifyAcceptedApplication(applicationId: string) {
-  const app = await prisma.application.findUnique({
-    where: { id: applicationId },
-    include: {
-      internship: { select: { title: true } },
-      student: { select: { email: true, name: true } },
-    },
-  });
-
-  if (!app) throw new Error("Application not found");
+export async function notifyAcceptedApplication(
+  applicationId: string,
+  companyUserId: string,
+) {
+  const app = await findOwnedApplication(applicationId, companyUserId);
+  if (!app) throw new Error("Not found or not authorized");
   if (app.status !== "ACCEPTED")
     throw new Error("La postulación no está aceptada");
 
