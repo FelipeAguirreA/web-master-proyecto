@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.7] - 2026-04-27
+
+### Removed
+
+- **`PATCH /api/users/role` eliminado (Fase 3 paso 3.7 / finding #C1)** — el endpoint permitía a cualquier usuario autenticado cambiar su propio `role: STUDENT ↔ COMPANY` con un cast `as { role: string }` (sin Zod). Una búsqueda exhaustiva en `src/` confirmó que **no tiene callers en el frontend** — la única referencia era `promps/PROMP/modulo-10-company.md`, el prompt que pidió crearlo originalmente para el MVP.
+  - **Por qué se eliminó**: dead code + superficie de role-escalation marginal. Aunque cualquier role-switch a COMPANY entraba con `companyStatus: PENDING` (default del schema) y los gates en `internships.service.ts` y `matching.service.ts` filtran por `APPROVED`, el endpoint sigue siendo superficie de ataque innecesaria. Si en el futuro un dev suma una feature que confíe en `role` sin chequear `companyStatus`, el agujero queda abierto.
+  - **Flow de empresas hoy**: `/registro/empresa` con credentials → `companyStatus: PENDING` → aprobación admin via `PATCH /api/admin/empresas/[id]`. Quien tenga que probar el dashboard empresa local cambia el role manualmente en Prisma Studio (documentado en `promps/PROMP/modulo-10-company.md`).
+
+### Documentation
+
+- **`promps/PROMP/modulo-10-company.md`** actualizado: sacada la sección "Crea un API route que permita cambiar el rol" + nota explicativa de por qué se eliminó. Verificación del módulo ahora dice "via Prisma Studio" en vez de "via Prisma Studio o el endpoint".
+
+### Notes
+
+- **Paso 3.7**: 3/12 áreas cerradas (`auth`, `admin`, `users`). Pendientes: `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+- Resto del área `users` está limpio: `me`, `registro`, `profile/student`, `profile/company` usan `requireAuth(role?)` correctamente, schemas Zod completos, services llamados con `auth.user.id` (sin posibilidad de leer datos ajenos).
+- Sin tests nuevos — el cambio es eliminar código sin uso. Suite 903/903 sigue verde.
+
 ## [1.10.6] - 2026-04-27
 
 ### Security

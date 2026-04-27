@@ -1,6 +1,7 @@
 # Módulo 10: Dashboard Empresa
 
 ## Resultado Final
+
 Dashboard empresa con creación de prácticas y panel de postulantes.
 
 ---
@@ -8,6 +9,7 @@ Dashboard empresa con creación de prácticas y panel de postulantes.
 ## Paso 1: Dashboard de Empresa
 
 **Prompt para la IA:**
+
 ```
 Crea la página de dashboard para empresas en PractiX.
 
@@ -68,7 +70,7 @@ Layout (max-w-6xl mx-auto px-6 py-10):
 
 3. LISTA DE PRÁCTICAS:
    Sin prácticas → empty state (ícono Briefcase, "Aún no has publicado prácticas")
-   
+
    Con prácticas → space-y-4:
    Cada item (bg-white rounded-xl border p-5 flex items-center gap-4):
      - Título (font-medium truncate) + "area · location" (text-sm text-gray-500)
@@ -78,9 +80,9 @@ Layout (max-w-6xl mx-auto px-6 py-10):
    - Overlay: fixed inset-0 bg-black/40 z-50 flex justify-end
    - Panel: bg-white w-full max-w-md h-full overflow-y-auto p-6
    - Header: "Postulantes" + botón X (setSelectedInternship(null))
-   
+
    Sin postulantes → "Sin postulaciones aún"
-   
+
    Con postulantes → space-y-3:
    Cada card (border rounded-lg p-4):
      - Avatar: inicial del nombre en circulo w-8 h-8 bg-brand-100 text-brand-700
@@ -95,32 +97,23 @@ Layout (max-w-6xl mx-auto px-6 py-10):
 
 ## Paso 2: Manejo de Rol en Login
 
-**Prompt para la IA:**
-```
-Hay un detalle importante: cuando un usuario se registra via Google OAuth,
-NextAuth siempre crea un STUDENT por default.
+**Cómo testear el dashboard de empresa**:
+Cuando un usuario se registra via Google OAuth, NextAuth siempre crea un
+`STUDENT` por default. Para probar el dashboard de empresa cambiá el rol
+directamente en **Prisma Studio** (`pnpm db:studio`):
 
-Para poder probar el dashboard de empresa, necesitamos una forma de 
-cambiar el rol.
+1. Abrir tabla `User`, fila del usuario logueado.
+2. Cambiar `role` de `STUDENT` a `COMPANY`.
+3. Crear manualmente una fila en `CompanyProfile` con ese `userId` y
+   `companyName` mínimo. `companyStatus` queda en `PENDING` por default;
+   ponerlo en `APPROVED` para que las prácticas se listen públicamente.
 
-Opción simple para el MVP: 
-Crea un API route que permita cambiar el rol del usuario actual.
-
-Ubicación: src/app/api/users/role/route.ts
-
-PATCH /api/users/role:
-- Requiere autenticación
-- Body: { role: 'STUDENT' | 'COMPANY' }
-- Si cambia a COMPANY y no tiene CompanyProfile → crear uno
-- Si cambia a STUDENT y no tiene StudentProfile → crear uno
-- Actualizar user.role en DB
-- Retornar usuario actualizado
-
-NOTA: En producción esto se haría diferente (selección de rol al registrarse).
-Para el MVP es suficiente.
-
-También puedes cambiar el rol directamente en Prisma Studio si prefieres.
-```
+> **NOTA**: en producción NO hay un endpoint que permita al user cambiar
+> su propio role — el flow real de empresas es el registro con credentials
+> en `/registro/empresa` (que entra como `companyStatus: PENDING` y necesita
+> aprobación admin). Originalmente este módulo proponía un
+> `PATCH /api/users/role` para el MVP, pero se eliminó en el audit del
+> paso 3.7 por ser código muerto + superficie de role-escalation marginal.
 
 ---
 
@@ -130,7 +123,7 @@ También puedes cambiar el rol directamente en Prisma Studio si prefieres.
 pnpm dev
 
 # 1. Login con Google
-# 2. Cambiar rol a COMPANY (via Prisma Studio o el endpoint)
+# 2. Cambiar rol a COMPANY (via Prisma Studio)
 # 3. Ir a /dashboard/empresa
 # ✅ Panel vacío con botón "Nueva práctica"
 # 4. Click "Nueva práctica" → llenar formulario → publicar
@@ -145,6 +138,7 @@ pnpm dev
 ## Checkpoint
 
 Al final del módulo tienes:
+
 - ✅ Dashboard empresa con lista de prácticas
 - ✅ Modal de creación con formulario completo
 - ✅ Panel lateral de postulantes con matchScore y CV

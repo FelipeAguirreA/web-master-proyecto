@@ -27,7 +27,7 @@
 | --------------- | -------- | --------------------------------------------------- |
 | `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado) |
 | `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)       |
-| `users`         | 5        | ⏳ pendiente                                        |
+| `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                |
 | `applications`  | 5        | ⏳ pendiente                                        |
 | `internships`   | 3        | ⏳ pendiente                                        |
 | `ats`           | 5        | ⏳ pendiente                                        |
@@ -98,7 +98,30 @@
 
 - El catch genérico del GET (`/api/admin/empresas`) silencia errores con `catch {}` sin loguear. Bajo tráfico, bajo impacto. NO se sumó Sentry por consistencia con el patrón general de catch genérico que ya tienen muchos handlers — si hacemos un sweep general lo cubrimos parejo.
 
-## `users` (5 handlers) — pendiente
+## `users` (4 handlers, antes 5)
+
+> Originalmente 5 handlers. `PATCH /api/users/role` eliminado en 1.10.7 — finding #C1.
+
+| Método | Path                         | AuthZ                       | Zod                       | Output                                                | Estado |
+| ------ | ---------------------------- | --------------------------- | ------------------------- | ----------------------------------------------------- | ------ |
+| GET    | `/api/users/me`              | `requireAuth()` ✅          | N/A                       | `getUserWithProfile(auth.user.id)` (solo dueño)       | ✅     |
+| POST   | `/api/users/registro`        | `requireAuth("STUDENT")` ✅ | `registrationSchema` ✅   | `{success:true}` o 409 RUT duplicado                  | ✅     |
+| PUT    | `/api/users/profile/student` | `requireAuth("STUDENT")` ✅ | `studentProfileSchema` ✅ | propio profile (`updateStudentProfile(auth.user.id)`) | ✅     |
+| PUT    | `/api/users/profile/company` | `requireAuth("COMPANY")` ✅ | `companyProfileSchema` ✅ | propio profile (`updateCompanyProfile(auth.user.id)`) | ✅     |
+
+### Findings cerrados
+
+**🛑 #C1 — `PATCH /api/users/role` era código muerto + superficie de role-escalation** (eliminado en 1.10.7).
+
+- Síntoma: el endpoint permitía a cualquier user autenticado cambiar su `role: STUDENT ↔ COMPANY` con un cast `as { role: string }` (sin Zod).
+- Mitigaciones existentes: cualquier role-switch a COMPANY entra con `companyStatus: PENDING` (default del schema). Gates en `internships.service.ts:17` y `matching.service.ts:67` filtran solo `APPROVED`. Riesgo real era bajo.
+- Por qué se eliminó: **cero callers en el frontend** (única referencia: `promps/PROMP/modulo-10-company.md`, el prompt que lo creó). YAGNI + superficie de ataque innecesaria. Si mañana un dev suma una feature que confíe en `role` sin chequear `companyStatus`, abre agujero.
+- Flow de empresas correcto: `/registro/empresa` con credentials → `companyStatus: PENDING` → aprobación admin.
+
+### Notas
+
+- Los 4 handlers restantes son ejemplo de patrón limpio: `requireAuth(role)` específico, Zod en el body, services llamados con `auth.user.id` (no body-controlled), respuestas que solo incluyen datos del owner.
+- `POST /api/users/registro` usa `parse` (no `safeParse`) y captura `ZodError` en el catch. Es un patrón distinto al `safeParse` de admin pero igualmente correcto. NO bloquea — preferencia estilística que se puede unificar en un sweep futuro.
 
 ## `applications` (5 handlers) — pendiente
 
