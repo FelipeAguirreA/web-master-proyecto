@@ -6,6 +6,7 @@ const createModelMock = () => ({
   findMany: vi.fn(),
   count: vi.fn(),
   create: vi.fn(),
+  createMany: vi.fn(),
   update: vi.fn(),
   updateMany: vi.fn(),
   delete: vi.fn(),
@@ -24,6 +25,8 @@ const baseMock = {
   interview: createModelMock(),
   notification: createModelMock(),
   refreshToken: createModelMock(),
+  aTSConfig: createModelMock(),
+  aTSModule: createModelMock(),
 };
 
 export const prismaMock = baseMock as typeof baseMock & {

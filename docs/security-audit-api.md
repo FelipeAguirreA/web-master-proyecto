@@ -30,7 +30,7 @@
 | `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                             |
 | `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)                  |
 | `internships`   | 6        | ✅ cerrada (#E1+#E2+#E3+#E4 fixeados en 1.10.9, #E5 ⚠️ aceptado) |
-| `ats`           | 5        | ⏳ pendiente                                                     |
+| `ats`           | 5        | ✅ cerrada (#F1+#F2+#F3+#F4+#F5 fixeados en 1.10.10)             |
 | `chat`          | 4        | ⏳ pendiente                                                     |
 | `interviews`    | 4        | ⏳ pendiente                                                     |
 | `notifications` | 3        | ⏳ pendiente                                                     |
@@ -182,7 +182,35 @@
 - **DELETE no cascadea applications**: intencional (preservar histórico para students). Las applications quedan visibles aunque la práctica esté soft-deleted.
 - **Helper `notFoundOrInternal`** centraliza el patrón de error mapping seguro. Si aparece en otras áreas del audit, considerar extraer a `src/server/lib/`.
 
-## `ats` (5 handlers) — pendiente
+## `ats` (5 handlers)
+
+| Método | Path                                | AuthZ                       | Zod                                                                          | Output                                                           | Estado                    |
+| ------ | ----------------------------------- | --------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------- |
+| POST   | `/api/ats/config`                   | `requireAuth("COMPANY")` ✅ | `discriminatedUnion("type", ...)` con schemas estrictos por scorer ✅        | ownership + 404 unificado, upsert atómico                        | ✅ (#F1+#F2+#F3 cerrados) |
+| GET    | `/api/ats/config/[jobId]`           | `requireAuth("COMPANY")` ✅ | N/A                                                                          | ownership + 404 unificado                                        | ✅ (#F1+#F2 cerrados)     |
+| PATCH  | `/api/ats/pipeline/[applicationId]` | `requireAuth("COMPANY")` ✅ | `z.object({ status: enum(["PENDING","REVIEWING","INTERVIEW","REJECTED"]) })` | ownership + 404 unificado                                        | ✅ (#F1+#F2 cerrados)     |
+| POST   | `/api/ats/score/[applicationId]`    | `requireAuth("COMPANY")` ✅ | N/A                                                                          | rate limit `60/min/user`, ownership + 404 unificado              | ✅ (#F1+#F2+#F5 cerrados) |
+| POST   | `/api/ats/score/job/[jobId]`        | `requireAuth("COMPANY")` ✅ | N/A                                                                          | rate limit `5/min/user`, batches de 5, ownership + 404 unificado | ✅ (#F1+#F2+#F4 cerrados) |
+
+### Findings cerrados
+
+**🛑 #F1 — Ownership fail diferenciaba 404 vs 403 (anti-enumeration)** (cerrado en 1.10.10). Severidad media — info disclosure / IDOR enumeration. 4 handlers (`config GET`, `pipeline PATCH`, `score POST`, `score job POST`) más el POST de config diferenciaban `404 "Postulación/Empresa no encontrada"` (cuando no existe) vs `403 "No autorizado"` (cuando existe pero no es del owner). Esa diferencia permite a una `COMPANY` autenticada **enumerar IDs válidos** de applications/internships ajenas con un loop. Fix: ambos casos devuelven `404 { error: "Recurso no encontrado", code: "NOT_FOUND" }`. Misma decisión que cerramos en #D1/#D2 (applications) — patrón "404 unificado en ownership fail" ahora es convención del audit.
+
+**🛑 #F2 — Error mapping leak: errores crudos de Prisma/infra al cliente** (cerrado en 1.10.10). Severidad baja-media — info disclosure. Los 4 handlers no tenían `try/catch` envolvente; cualquier error inesperado (DEADLOCK, FK violation, OOM en pool, UNIQUE constraint, conexión refused) propagaba el `error.message` crudo al cliente. Fix universal: `try/catch` en cada handler, `Sentry.captureException(error)` en el catch, response genérico `{ error: "Error interno del servidor", code: "INTERNAL_ERROR" }` con 500. Patrón consistente con la "whitelist de mensajes propagables" establecida en internships (#E3).
+
+**🛑 #F3 — `params: z.any()` en `POST /api/ats/config`** (cerrado en 1.10.10). Severidad baja — defensa en profundidad. El schema de módulos aceptaba `params: z.any()` y serializaba ese valor a la columna JSON `params` de `ATSModule`. Los scorers downstream (`skills.scorer`, `experience.scorer`, etc.) asumen formas concretas: `skills` espera `{ required: string[], preferred: string[], hardFilter: bool }`, `experience` espera `{ minYears: number, preferredRoles: string[], hardFilter: bool }`, etc. Sin validación, basura arbitraria llega a los scorers (riesgo: crashes silenciosos, scoring inválido, payload bloat). Fix: `discriminatedUnion("type", ...)` con un schema strict() por cada scorer real (`SKILLS`, `EXPERIENCE`, `EDUCATION`, `LANGUAGES`, `PORTFOLIO`) + `passthrough()` para `CUSTOM` que el scoring engine ignora. Plus: `array.max(20)` para módulos, `string.max(120)` para labels — caps razonables anti-bloat.
+
+**🛑 #F4 — `score/job` con `Promise.all` crudo + sin rate limit** (cerrado en 1.10.10). Severidad media — DoS interno. El handler `POST /api/ats/score/job/[jobId]` rescoreaba **todas** las applications de una internship con `Promise.all(applications.map(...))` crudo: con N=200 applications, eso disparaba 200 ejecuciones simultáneas de `scoreApplication` (CPU: parsing CV + matching skills/exp/edu por módulo) más 200 `prisma.application.update` simultáneos contra Supabase pgBouncer. Una empresa con muchos postulantes podía saturar el connection pool y CPU del worker de Vercel — escalando a un DoS auto-infligido. Fix: `rateLimit("ats-score-job:${userId}", 5, MIN_MS)` antes de tocar DB + procesamiento en batches de 5 (`for (let i = 0; i < apps.length; i += 5) { await Promise.all(batch...) }`). Mantiene la semántica (todas se procesan, todas devueltas) pero acota el pico a 5 simultáneos.
+
+**🛑 #F5 — `score/[applicationId]` sin rate limit** (cerrado en 1.10.10). Severidad media — DoS individual. El scoring de una application individual también es CPU (parse CV + N módulos). Sin throttle, una company autenticada podía dispararlo en loop contra una misma application (aunque no escala como #F4, sigue siendo abusable). Fix: `rateLimit("ats-score-one:${userId}", 60, MIN_MS)` antes de tocar DB. Límite generoso (60/min) para no estorbar uso legítimo del kanban.
+
+### Notas
+
+- **Convergencia con #D1/#D2/#E3**: el área `ats` adoptó las tres convenciones que emergieron de `applications` e `internships` en lotes anteriores: (1) 404 unificado en ownership fail (anti-enumeration), (2) error mapping seguro con whitelist de mensajes propagables + Sentry, (3) Zod estricto en cualquier body. El audit está convergiendo a un patrón único — buena señal.
+- **Decisión rate limit por `auth.user.id`** (no por IP): los handlers de score son auth-only (`requireAuth("COMPANY")`), así que el identifier por user es más preciso que por IP (NAT corporativo no comparte límite entre empresas distintas).
+- **`BATCH_SIZE = 5` en `score/job`**: trade-off CPU/latency. Subirlo (e.g. 10) acelera el batch pero acerca al límite del pool de pgBouncer. Bajarlo (e.g. 3) es más conservador pero aumenta latency en jobs grandes. 5 es un punto razonable; si en prod aparece presión en el pool, bajarlo en lugar de subirlo.
+- **`#F3` cap de 20 módulos**: el seed/UI nunca crea más de ~7 (los 6 enum types + 1 CUSTOM). 20 es un cap defensivo amplio sin pegarle al uso real.
+- **`scoreApplication` no es async** — el `await` de `Promise.all` en #F4 espera por los `prisma.application.update`, que sí es async. La función pura de scoring no agrega latency entre I/O.
 
 ## `chat` (4 handlers) — pendiente
 
