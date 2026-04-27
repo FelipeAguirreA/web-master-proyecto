@@ -5,6 +5,30 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.9] - 2026-04-27
+
+### Security
+
+- **Hardening en `/api/internships/*` (Fase 3 paso 3.7 / findings #E1, #E2, #E3, #E4)** — quinto lote de fixes derivado del audit `/api/*`. El inventario inicial decía "3 handlers" pero el recuento real es **6** (`route.ts` GET+POST + `[id]/route.ts` GET+PUT+PATCH+DELETE) — corregido en `docs/security-audit-api.md`.
+  - **#E1 — `GET /api/internships/[id]` no filtraba `isActive` ni `companyStatus`**. Severidad media — info disclosure. El listado público (`listInternships`) filtraba `isActive: true` + `company.companyStatus: "APPROVED"`, pero el detalle por ID era `findUnique` directo sin filtros. Una práctica soft-deleted o de empresa PENDING/REJECTED seguía accesible vía URL bookmarkeada / link compartido / scraping previo, rompiendo la promesa de moderación. Fix: `findUnique` → `findFirst` con `where: { id, isActive: true, company: { is: { companyStatus: "APPROVED" } } }`. Ahora el detalle es espejo del filtro del listado.
+  - **#E2 — `PATCH /api/internships/[id]` sin Zod** (patrón #B1/#D3 emergente). Antes: `(await request.json()) as { isActive: boolean }`. Ahora: `patchSchema = z.object({ isActive: z.boolean() })` con `safeParse` → 400 con `details` si llega `{ isActive: "true" }`, `null`, `undefined` o body roto. Defensa en profundidad antes de que el valor llegue a Prisma.
+  - **#E3 — Error mapping leak en `[id]/route.ts` (PUT/PATCH/DELETE)**. Severidad media — info disclosure. Los catch genéricos hacían `{ error: error.message }` con status 404, pudiendo exponer mensajes crudos de `PrismaClientKnownRequestError` con nombres de tabla, columnas, SQL state. Fix: helper `notFoundOrInternal(error)` que matchea exactamente la cadena `"Not found or not authorized"` (única frase whitelisted por los services del módulo) → 404; lo demás → `Sentry.captureException(error)` + 500 genérico `"Error interno del servidor"`. Mismo patrón aplicado al POST de `route.ts` con `"Company not approved"` → 403 y `"Company profile required"` → 400 como únicas frases propagables.
+  - **#E4 — `POST /api/internships` no chequeaba `companyStatus === "APPROVED"`**. Severidad media — bypass parcial del flow de moderación + waste de recursos. El dashboard solo mostraba banner visual para PENDING/REJECTED (`src/app/(dashboard)/dashboard/empresa/page.tsx:251`); el backend no bloqueaba el POST. Una empresa no aprobada podía crear N internships y consumir embeddings de HuggingFace ($$$). Fix: en `createInternship`, después del `findUnique` de la company, `if (company.companyStatus !== "APPROVED") throw new Error("Company not approved")`. Handler mapea ese error a 403 antes de tocar HuggingFace o `prisma.internship.create`.
+
+### Tests
+
+- Suite total: **934 tests / 50 archivos** verde (antes 891 / 48). Refactor de `src/test/unit/internships.service.test.ts` (12 → 17 tests) sumando: 3 tests de `getInternshipById` para `#E1` (filtros `isActive` + `APPROVED`, retorna null si soft-deleted, retorna null si company no APPROVED) + 2 tests de `createInternship` para `#E4` (rechaza PENDING, rechaza REJECTED). Nuevo archivo `src/test/unit/internships-id-route.test.ts` (14 tests) cubriendo Zod en PATCH (`#E2`: 5 casos) + error mapping seguro en PUT/PATCH/DELETE (`#E3`: 6 casos verificando que el mensaje crudo NO leak al cliente y que `Sentry.captureException` SÍ se llama con el error original) + 2 tests del GET para confirmar que el filtro nuevo del service resulta en 404. Nuevo archivo `src/test/unit/internships-route.test.ts` (6 tests) cubriendo el gate de `#E4` en POST (3 casos: PENDING/REJECTED/APPROVED) + error mapping del POST (3 casos: "Company profile required" → 400, Zod inválido → 400, error inesperado → 500 + Sentry sin leak).
+
+### Notes
+
+- **Decisión 404 vs 403 en #E3**: el helper `notFoundOrInternal` devuelve 404 (no 403) cuando matchea `"Not found or not authorized"`. Razón: misma decisión que en `#D1`/`#D2` — no leak de existence. Una company que prueba IDs ajenos recibe 404 indistinguible de "no existe", sin confirmar el id.
+- **Patrón "whitelist de mensajes propagables"**: el módulo establece la convención de que **solo** strings literales del set whitelisted (`"Not found or not authorized"`, `"Company not approved"`, `"Company profile required"`) llegan al cliente. Cualquier otro `Error` (de Prisma, conexión, embedding, etc.) va a Sentry y se mapea a 500 genérico. Esta convención debería aplicarse a las próximas áreas del audit (`ats`, `chat`, `interviews`, etc.) para uniformidad.
+- **Helper `notFoundOrInternal`** centraliza el patrón en `src/app/api/internships/[id]/route.ts`. Si más áreas adoptan el mismo patrón, considerar extraer a `src/server/lib/http-errors.ts` en un sweep futuro.
+- **#E5 (rate limit en `GET /api/internships`)** aceptado como ⚠️ — DoS leve, consistente con otros GET públicos del proyecto. Documentado en el audit.
+- **Bug funcional NO security** detectado durante el audit: `updateInternship` no regenera el embedding cuando cambian `title/description/skills` → matching desincronizado del contenido. Fuera del scope de seguridad, anotado para sweep funcional posterior.
+- **Compatibilidad con frontend**: cero cambios de contrato HTTP. Las firmas internas de `getInternshipById` y `createInternship` mantienen la misma signatura externa (cambia el `where` interno y se suma un throw nuevo).
+- **Paso 3.7**: 5/12 áreas cerradas (`auth`, `admin`, `users`, `applications`, `internships`). Pendientes: `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+
 ## [1.10.8] - 2026-04-27
 
 ### Security

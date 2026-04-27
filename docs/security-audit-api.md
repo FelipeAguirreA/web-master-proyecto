@@ -23,20 +23,20 @@
 
 ## Áreas
 
-| Área            | Handlers | Estado                                              |
-| --------------- | -------- | --------------------------------------------------- |
-| `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado) |
-| `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)       |
-| `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                |
-| `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)     |
-| `internships`   | 3        | ⏳ pendiente                                        |
-| `ats`           | 5        | ⏳ pendiente                                        |
-| `chat`          | 4        | ⏳ pendiente                                        |
-| `interviews`    | 4        | ⏳ pendiente                                        |
-| `notifications` | 3        | ⏳ pendiente                                        |
-| `matching`      | 2        | ⏳ pendiente                                        |
-| `perfil`        | 2        | ⏳ pendiente                                        |
-| `health`        | 1        | ⏳ pendiente                                        |
+| Área            | Handlers | Estado                                                           |
+| --------------- | -------- | ---------------------------------------------------------------- |
+| `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado)              |
+| `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)                    |
+| `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                             |
+| `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)                  |
+| `internships`   | 6        | ✅ cerrada (#E1+#E2+#E3+#E4 fixeados en 1.10.9, #E5 ⚠️ aceptado) |
+| `ats`           | 5        | ⏳ pendiente                                                     |
+| `chat`          | 4        | ⏳ pendiente                                                     |
+| `interviews`    | 4        | ⏳ pendiente                                                     |
+| `notifications` | 3        | ⏳ pendiente                                                     |
+| `matching`      | 2        | ⏳ pendiente                                                     |
+| `perfil`        | 2        | ⏳ pendiente                                                     |
+| `health`        | 1        | ⏳ pendiente                                                     |
 
 ---
 
@@ -149,7 +149,38 @@
 - **Helper `findOwnedApplication`** centraliza el control de acceso. Si más adelante aparece IDOR en otras áreas que dependen de ownership de applications, este helper se exporta y se reusa.
 - **Frontend compatible** — los cambios son de firma interna del service; los handlers mantienen el mismo contrato HTTP.
 
-## `internships` (3 handlers) — pendiente
+## `internships` (6 handlers)
+
+> Inventario inicial decía 3. Recuento real: 6 (`route.ts` GET+POST, `[id]/route.ts` GET+PUT+PATCH+DELETE).
+
+| Método | Path                    | AuthZ                       | Zod                                               | Output                                                 | Estado                          |
+| ------ | ----------------------- | --------------------------- | ------------------------------------------------- | ------------------------------------------------------ | ------------------------------- |
+| GET    | `/api/internships`      | Público intencional         | `filterInternshipSchema` ✅                       | filtra `isActive: true` + `companyStatus: APPROVED` ✅ | ⚠️ #E5                          |
+| POST   | `/api/internships`      | `requireAuth("COMPANY")` ✅ | `createInternshipSchema` ✅                       | gate de `companyStatus === "APPROVED"` ✅              | ✅ (#E4 cerrado en 1.10.9)      |
+| GET    | `/api/internships/[id]` | Público intencional         | N/A                                               | filtra `isActive: true` + `companyStatus: APPROVED` ✅ | ✅ (#E1 cerrado en 1.10.9)      |
+| PUT    | `/api/internships/[id]` | `requireAuth("COMPANY")` ✅ | `createInternshipSchema.partial()` (safeParse) ✅ | ownership check + 404 si no es del owner               | ✅ (#E3 cerrado en 1.10.9)      |
+| PATCH  | `/api/internships/[id]` | `requireAuth("COMPANY")` ✅ | `z.object({ isActive: z.boolean() })` ✅          | ownership check + 404 si no es del owner               | ✅ (#E2+#E3 cerrados en 1.10.9) |
+| DELETE | `/api/internships/[id]` | `requireAuth("COMPANY")` ✅ | N/A                                               | ownership check + soft delete (`isActive: false`)      | ✅ (#E3 cerrado en 1.10.9)      |
+
+### Findings cerrados
+
+**🛑 #E1 — `GET /api/internships/[id]` no filtraba `isActive` ni `companyStatus`** (cerrado en 1.10.9). Severidad media — info disclosure. El listado (`listInternships`) filtraba `isActive: true` + `company.companyStatus: "APPROVED"`, pero el detalle por ID era `findUnique` directo. Una práctica soft-deleted o de empresa PENDING/REJECTED seguía accesible vía URL bookmarkeada / link compartido / scraping previo, rompiendo la promesa de moderación. Fix: `findUnique` → `findFirst` con `where: { id, isActive: true, company: { is: { companyStatus: "APPROVED" } } }`.
+
+**🛑 #E2 — `PATCH /api/internships/[id]` sin Zod** (cerrado en 1.10.9). Severidad baja-media — defensa en profundidad. Mismo patrón que cazamos en #B1 (admin) y #D3 (notify): cast `as { isActive: boolean }`. Fix: `patchSchema = z.object({ isActive: z.boolean() })` con `safeParse` → 400 con `details`.
+
+**🛑 #E3 — Error mapping leak en `[id]/route.ts` (PUT/PATCH/DELETE)** (cerrado en 1.10.9). Severidad media — info disclosure. Los catch genéricos hacían `{ error: error.message }` con status 404, exponiendo mensajes crudos de Prisma (nombres de tabla, columnas, SQL state). Fix: helper `notFoundOrInternal` que matchea exactamente `"Not found or not authorized"` → 404, lo demás → `Sentry.captureException` + 500 genérico. Mismo patrón aplicado al POST de `route.ts`.
+
+**🛑 #E4 — `POST /api/internships` no chequeaba `companyStatus === "APPROVED"`** (cerrado en 1.10.9). Severidad media — bypass parcial del flow de moderación + waste de recursos. El dashboard solo mostraba banner visual para PENDING/REJECTED (`page.tsx:251`); el backend no bloqueaba. Una empresa no aprobada podía crear N internships y consumir embeddings de HuggingFace ($$$). Fix: en `createInternship`, después del `findUnique`, `if (company.companyStatus !== "APPROVED") throw new Error("Company not approved")`. Handler mapea ese error a 403.
+
+### Findings activos
+
+**⚠️ #E5 — `GET /api/internships` sin rate limit** — Severidad baja, DoS leve. Endpoint público con `count + findMany + joins + paginación` y sin throttling propio. Vercel cubre algo a nivel infra. Aceptado como ⚠️ por consistencia con otros GET públicos del proyecto. Si querés cerrarlo: `rateLimit(\`internships-list:\${ip}\`, 60, MIN_MS)`.
+
+### Notas
+
+- **Bug funcional NO security**: `updateInternship` no regenera el embedding cuando cambian `title/description/skills` → matching desincronizado del contenido. Pendiente para sweep funcional, fuera del scope del audit de seguridad.
+- **DELETE no cascadea applications**: intencional (preservar histórico para students). Las applications quedan visibles aunque la práctica esté soft-deleted.
+- **Helper `notFoundOrInternal`** centraliza el patrón de error mapping seguro. Si aparece en otras áreas del audit, considerar extraer a `src/server/lib/`.
 
 ## `ats` (5 handlers) — pendiente
 

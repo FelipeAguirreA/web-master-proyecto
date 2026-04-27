@@ -101,20 +101,52 @@ describe("getInternshipById", () => {
       ...mockInternship,
       company: { companyName: "TechCorp" },
     };
-    prismaMock.internship.findUnique.mockResolvedValue(withCompany);
+    prismaMock.internship.findFirst.mockResolvedValue(withCompany);
 
     const result = await getInternshipById("int-1");
 
     expect(result).toEqual(withCompany);
-    expect(prismaMock.internship.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "int-1" } }),
-    );
   });
 
   it("retorna null cuando no existe", async () => {
-    prismaMock.internship.findUnique.mockResolvedValue(null);
+    prismaMock.internship.findFirst.mockResolvedValue(null);
 
     const result = await getInternshipById("nonexistent");
+
+    expect(result).toBeNull();
+  });
+
+  // #E1 — filtros para no exponer prácticas inactivas o de empresas no APPROVED
+  it("filtra por isActive: true y company.companyStatus: APPROVED (#E1)", async () => {
+    prismaMock.internship.findFirst.mockResolvedValue(null);
+
+    await getInternshipById("int-1");
+
+    expect(prismaMock.internship.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "int-1",
+          isActive: true,
+          company: { is: { companyStatus: "APPROVED" } },
+        },
+      }),
+    );
+  });
+
+  it("retorna null si la práctica está soft-deleted (#E1)", async () => {
+    // Con el filtro nuevo, una práctica con isActive=false queda fuera del findFirst
+    prismaMock.internship.findFirst.mockResolvedValue(null);
+
+    const result = await getInternshipById("int-soft-deleted");
+
+    expect(result).toBeNull();
+  });
+
+  it("retorna null si la empresa dueña no está APPROVED (#E1)", async () => {
+    // Mismo caso: empresa PENDING/REJECTED → findFirst devuelve null
+    prismaMock.internship.findFirst.mockResolvedValue(null);
+
+    const result = await getInternshipById("int-pending-company");
 
     expect(result).toBeNull();
   });
@@ -144,6 +176,7 @@ describe("createInternship", () => {
     prismaMock.companyProfile.findUnique.mockResolvedValue({
       id: "cp-1",
       userId: "user-1",
+      companyStatus: "APPROVED",
     });
     prismaMock.internship.create.mockResolvedValue({
       ...mockInternship,
@@ -158,6 +191,33 @@ describe("createInternship", () => {
         data: expect.objectContaining({ companyId: "cp-1" }),
       }),
     );
+  });
+
+  // #E4 — defensa en profundidad: no permitir crear con company PENDING/REJECTED
+  it("rechaza si companyStatus es PENDING (#E4)", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+      companyStatus: "PENDING",
+    });
+
+    await expect(createInternship("user-1", data)).rejects.toThrow(
+      "Company not approved",
+    );
+    expect(prismaMock.internship.create).not.toHaveBeenCalled();
+  });
+
+  it("rechaza si companyStatus es REJECTED (#E4)", async () => {
+    prismaMock.companyProfile.findUnique.mockResolvedValue({
+      id: "cp-1",
+      userId: "user-1",
+      companyStatus: "REJECTED",
+    });
+
+    await expect(createInternship("user-1", data)).rejects.toThrow(
+      "Company not approved",
+    );
+    expect(prismaMock.internship.create).not.toHaveBeenCalled();
   });
 });
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { ZodError } from "zod";
 import { requireAuth } from "@/server/lib/auth-guard";
 import {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
         { status: 400 },
       );
     }
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
@@ -54,9 +56,18 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    // #E3/#E4 — solo whitelisted errors propagan su mensaje al cliente.
+    // Cualquier otro Error (Prisma, conexión, etc.) puede contener info de
+    // schema o infra → Sentry + 500 genérico.
     if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      if (error.message === "Company not approved") {
+        return NextResponse.json({ error: error.message }, { status: 403 });
+      }
+      if (error.message === "Company profile required") {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
     }
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

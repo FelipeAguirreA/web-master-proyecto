@@ -64,8 +64,14 @@ export async function listInternships(filters: ListFilters) {
 }
 
 export async function getInternshipById(id: string) {
-  return prisma.internship.findUnique({
-    where: { id },
+  // #E1 — espejo del filtro del listado: una práctica soft-deleted o de empresa
+  // PENDING/REJECTED debe ser invisible incluso accediendo por ID directo.
+  return prisma.internship.findFirst({
+    where: {
+      id,
+      isActive: true,
+      company: { is: { companyStatus: "APPROVED" } },
+    },
     include: {
       company: {
         select: {
@@ -88,6 +94,14 @@ export async function createInternship(
   });
 
   if (!company) throw new Error("Company profile required");
+
+  // #E4 — defensa en profundidad: el dashboard avisa visualmente cuando la empresa
+  // está PENDING/REJECTED, pero el backend NO bloqueaba el POST. Sin este gate, una
+  // empresa no aprobada puede crear N internships (waste de embeddings + bypass del
+  // flow de moderación si después la aprueban).
+  if (company.companyStatus !== "APPROVED") {
+    throw new Error("Company not approved");
+  }
 
   const textForEmbedding = `${data.title} ${data.description} ${data.skills.join(" ")}`;
   const embedding = await generateEmbedding(textForEmbedding);
