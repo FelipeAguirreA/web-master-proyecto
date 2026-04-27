@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { validateAndRotate } from "@/server/services/refresh-tokens.service";
 import { buildJwtPayload, encodeAccessJwt } from "@/server/lib/auth-jwt";
 import {
@@ -50,9 +51,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (result.kind === "reuse-detected") {
-      console.warn(
-        `[auth/refresh] reuse detection — userId=${result.userId} ip=${ip}`,
-      );
+      // Reuse de un refresh token ya rotado = señal fuerte de cuenta
+      // comprometida. Va a Sentry como event level=error (no warning) para
+      // que dispare alertas — coherente con el paso 3.6 (login attempts).
+      // userId interno (cuid) no es PII en sí mismo, no se hashea.
+      Sentry.captureMessage("Refresh token reuse detected", {
+        level: "error",
+        tags: { auth: "refresh_reuse" },
+        extra: { userId: result.userId, ip },
+      });
       return clearAuthCookies(
         NextResponse.json(
           { error: "Sesión revocada por seguridad. Volvé a iniciar sesión." },

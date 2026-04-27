@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.5] - 2026-04-27
+
+### Security
+
+- **Reuse de refresh token a Sentry (Fase 3 paso 3.7 / finding A2)** — primer fix derivado del audit `/api/*` (paso 3.7). Antes, cuando `validateAndRotate` retornaba `kind: "reuse-detected"` en `/api/auth/refresh`, el evento solo quedaba en `console.warn(...)`. En Vercel los logs de console se pierden rápido y este es un evento de seguridad **crítico** (señal fuerte de cuenta comprometida — alguien usó un refresh ya rotado). Ahora se emite `Sentry.captureMessage("Refresh token reuse detected", { level: "error", tags: { auth: "refresh_reuse" }, extra: { userId, ip } })` para que dispare alertas.
+  - **Level `error` (no `warning`)** — coherente con la severidad. A diferencia de los login attempts del paso 3.6 (level `warning`, son intentos fallidos esperables), un reuse de refresh token rotado solo ocurre por compromiso de cookie o ataque MITM.
+  - **No se hashea `userId`** — el `userId` interno (cuid generado por Prisma) no es PII por sí mismo y es el identificador útil para mitigar (revocar tokens del user, alertar al usuario).
+
+### Tests
+
+- Suite total: **891 tests / 47 archivos** verde (antes 882 / 46). +9 tests en `src/test/unit/auth-refresh-route.test.ts` cubriendo: reuse-detected → captura con tags y extras correctos, status 401, cookies clearadas, ip "unknown" cuando falta `x-forwarded-for`, **happy path NO emite Sentry**, **kind=invalid NO emite Sentry**, **sin cookie NO emite Sentry**, **rate-limited NO emite Sentry**, payload no contiene rawToken plaintext.
+
+### Notes
+
+- **Paso 3.7 sigue abierto** — este es el primer fix de findings detectados por el audit. Áreas pendientes: `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`. El finding `#A1` (enumeration por timing en `auth/empresa/register`) queda documentado como ⚠️ aceptado — el rate limit `5/h por IP` mitiga el ataque a un costo razonable.
+- Próximo paso del 3.7: auditar `/api/admin`.
+
 ## [1.10.4] - 2026-04-26
 
 ### Added
