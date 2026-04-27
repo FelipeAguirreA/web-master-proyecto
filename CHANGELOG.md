@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.6] - 2026-04-27
+
+### Security
+
+- **Hardening de `PATCH /api/admin/empresas/[id]` (Fase 3 paso 3.7 / findings #B1, #B2, #B3)** — segundo lote de fixes derivado del audit `/api/*`. Cierra los 3 ⚠️ levantados en el área `admin`:
+  - **#B1 — validación de body con Zod**. Antes: `(await request.json()) as { action: string }` (cast TypeScript + chequeo manual). Ahora: `z.object({ action: z.enum(["approve", "reject"]) })` con `safeParse`. Body que no parsea (json roto, no objeto, action inválida) → 400 con `details` de Zod.
+  - **#B2 — diferenciar 404 de 500**. Antes: `Prisma P2025 RecordNotFound` caía en el catch genérico → 500. Ahora: try/catch específico sobre el `prisma.companyProfile.update`, si `err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025"` → 404 `"Empresa no encontrada"`. Cualquier otro error sigue siendo 500.
+  - **#B3 — fallos del email a Sentry**. Antes: `sendCompanyStatusEmail(...).catch((err) => console.error(...))` se perdía en Vercel. Ahora: `Sentry.captureException(err, { tags: { mail: "company_status" }, extra: { empresaId, newStatus } })`. El admin puede rastrear desde Sentry qué emails de aprobación/rechazo no salieron y reenviarlos manualmente.
+
+### Tests
+
+- Suite total: **903 tests / 48 archivos** verde (antes 891 / 47). +12 tests nuevos en `src/test/unit/admin-empresas-route.test.ts` cubriendo: auth (401/403 propagados sin tocar DB), body validation (json roto, body vacío, action inválida, body string), happy paths (approve/reject con email correcto), error handling (P2025 → 404 sin email, error genérico → 500 sin Sentry mail-tagged), mail failure → Sentry con tags y extras correctos, mail OK → no Sentry.
+
+### Notes
+
+- **Paso 3.7**: 2/12 áreas cerradas (`auth`, `admin`). Pendientes: `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+- **Patrón emergente**: el handler de admin tenía 3 problemas que esperamos repetir en otras áreas: (a) cast `as` en body en vez de Zod, (b) catch genérico que esconde 404s detrás de 500s, (c) errores de mail que solo van a `console`. Los 3 son boy-scout fixes localizados; si aparecen en muchos handlers, evaluamos refactor parejo (helper `parseBody(schema, req)` y wrapper de mailer con Sentry).
+
 ## [1.10.5] - 2026-04-27
 
 ### Security

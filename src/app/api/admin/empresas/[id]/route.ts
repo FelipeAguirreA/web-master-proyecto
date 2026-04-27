@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { requireAdmin } from "@/server/lib/auth-guard";
 import { prisma } from "@/server/lib/db";
 import { sendCompanyStatusEmail } from "@/server/lib/mail";
+
+const bodySchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -13,34 +20,53 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const { action } = (await request.json()) as { action: string };
 
+    const raw = await request.json().catch(() => null);
+    const parsed = bodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Datos inválidos", details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
     const newStatus =
-      action === "approve"
-        ? "APPROVED"
-        : action === "reject"
-          ? "REJECTED"
-          : null;
+      parsed.data.action === "approve" ? "APPROVED" : "REJECTED";
 
-    if (!newStatus) {
-      return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
+    let updated;
+    try {
+      updated = await prisma.companyProfile.update({
+        where: { id },
+        data: { companyStatus: newStatus },
+        include: {
+          user: { select: { email: true, name: true } },
+        },
+      });
+    } catch (err) {
+      // P2025 = RecordNotFound (Prisma). El admin pasó un id de empresa que
+      // no existe → 404, no 500. Cualquier otro error de DB sí es 500.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2025"
+      ) {
+        return NextResponse.json(
+          { error: "Empresa no encontrada" },
+          { status: 404 },
+        );
+      }
+      throw err;
     }
 
-    const updated = await prisma.companyProfile.update({
-      where: { id },
-      data: { companyStatus: newStatus },
-      include: {
-        user: { select: { email: true, name: true } },
-      },
-    });
-
-    // Enviar email sin bloquear la respuesta
+    // Email no bloqueante. Si falla, va a Sentry con tag para alertas y
+    // contexto suficiente para que el admin pueda reenviar manualmente.
     sendCompanyStatusEmail(
       updated.user.email,
       updated.companyName,
-      newStatus as "APPROVED" | "REJECTED",
+      newStatus,
     ).catch((err) =>
-      console.error("[mail] sendCompanyStatusEmail error:", err),
+      Sentry.captureException(err, {
+        tags: { mail: "company_status" },
+        extra: { empresaId: id, newStatus },
+      }),
     );
 
     return NextResponse.json(updated);

@@ -26,7 +26,7 @@
 | Área            | Handlers | Estado                                              |
 | --------------- | -------- | --------------------------------------------------- |
 | `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado) |
-| `admin`         | 2        | ⏳ pendiente                                        |
+| `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)       |
 | `users`         | 5        | ⏳ pendiente                                        |
 | `applications`  | 5        | ⏳ pendiente                                        |
 | `internships`   | 3        | ⏳ pendiente                                        |
@@ -79,7 +79,24 @@
 
 ---
 
-## `admin` (2 handlers) — pendiente
+## `admin` (2 handlers)
+
+| Método | Path                       | AuthZ               | Zod                                                     | Output                   | Estado                              |
+| ------ | -------------------------- | ------------------- | ------------------------------------------------------- | ------------------------ | ----------------------------------- |
+| GET    | `/api/admin/empresas`      | `requireAdmin()` ✅ | N/A (sin params usuario-controlados)                    | Lista companies + owners | ✅                                  |
+| PATCH  | `/api/admin/empresas/[id]` | `requireAdmin()` ✅ | `z.object({ action: z.enum(["approve","reject"]) })` ✅ | entidad actualizada      | ✅ (#B1+#B2+#B3 cerrados en 1.10.6) |
+
+### Findings cerrados
+
+**✅ #B1 — body validation con Zod** (cerrado en 1.10.6). Antes: `as { action: string }`. Ahora: `safeParse` con enum estricto. Body roto / objeto vacío / acción desconocida → 400 con `details` de Zod.
+
+**✅ #B2 — 404 para empresa inexistente** (cerrado en 1.10.6). Antes: P2025 caía en catch genérico → 500. Ahora: try/catch específico, `Prisma.PrismaClientKnownRequestError` con code `P2025` → 404 `"Empresa no encontrada"`.
+
+**✅ #B3 — fallo del email a Sentry** (cerrado en 1.10.6). Antes: `console.error`. Ahora: `Sentry.captureException(err, { tags: { mail: "company_status" }, extra: { empresaId, newStatus } })`. El admin puede rastrear y reenviar manualmente.
+
+### Notas
+
+- El catch genérico del GET (`/api/admin/empresas`) silencia errores con `catch {}` sin loguear. Bajo tráfico, bajo impacto. NO se sumó Sentry por consistencia con el patrón general de catch genérico que ya tienen muchos handlers — si hacemos un sweep general lo cubrimos parejo.
 
 ## `users` (5 handlers) — pendiente
 

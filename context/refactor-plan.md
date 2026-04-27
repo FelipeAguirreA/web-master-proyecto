@@ -209,7 +209,8 @@ Estado al 2026-04-27:
 
 - Doc auditable creado en `docs/security-audit-api.md` (este commit).
 - Área `auth` ✅ cerrada: 6 handlers revisados. Finding `#A1` (enumeration por timing en `auth/empresa/register`) queda como ⚠️ aceptado — el rate limit `5/h por IP` mitiga el ataque a un costo razonable. Finding `#A2` (reuse de refresh token solo iba a `console.warn`) ✅ cerrado en bump **1.10.5**: ahora emite `Sentry.captureMessage` level `error` con tags `{ auth: "refresh_reuse" }`. +9 tests, suite 891/891 verde.
-- Áreas pendientes (11): `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+- Área `admin` ✅ cerrada: 2 handlers revisados. 3 findings ⚠️ cerrados en bump **1.10.6** (`#B1` Zod body, `#B2` P2025 → 404, `#B3` fallo de mail a Sentry). +12 tests, suite 903/903 verde.
+- Áreas pendientes (10): `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
 
 ---
 
