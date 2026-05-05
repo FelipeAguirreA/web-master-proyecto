@@ -1,6 +1,6 @@
 import { prisma } from "@/server/lib/db";
 
-export type ChatErrorCode =
+type ChatErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "INTERVIEW_REQUIRED"

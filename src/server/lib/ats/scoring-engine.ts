@@ -14,7 +14,7 @@ export interface ATSModuleInput {
   params: Record<string, unknown>;
 }
 
-export interface ModuleScoreDetail {
+interface ModuleScoreDetail {
   moduleId: string;
   type: string;
   label: string;
@@ -24,7 +24,7 @@ export interface ModuleScoreDetail {
   reason?: string;
 }
 
-export interface ATSResult {
+interface ATSResult {
   atsScore: number;
   moduleScores: ModuleScoreDetail[];
   passedFilters: boolean;

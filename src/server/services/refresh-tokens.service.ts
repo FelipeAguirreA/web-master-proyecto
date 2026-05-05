@@ -3,19 +3,19 @@ import { prisma } from "@/server/lib/db";
 
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
 
-export interface IssuedRefreshToken {
+interface IssuedRefreshToken {
   id: string;
   rawToken: string;
   expiresAt: Date;
 }
 
-export interface RotatedRefreshToken {
+interface RotatedRefreshToken {
   userId: string;
   rawToken: string;
   expiresAt: Date;
 }
 
-export type RotationResult =
+type RotationResult =
   | { kind: "ok"; token: RotatedRefreshToken }
   | { kind: "invalid" }
   | { kind: "reuse-detected"; userId: string };

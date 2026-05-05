@@ -1,7 +1,7 @@
 import { prisma } from "@/server/lib/db";
 import { Prisma } from "@prisma/client";
 
-export type InterviewErrorCode =
+type InterviewErrorCode =
   | "NOT_FOUND"
   | "FORBIDDEN"
   | "INTERVIEW_ALREADY_EXISTS"

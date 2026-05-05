@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
-export type AppNotification = {
+type AppNotification = {
   id: string;
   type:
     | "APPLICATION_REVIEWED"

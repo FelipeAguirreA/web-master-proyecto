@@ -1,4 +1,4 @@
-export type ModuleType =
+type ModuleType =
   | "SKILLS"
   | "EXPERIENCE"
   | "EDUCATION"
@@ -6,7 +6,7 @@ export type ModuleType =
   | "PORTFOLIO"
   | "CUSTOM";
 
-export interface PresetModule {
+interface PresetModule {
   type: ModuleType;
   label: string;
   description: string;

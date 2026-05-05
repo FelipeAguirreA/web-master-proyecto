@@ -13,7 +13,7 @@ export const refreshCookieName = useSecureCookies
   ? "__Host-practix.refresh-token"
   : "practix.refresh-token";
 
-export interface CookieOptions {
+interface CookieOptions {
   name: string;
   value: string;
   httpOnly: boolean;

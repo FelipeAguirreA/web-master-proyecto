@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/app/**/page.tsx",
+    "src/app/**/layout.tsx",
+    "src/app/**/route.ts",
+    "src/app/**/error.tsx",
+    "src/app/**/loading.tsx",
+    "src/app/**/not-found.tsx",
+    "src/app/global-error.tsx",
+    "src/proxy.ts",
+    "src/instrumentation.ts",
+    "src/instrumentation-client.ts",
+    "src/test/setup.ts",
+    "prisma/seed.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "prisma/seed.ts"],
+  "ignore": ["src/test/mocks/**", ".next/**", "coverage/**", ".husky/**"],
+  "ignoreDependencies": ["@types/*", "lint-staged", "tailwindcss"],
+  "ignoreBinaries": ["lint-staged"]
+}

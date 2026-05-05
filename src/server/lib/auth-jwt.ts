@@ -3,7 +3,7 @@ import { prisma } from "@/server/lib/db";
 import { env } from "@/lib/env";
 import { ACCESS_TOKEN_MAX_AGE_S } from "@/server/lib/auth-cookies";
 
-export interface JwtPayload {
+interface JwtPayload {
   sub: string;
   id: string;
   email: string;

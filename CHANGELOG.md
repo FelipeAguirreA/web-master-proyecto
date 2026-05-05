@@ -5,6 +5,43 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.18] - 2026-05-05
+
+### Cleanup
+
+- **Fase 4 paso 1: knip dead code sweep**. Instalado `knip@^6.11.0` como devDep + script `pnpm knip`. Configurado `knip.json` con entries Next.js (`page.tsx`, `layout.tsx`, `route.ts`, `error.tsx`, `loading.tsx`, `not-found.tsx`, `proxy.ts`, `instrumentation*.ts`) + ignore para `.husky/**`, `src/test/mocks/**`, `.next/**`, `coverage/**`. Salida final de knip: **0 findings** (100% clean).
+
+#### Findings cerrados
+
+- **Unused exports privatizados (1 const + 11 types)** — exports que solo se usaban dentro de su propio archivo. Cambiados a non-exported (interno):
+  - `src/server/lib/storage.ts`: `supabase` (const) → privado.
+  - `src/hooks/useNotifications.ts`: `AppNotification` (type) → privado.
+  - `src/server/lib/auth-cookies.ts`: `CookieOptions` (interface) → privado.
+  - `src/server/lib/auth-jwt.ts`: `JwtPayload` (interface) → privado.
+  - `src/server/lib/ats/preset-modules.ts`: `ModuleType`, `PresetModule` → privados (la const `PRESET_MODULES` se mantiene exportada — sí se usa desde el dashboard).
+  - `src/server/lib/ats/scoring-engine.ts`: `ModuleScoreDetail`, `ATSResult` → privados (los callers usan inferencia desde `scoreApplication()`).
+  - `src/server/services/chat.service.ts`: `ChatErrorCode` → privado.
+  - `src/server/services/interviews.service.ts`: `InterviewErrorCode` → privado.
+  - `src/server/services/refresh-tokens.service.ts`: `IssuedRefreshToken`, `RotatedRefreshToken`, `RotationResult` → privados (callers usan inferencia).
+
+- **Tipos verdaderamente muertos eliminados** en `src/types/index.ts`: `User`, `StudentProfile`, `CompanyProfile`, `PaginatedResponse`. Confirmado con `Grep` que ningún módulo los importaba (las apariciones de "StudentProfile" en `users.service.ts` eran del tipo `StudentProfileInput` — no relacionado). Quedan exportados solo `Internship` y `Application` (sí se usan desde el frontend en `practicas/`, `dashboard/estudiante/`, `InternshipCard.tsx`).
+
+- **Boy-scout: `postcss` agregado a devDependencies**. Antes era transitivo via `tailwindcss@4` — funcionaba, pero `postcss.config.mjs` lo invocaba sin estar declarado. knip lo flaggeaba como "unlisted dependency". Ahora explícito (`postcss@8.5.12`).
+
+- **Falsos positivos silenciados en knip.json** — `lint-staged` y `tailwindcss` agregados a `ignoreDependencies` (lint-staged se invoca via husky pre-commit, tailwind se usa via `globals.css` y postcss). `lint-staged` también en `ignoreBinaries`. `.husky/**` agregado a `ignore` para evitar que knip flagee el binary del pre-commit hook.
+
+### Tests
+
+- Suite total: **1097 tests / 57 archivos** verde (sin cambios — el sweep no introdujo ni rompió tests, los exports privatizados se usaban solo internamente).
+- TSC clean ✅.
+
+### Notes
+
+- **Decisión "privatizar vs eliminar"**: para los types que solo se usaban dentro de su archivo, decidimos quitar el `export` (mantener la definición pero hacerla local) en lugar de eliminar la definición misma. Razón: los types describen el contrato interno del módulo y siguen siendo útiles para la legibilidad y para el tipado interno. Solo eliminamos definiciones cuando NADIE las usa (los 4 types muertos de `src/types/index.ts`).
+- **`ChatErrorCode` y `InterviewErrorCode` privatizados**: estos los exporté yo en los audits de Fase 3 paso 3.7 (1.10.11 y 1.10.13) pensando en consumers externos del service, pero ningún caller real los importó. YAGNI — quedan privados. Si en el futuro un test o handler los necesita, se re-exporta.
+- **knip 6.x**: la versión 6 tiene auto-detection muy buena de Next.js, Vitest, Playwright, Prisma, Sentry. Casi no necesita config explícita más allá de `entry`/`project`/`ignore`.
+- **Próximo paso**: Fase 4 lote 2 — reorganización de `src/lib/` (mover `auth.ts` a `server/lib/`, mover `supabase/realtime-client.ts` a `client/`).
+
 ## [1.10.17] - 2026-05-05
 
 ### Security

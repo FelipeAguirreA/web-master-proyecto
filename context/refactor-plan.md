@@ -229,7 +229,7 @@ Estado al 2026-04-27:
   - `src/lib/auth.ts` → `src/server/lib/auth.ts`
   - `src/lib/constants.ts` → queda
   - `src/lib/supabase/realtime-client.ts` → `src/lib/client/supabase.ts`
-- [ ] Renombrar `src/proxy.ts` → `src/middleware.ts` (si no se hizo en Fase 0)
+- [x] ~~Renombrar `src/proxy.ts` → `src/middleware.ts`~~ — **N/A**: en Next.js 16 (versión actual: `16.2.3`) la convención es `proxy.ts` con función `proxy()`. Validado en Fase 0 con `curl -I` (header `x-request-id` presente). El archivo actual `src/proxy.ts` está correcto. Este ítem queda resuelto por convención del framework.
 - [ ] Revisar `src/types/index.ts` — sacar tipos muertos
 
 ---
