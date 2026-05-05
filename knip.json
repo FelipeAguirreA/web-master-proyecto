@@ -16,6 +16,11 @@
   ],
   "project": ["src/**/*.{ts,tsx}", "prisma/seed.ts"],
   "ignore": ["src/test/mocks/**", ".next/**", "coverage/**", ".husky/**"],
-  "ignoreDependencies": ["@types/*", "lint-staged", "tailwindcss"],
+  "ignoreDependencies": [
+    "@types/*",
+    "lint-staged",
+    "tailwindcss",
+    "pino-pretty"
+  ],
   "ignoreBinaries": ["lint-staged"]
 }

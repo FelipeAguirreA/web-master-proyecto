@@ -1,4 +1,7 @@
 import { env } from "@/lib/env";
+import { createLogger } from "./logger";
+
+const log = createLogger({ module: "embeddings" });
 
 // BAAI/bge-small-en-v1.5 — 384 dims, feature-extraction nativa en el router de HuggingFace.
 // Los modelos sentence-transformers/* e intfloat/* son ruteados al SentenceSimilarityPipeline
@@ -14,9 +17,7 @@ const HUGGINGFACE_URL =
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   if (!env.HUGGINGFACE_API_KEY) {
-    console.warn(
-      "[embeddings] HUGGINGFACE_API_KEY no configurada — retornando embedding vacío",
-    );
+    log.warn("HUGGINGFACE_API_KEY no configurada — retornando embedding vacío");
     return [];
   }
 
@@ -32,7 +33,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
     if (!res.ok) {
       const error = await res.text();
-      console.error("[embeddings] HuggingFace API error:", error);
+      log.error({ status: res.status, error }, "HuggingFace API error");
       return [];
     }
 
@@ -41,7 +42,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     if (Array.isArray(result[0])) return result[0] as number[];
     return result as number[];
   } catch (error) {
-    console.error("[embeddings] Error al generar embedding:", error);
+    log.error({ err: error }, "error al generar embedding");
     return [];
   }
 }

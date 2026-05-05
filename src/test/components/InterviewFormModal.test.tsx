@@ -6,6 +6,15 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+
+const { mockSentryCaptureException } = vi.hoisted(() => ({
+  mockSentryCaptureException: vi.fn(),
+}));
+
+vi.mock("@sentry/nextjs", () => ({
+  captureException: mockSentryCaptureException,
+}));
+
 import InterviewFormModal from "@/components/chat/calendar/InterviewFormModal";
 
 const buildCandidate = (
@@ -251,9 +260,9 @@ describe("InterviewFormModal", () => {
       });
     });
 
-    it("captura errores de fetch (console.error)", async () => {
+    it("captura errores de fetch (Sentry.captureException)", async () => {
       vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockSentryCaptureException.mockClear();
 
       render(<InterviewFormModal {...baseProps} />);
       const internshipSelect = screen.getAllByRole(
@@ -262,7 +271,12 @@ describe("InterviewFormModal", () => {
       fireEvent.change(internshipSelect, { target: { value: "int-1" } });
 
       await waitFor(() => {
-        expect(errorSpy).toHaveBeenCalled();
+        expect(mockSentryCaptureException).toHaveBeenCalledWith(
+          expect.any(Error),
+          expect.objectContaining({
+            tags: { component: "InterviewFormModal" },
+          }),
+        );
       });
     });
 

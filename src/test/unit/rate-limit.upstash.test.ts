@@ -10,9 +10,20 @@ vi.hoisted(() => {
 });
 
 // Hoisted helpers para que estén disponibles en el factory de vi.mock.
-const { mockLimit, mockSlidingWindow } = vi.hoisted(() => ({
+const { mockLimit, mockSlidingWindow, mockLog } = vi.hoisted(() => ({
   mockLimit: vi.fn(),
   mockSlidingWindow: vi.fn(() => "sliding-window-config"),
+  mockLog: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/lib/logger", () => ({
+  createLogger: () => mockLog,
+  getRequestId: () => undefined,
 }));
 
 // Mock de @upstash/redis: Redis debe ser construible con `new`, así que uso
@@ -140,9 +151,7 @@ describe("rateLimit — modo Upstash (config presente)", () => {
 
   it("fail-open ante error de Upstash (red/timeout/5xx)", async () => {
     mockLimit.mockRejectedValue(new Error("ECONNRESET"));
-    const consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    mockLog.error.mockClear();
 
     const rateLimit = await importRateLimit();
     const before = Date.now();
@@ -151,12 +160,10 @@ describe("rateLimit — modo Upstash (config presente)", () => {
     expect(result.success).toBe(true);
     expect(result.remaining).toBe(4); // limit - 1
     expect(result.resetAt).toBeGreaterThanOrEqual(before + 60_000);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "[rate-limit] Upstash error, fail-open:",
-      expect.any(Error),
+    expect(mockLog.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      "Upstash error, fail-open",
     );
-
-    consoleErrorSpy.mockRestore();
   });
 
   it("reusa la misma instancia de Redis en llamadas sucesivas (no la recrea)", async () => {

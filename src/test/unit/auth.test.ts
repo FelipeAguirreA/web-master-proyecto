@@ -23,12 +23,24 @@ const {
   mockCookieSet,
   mockSentryCaptureMessage,
   mockSentryAddBreadcrumb,
+  mockLog,
 } = vi.hoisted(() => ({
   mockRateLimit: vi.fn(),
   mockIssueRefresh: vi.fn(),
   mockCookieSet: vi.fn(),
   mockSentryCaptureMessage: vi.fn(),
   mockSentryAddBreadcrumb: vi.fn(),
+  mockLog: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/lib/logger", () => ({
+  createLogger: () => mockLog,
+  getRequestId: () => undefined,
 }));
 
 vi.mock("@/server/lib/rate-limit", () => ({
@@ -216,7 +228,7 @@ describe("CredentialsProvider — rate limit en login", () => {
       remaining: 0,
       resetAt: Date.now() + 60_000,
     });
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockLog.warn.mockClear();
     const authorize = getCredentialsAuthorize();
 
     const result = await authorize!(
@@ -226,10 +238,10 @@ describe("CredentialsProvider — rate limit en login", () => {
 
     expect(result).toBeNull();
     expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("login rate limit hit"),
+    expect(mockLog.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ ip: "1.2.3.4" }),
+      "login rate limit hit",
     );
-    warnSpy.mockRestore();
   });
 
   it("compone el identifier como `login:ip:email-lowercased` con Headers", async () => {
@@ -447,7 +459,7 @@ describe("CredentialsProvider — Sentry telemetría de login attempts", () => {
       remaining: 0,
       resetAt: Date.now() + 60_000,
     });
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+    mockLog.warn.mockClear();
     const authorize = getCredentialsAuthorize();
 
     await authorize!(
@@ -643,7 +655,7 @@ describe("signIn callback", () => {
 
   it("retorna false si Prisma falla", async () => {
     prismaMock.user.findUnique.mockRejectedValue(new Error("DB down"));
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockLog.error.mockClear();
 
     const result = await authOptions.callbacks!.signIn!({
       user: { email: "a@b.com", name: "A", image: null } as never,
@@ -654,7 +666,6 @@ describe("signIn callback", () => {
     });
 
     expect(result).toBe(false);
-    errorSpy.mockRestore();
   });
 });
 
@@ -922,7 +933,7 @@ describe("events.signIn — emisión inicial de refresh token", () => {
   it("loggea error y NO bloquea sign-in si la emisión falla", async () => {
     prismaMock.user.findUnique.mockResolvedValue({ id: "u-1" });
     mockIssueRefresh.mockRejectedValue(new Error("DB down"));
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockLog.error.mockClear();
 
     const event = getEventsSignIn();
     // No debe arrojar.
@@ -930,11 +941,13 @@ describe("events.signIn — emisión inicial de refresh token", () => {
       event!({ user: { email: "x@y.com" } } as never),
     ).resolves.toBeUndefined();
 
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("[auth/events.signIn]"),
-      expect.any(Error),
+    expect(mockLog.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        err: expect.any(Error),
+        event: "events.signIn",
+      }),
+      "refresh token issuance failed",
     );
-    errorSpy.mockRestore();
   });
 });
 

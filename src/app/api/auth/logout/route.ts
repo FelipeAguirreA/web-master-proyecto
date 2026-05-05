@@ -5,6 +5,7 @@ import {
   refreshCookieName,
   sessionCookieName,
 } from "@/server/lib/auth-cookies";
+import { createLogger, getRequestId } from "@/server/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,11 @@ export async function POST(req: NextRequest) {
     response.cookies.set(buildClearCookie(sessionCookieName));
     return response;
   } catch (err) {
-    console.error("[auth/logout]", err);
+    const log = createLogger({
+      route: "auth.logout.POST",
+      requestId: getRequestId(req.headers),
+    });
+    log.error({ err }, "logout failed");
     // Aunque falle el revoke en DB, limpiamos cookies igual — mejor cliente
     // queda con cookie inválida que con cookie válida sin poder revocar.
     const response = NextResponse.json({ ok: true });

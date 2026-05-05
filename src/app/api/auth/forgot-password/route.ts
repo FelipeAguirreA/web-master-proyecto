@@ -5,6 +5,7 @@ import { prisma } from "@/server/lib/db";
 import { sendPasswordResetEmail } from "@/server/lib/mail";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 import { env } from "@/lib/env";
+import { createLogger, getRequestId } from "@/server/lib/logger";
 
 const schema = z.object({
   email: z.string().email(),
@@ -65,7 +66,11 @@ export async function POST(req: NextRequest) {
 
     return GENERIC_OK;
   } catch (err) {
-    console.error("[forgot-password]", err);
+    const log = createLogger({
+      route: "auth.forgot-password.POST",
+      requestId: getRequestId(req.headers),
+    });
+    log.error({ err }, "forgot-password failed");
     // Respuesta genérica también en error — no filtrar información
     return GENERIC_OK;
   }

@@ -1,6 +1,9 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { env } from "@/lib/env";
+import { createLogger } from "./logger";
+
+const log = createLogger({ module: "rate-limit" });
 
 interface RateLimitResult {
   success: boolean;
@@ -15,8 +18,8 @@ const ratelimiterCache = new Map<string, Ratelimit>();
 function getUpstashRedis(): Redis | null {
   if (!env.UPSTASH_REDIS_REST_URL || !env.UPSTASH_REDIS_REST_TOKEN) {
     if (!upstashWarned) {
-      console.warn(
-        "[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN no configurados — usando fallback in-memory (no apto para producción multi-instancia)",
+      log.warn(
+        "UPSTASH_REDIS_REST_URL/TOKEN no configurados — usando fallback in-memory (no apto para producción multi-instancia)",
       );
       upstashWarned = true;
     }
@@ -109,7 +112,7 @@ export async function rateLimit(
       resetAt: result.reset,
     };
   } catch (error) {
-    console.error("[rate-limit] Upstash error, fail-open:", error);
+    log.error({ err: error }, "Upstash error, fail-open");
     return {
       success: true,
       remaining: limit - 1,

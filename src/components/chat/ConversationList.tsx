@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { MessageSquare } from "lucide-react";
 import ConversationItem from "./ConversationItem";
+import * as Sentry from "@sentry/nextjs";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Conversation = {
@@ -44,7 +45,11 @@ export default function ConversationList({
     fetchWithRefresh("/api/chat/conversations")
       .then((r) => r.json())
       .then((data) => setConversations(data ?? []))
-      .catch(console.error)
+      .catch((err) =>
+        Sentry.captureException(err, {
+          tags: { component: "ConversationList" },
+        }),
+      )
       .finally(() => setLoading(false));
   }, []);
 

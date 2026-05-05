@@ -8,6 +8,20 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+const { mockLog } = vi.hoisted(() => ({
+  mockLog: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/lib/logger", () => ({
+  createLogger: () => mockLog,
+  getRequestId: () => undefined,
+}));
+
 import {
   sendCompanyStatusEmail,
   sendNewApplicationEmail,
@@ -21,7 +35,9 @@ const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  vi.spyOn(console, "log").mockImplementation(() => {});
+  mockLog.warn.mockClear();
+  mockLog.error.mockClear();
+  mockLog.info.mockClear();
   (
     mockedEnv as {
       BREVO_API_KEY?: string;
@@ -54,13 +70,12 @@ const lastCallBody = (fetchSpy: { mock: { calls: unknown[][] } }) =>
 describe("sendEmail (vía sendCompanyStatusEmail) sin BREVO_API_KEY", () => {
   it("retorna sin llamar a fetch y emite warning", async () => {
     (mockedEnv as { BREVO_API_KEY?: string }).BREVO_API_KEY = undefined;
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     await sendCompanyStatusEmail("e@x.com", "Empresa X", "APPROVED");
 
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(mockLog.warn).toHaveBeenCalledWith(
       expect.stringContaining("BREVO_API_KEY no configurada"),
     );
   });

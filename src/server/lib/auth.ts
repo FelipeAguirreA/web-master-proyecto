@@ -13,7 +13,10 @@ import {
   ACCESS_TOKEN_MAX_AGE_S,
 } from "@/server/lib/auth-cookies";
 import { env } from "@/lib/env";
+import { createLogger } from "@/server/lib/logger";
 export { ADMIN_EMAIL } from "@/lib/constants";
+
+const log = createLogger({ module: "auth" });
 
 const LOGIN_RATE_LIMIT = 5;
 const LOGIN_RATE_WINDOW_MS = 5 * 60 * 1000;
@@ -100,8 +103,9 @@ export const authOptions: NextAuthOptions = {
           LOGIN_RATE_WINDOW_MS,
         );
         if (!rl.success) {
-          console.warn(
-            `[auth] login rate limit hit — ip=${ip} email=${credentials.email.toLowerCase()}`,
+          log.warn(
+            { ip, emailHash: hashEmail(credentials.email) },
+            "login rate limit hit",
           );
           reportFailedLogin("rate_limited", credentials.email, ip);
           return null;
@@ -178,7 +182,10 @@ export const authOptions: NextAuthOptions = {
 
         return true;
       } catch (error) {
-        console.error("[signIn callback error]", error);
+        log.error(
+          { err: error, event: "signIn.callback" },
+          "signIn callback failed",
+        );
         return false;
       }
     },
@@ -277,9 +284,9 @@ export const authOptions: NextAuthOptions = {
         // cliente arrancará con cookie de access válida 15 min y al primer
         // intento de refresh fallará → re-login. Mejor degradación parcial
         // que login bloqueado.
-        console.error(
-          "[auth/events.signIn] refresh token issuance failed",
-          err,
+        log.error(
+          { err, event: "events.signIn" },
+          "refresh token issuance failed",
         );
       }
     },

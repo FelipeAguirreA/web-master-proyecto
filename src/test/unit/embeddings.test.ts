@@ -6,6 +6,20 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
+const { mockLog } = vi.hoisted(() => ({
+  mockLog: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock("@/server/lib/logger", () => ({
+  createLogger: () => mockLog,
+  getRequestId: () => undefined,
+}));
+
 import {
   generateEmbedding,
   calculateMatchScore,
@@ -17,6 +31,8 @@ const HUGGINGFACE_URL =
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  mockLog.warn.mockClear();
+  mockLog.error.mockClear();
   (mockedEnv as { HUGGINGFACE_API_KEY?: string }).HUGGINGFACE_API_KEY =
     "hf_test_key";
 });
@@ -25,12 +41,11 @@ describe("generateEmbedding", () => {
   it("retorna [] cuando no hay HUGGINGFACE_API_KEY", async () => {
     (mockedEnv as { HUGGINGFACE_API_KEY?: string }).HUGGINGFACE_API_KEY =
       undefined;
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const result = await generateEmbedding("hola mundo");
 
     expect(result).toEqual([]);
-    expect(warnSpy).toHaveBeenCalledWith(
+    expect(mockLog.warn).toHaveBeenCalledWith(
       expect.stringContaining("HUGGINGFACE_API_KEY no configurada"),
     );
   });
@@ -79,7 +94,6 @@ describe("generateEmbedding", () => {
   });
 
   it("retorna [] cuando res.ok es false (loguea error)", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("model is loading", { status: 503 }),
     );
@@ -87,22 +101,21 @@ describe("generateEmbedding", () => {
     const result = await generateEmbedding("hola");
 
     expect(result).toEqual([]);
-    expect(errorSpy).toHaveBeenCalledWith(
-      "[embeddings] HuggingFace API error:",
-      "model is loading",
+    expect(mockLog.error).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 503, error: "model is loading" }),
+      "HuggingFace API error",
     );
   });
 
   it("retorna [] cuando fetch lanza una excepción", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network down"));
 
     const result = await generateEmbedding("hola");
 
     expect(result).toEqual([]);
-    expect(errorSpy).toHaveBeenCalledWith(
-      "[embeddings] Error al generar embedding:",
-      expect.any(Error),
+    expect(mockLog.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      "error al generar embedding",
     );
   });
 });

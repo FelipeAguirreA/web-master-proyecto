@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/server/lib/db";
 import { companyRegisterSchema } from "@/server/validators";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
+import { createLogger, getRequestId } from "@/server/lib/logger";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -58,7 +59,11 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("[empresa register error]", error);
+    const log = createLogger({
+      route: "auth.empresa.register.POST",
+      requestId: getRequestId(request.headers),
+    });
+    log.error({ err: error }, "register failed");
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 },

@@ -10,6 +10,7 @@ import {
   Pencil,
   ArrowRight,
 } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
 type Internship = {
@@ -114,7 +115,11 @@ export default function InterviewFormModal({
     )
       .then((r) => r.json())
       .then((data) => setCandidates(data ?? []))
-      .catch(console.error)
+      .catch((err) =>
+        Sentry.captureException(err, {
+          tags: { component: "InterviewFormModal" },
+        }),
+      )
       .finally(() => setLoadingCandidates(false));
   }, [form.internshipId]);
 

@@ -1,4 +1,7 @@
 import { env } from "@/lib/env";
+import { createLogger } from "./logger";
+
+const log = createLogger({ module: "mail" });
 
 async function sendEmail(
   to: { email: string; name: string },
@@ -6,7 +9,7 @@ async function sendEmail(
   htmlContent: string,
 ): Promise<void> {
   if (!env.BREVO_API_KEY) {
-    console.warn("[mail] BREVO_API_KEY no configurada — email omitido");
+    log.warn("BREVO_API_KEY no configurada — email omitido");
     return;
   }
 
@@ -29,7 +32,7 @@ async function sendEmail(
     body: JSON.stringify(body),
   });
 
-  console.log(`[mail] ${subject} → ${to.email} | status: ${res.status}`);
+  log.info({ subject, to: to.email, status: res.status }, "email sent");
 }
 
 export function sendCompanyStatusEmail(

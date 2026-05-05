@@ -4,6 +4,7 @@ import { createHash } from "crypto";
 import { hash } from "bcryptjs";
 import { prisma } from "@/server/lib/db";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
+import { createLogger, getRequestId } from "@/server/lib/logger";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -72,7 +73,11 @@ export async function POST(req: NextRequest) {
       message: "Contraseña actualizada correctamente.",
     });
   } catch (err) {
-    console.error("[reset-password]", err);
+    const log = createLogger({
+      route: "auth.reset-password.POST",
+      requestId: getRequestId(req.headers),
+    });
+    log.error({ err }, "reset-password failed");
     return NextResponse.json({ error: "Error interno." }, { status: 500 });
   }
 }

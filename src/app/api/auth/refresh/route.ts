@@ -10,6 +10,7 @@ import {
   sessionCookieName,
 } from "@/server/lib/auth-cookies";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
+import { createLogger, getRequestId } from "@/server/lib/logger";
 
 const REFRESH_RATE_LIMIT = 10;
 const REFRESH_RATE_WINDOW_MS = 60 * 1000;
@@ -94,7 +95,11 @@ export async function POST(req: NextRequest) {
     response.cookies.set(buildRefreshCookie(result.token.rawToken));
     return response;
   } catch (err) {
-    console.error("[auth/refresh]", err);
+    const log = createLogger({
+      route: "auth.refresh.POST",
+      requestId: getRequestId(req.headers),
+    });
+    log.error({ err }, "refresh failed");
     return NextResponse.json({ error: "Error interno." }, { status: 500 });
   }
 }
