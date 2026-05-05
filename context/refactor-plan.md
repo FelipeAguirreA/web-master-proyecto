@@ -220,17 +220,21 @@ Estado al 2026-04-27:
 
 ---
 
-## FASE 4 — Limpieza dead code y reorganización
+## FASE 4 — Limpieza dead code y reorganización ✅ CERRADA (2026-05-05)
 
-- [ ] `knip` como devDep → listar dead exports/archivos
-- [ ] ESLint `no-unused-vars` con auto-fix
-- [ ] Reorganizar `src/lib/`:
-  - `src/lib/env.ts` → queda
-  - `src/lib/auth.ts` → `src/server/lib/auth.ts`
-  - `src/lib/constants.ts` → queda
-  - `src/lib/supabase/realtime-client.ts` → `src/lib/client/supabase.ts`
+- [x] **`knip` como devDep → listar dead exports/archivos** — cerrado en bump 1.10.18 (commit `a18ade4`). 1 const + 11 types privatizados, 4 types eliminados de `src/types/index.ts`, `postcss` agregado explícitamente a devDeps. knip salida final: 0 findings. Script disponible: `pnpm knip`.
+- [x] **ESLint `no-unused-vars`** — cubierto implícitamente por el sweep de knip (1.10.18). Los warnings residuales son `_request` parámetros y `<img>` tags pre-existentes, no relacionados con dead code.
+- [x] **Reorganizar `src/lib/`** — cerrado en bump 1.10.19 (commit `12909de`):
+  - `src/lib/env.ts` → queda ✅
+  - `src/lib/auth.ts` → `src/server/lib/auth.ts` ✅ (movido con `git mv`, 5 imports + 1 vi.mock actualizados)
+  - `src/lib/constants.ts` → queda ✅
+  - `src/lib/supabase/realtime-client.ts` → `src/lib/client/supabase.ts` ✅ (movido con `git mv`, 1 import + 1 vi.mock actualizados)
 - [x] ~~Renombrar `src/proxy.ts` → `src/middleware.ts`~~ — **N/A**: en Next.js 16 (versión actual: `16.2.3`) la convención es `proxy.ts` con función `proxy()`. Validado en Fase 0 con `curl -I` (header `x-request-id` presente). El archivo actual `src/proxy.ts` está correcto. Este ítem queda resuelto por convención del framework.
-- [ ] Revisar `src/types/index.ts` — sacar tipos muertos
+- [x] **Revisar `src/types/index.ts` — sacar tipos muertos** — cerrado en bump 1.10.18 junto con knip sweep. Eliminados: `User`, `StudentProfile`, `CompanyProfile`, `PaginatedResponse`. Conservados (sí se usan): `Internship`, `Application`.
+
+**Cierre Fase 4 (2026-05-05)**: 2 commits (`a18ade4` knip sweep + `12909de` reorganización lib). Suite 1097/1097 verde, TSC clean, knip 0 findings. **Estado final de `src/lib/`**: solo código realmente shared/client-side queda. Cero imports de `next/headers`/`next-auth`/`bcryptjs`/Prisma desde `src/lib/`.
+
+**Próximo**: Fase 5 (Patrones de diseño donde aporten) o Fase 6 (Observabilidad y performance).
 
 ---
 
