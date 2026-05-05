@@ -40,10 +40,17 @@ jobs:
         run: pnpm exec vitest run
 
       - name: Build
+        # Env vars son placeholders dummy que solo satisfacen la validación Zod
+        # de src/lib/env.ts en build time (validation a module-load durante
+        # "Collecting page data"). Los valores reales viven en Vercel project
+        # settings — el build de CI nunca conecta a infra real.
+        # Usamos placeholders en lugar de ${{ secrets.* }} para que los runs
+        # de Dependabot PRs (que NO tienen acceso a repo secrets por GitHub
+        # security policy) también puedan buildear.
         run: pnpm build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          NEXTAUTH_SECRET: placeholder-secret-min-32-chars-for-zod-validation
           NEXTAUTH_URL: http://localhost:3000
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
