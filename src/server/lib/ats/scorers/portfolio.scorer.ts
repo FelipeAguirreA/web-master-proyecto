@@ -1,7 +1,7 @@
 import type { CVData } from "../cv-extractor";
 import type { ScorerResult } from "./skills.scorer";
 
-interface PortfolioParams {
+export interface PortfolioParams {
   required: boolean;
   keywords: string[];
   hardFilter: boolean;

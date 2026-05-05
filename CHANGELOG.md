@@ -5,6 +5,70 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.20] - 2026-05-05
+
+### Refactor
+
+- **Fase 5: Strategy/Registry para scorers ATS** (único patrón aplicado de los 4 candidatos del plan). Refactor mínimo del scoring engine para eliminar el switch + 5 casts feos del tipo `params as Parameters<typeof scoreSkills>[1]` por un lookup en un registry tipado. Cero cambios funcionales — los 5 scorers individuales (skills, experience, education, languages, portfolio) mantienen su API pública y sus tests intactos.
+
+#### Cambios
+
+- **5 interfaces `*Params` ahora exportadas** desde sus scorers (`SkillsParams`, `ExperienceParams`, `EducationParams`, `LanguagesParams`, `PortfolioParams`). Antes eran privadas; ahora el registry las consume para tipar el mapping `type → params shape`.
+- **Nuevo archivo `src/server/lib/ats/scorer-registry.ts`** (~50 líneas, sin clases ni abstracciones extra). Contiene:
+  - Mapping privado `ScorerParamsMap = { SKILLS: SkillsParams, EXPERIENCE: ExperienceParams, ... }` (discriminated por `type`).
+  - Type público `ScorerType = keyof ScorerParamsMap` (el engine lo usa para narrow).
+  - `SCORER_REGISTRY: { [K in ScorerType]: (cv, params: ScorerParamsMap[K]) => ScorerResult }` — objeto literal indexado por type, cada entry tipada al shape correcto del scorer.
+  - Re-export de `ScorerResult` (vive en `skills.scorer.ts` por convención histórica).
+- **`scoring-engine.ts: scoreModule()` simplificado** — antes era un `switch` de 6 cases con 5 casts manuales `params as Parameters<typeof X>[1]`. Ahora es un lookup `SCORER_REGISTRY[module.type as ScorerType]` con 1 cast centralizado `as never` en el sitio donde la responsabilidad de "params validados" se transfiere desde el `discriminatedUnion` Zod (#F3 audit) al runtime del engine. Comentario inline justificando el cast.
+
+#### Cuál es el beneficio real
+
+Antes:
+
+```typescript
+switch (module.type) {
+  case "SKILLS":
+    return scoreSkills(cv, params as Parameters<typeof scoreSkills>[1]);
+  case "EXPERIENCE":
+    return scoreExperience(cv, params as Parameters<typeof scoreExperience>[1]);
+  // ... 4 casts más, 6 cases en total
+}
+```
+
+Después:
+
+```typescript
+const scorer = SCORER_REGISTRY[module.type as ScorerType];
+if (!scorer) return { score: 50, passed: true };
+return scorer(cv, (module.params ?? {}) as never);
+```
+
+- **5 casts → 1 cast centralizado** con comentario que explica de dónde viene la garantía de tipo (discriminatedUnion Zod ya validó al persistir).
+- **Agregar un scorer nuevo es 1 archivo + 2 líneas** (`ScorerParamsMap` + entry en `SCORER_REGISTRY`). Antes había que tocar el switch del engine.
+- **Tipos correctos sin lying**: cada entry del registry está tipada al shape exacto de su scorer. TS infiere sin assertions.
+
+#### Lo que NO se hizo (Fase 5 candidatos descartados)
+
+Los otros 3 patrones del refactor-plan fueron evaluados y **descartados conscientemente** (la regla rectora dice: "no aplicar patrones para verse pro, solo donde resuelven problema real"):
+
+- **Observer en `notifications`**: hoy hay **1 efecto por evento** (`sendNewApplicationEmail` en applyToInternship, `prisma.notification.create` en updateApplicationStatus). Un EventEmitter para 1 listener es overhead. Se documenta en refactor-plan.md.
+- **Composite en `scoring-engine`**: el plan usó mal el nombre del patrón. El engine hace **iteración + suma ponderada**, no Composite (que es para árboles anidados). Sin necesidad real.
+- **Command para acciones ATS**: requiere features de **audit trail + undo** que **NO están pedidos** en el proyecto. YAGNI — agregar Command sin requirement = ~200 líneas de boilerplate sin beneficio actual.
+
+### Tests
+
+- Suite total: **1097 tests / 57 archivos** verde (sin cambios — el refactor es semánticamente equivalente al switch original).
+- TSC clean ✅. Knip 0 findings ✅.
+- Los 78 tests de scoring (engine + 5 scorers) pasaron sin tocar.
+
+### Notes
+
+- **Decisión `as never` vs Zod en runtime**: el cast `as never` en `scoreModule` es honesto — TS no puede saber que `module.type` y `module.params` están sincronizados, pero el `discriminatedUnion` Zod del `POST /api/ats/config` (cerrado en #F3 del audit) ya validó al persistir el ATSModule. Re-validar con Zod en cada llamada al scorer agregaría overhead innecesario en un endpoint de scoring que ya está rate-limited (60/min/user). El cast es la respuesta correcta a "responsabilidad ya cumplida en otra capa".
+- **`ScorerResult` se mantiene en `skills.scorer.ts`** y el registry lo re-exporta. Razón: mover la interface haría tocar 5 archivos por estética. Los demás scorers la importan desde `./skills.scorer` por convención histórica del proyecto, y eso funciona.
+- **`ScorerParamsMap` privado en el registry**: knip detectó que era un export no usado externamente. Lo privatizamos — `ScorerType = keyof ScorerParamsMap` queda público porque sí lo usa el engine.
+- **Refactor-plan: Fase 5 cierra con 1/4 patrones aplicados**. Los descartados quedan documentados con razones en `context/refactor-plan.md`.
+- **Próximo**: Fase 6 (Observabilidad y performance) — logger pino, alertas Sentry, runbooks, NFR <200ms.
+
 ## [1.10.19] - 2026-05-05
 
 ### Refactor

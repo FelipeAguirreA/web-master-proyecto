@@ -1,9 +1,9 @@
-import { parseCVText, type CVData } from "./cv-extractor";
-import { scoreSkills } from "./scorers/skills.scorer";
-import { scoreExperience } from "./scorers/experience.scorer";
-import { scoreEducation } from "./scorers/education.scorer";
-import { scoreLanguages } from "./scorers/languages.scorer";
-import { scorePortfolio } from "./scorers/portfolio.scorer";
+import { parseCVText } from "./cv-extractor";
+import {
+  SCORER_REGISTRY,
+  type ScorerType,
+  type ScorerResult,
+} from "./scorer-registry";
 
 export interface ATSModuleInput {
   id: string;
@@ -31,32 +31,22 @@ interface ATSResult {
   filterReason: string | null;
 }
 
+// Lookup en el registry. El cast `as never` es el ÚNICO punto donde aceptamos
+// que `module.params: Record<string, unknown>` se trate como el shape concreto
+// del scorer correspondiente — la garantía viene del `discriminatedUnion` Zod
+// del POST /api/ats/config (#F3 audit), que valida cada `params` contra el
+// schema strict del `type` antes de persistir el ATSModule en DB.
+//
+// Tipos `CUSTOM` o desconocidos caen al default (50, passed) sin lookup.
 function scoreModule(
-  cv: CVData,
+  cv: ReturnType<typeof parseCVText>,
   module: ATSModuleInput,
-): { score: number; passed: boolean; reason?: string } {
-  const params = (module.params ?? {}) as unknown;
-
-  switch (module.type) {
-    case "SKILLS":
-      return scoreSkills(cv, params as Parameters<typeof scoreSkills>[1]);
-    case "EXPERIENCE":
-      return scoreExperience(
-        cv,
-        params as Parameters<typeof scoreExperience>[1],
-      );
-    case "EDUCATION":
-      return scoreEducation(cv, params as Parameters<typeof scoreEducation>[1]);
-    case "LANGUAGES":
-      return scoreLanguages(cv, params as Parameters<typeof scoreLanguages>[1]);
-    case "PORTFOLIO":
-      return scorePortfolio(cv, params as Parameters<typeof scorePortfolio>[1]);
-    case "CUSTOM":
-      // Los módulos CUSTOM arrancan en 50 hasta revisión manual
-      return { score: 50, passed: true };
-    default:
-      return { score: 50, passed: true };
+): ScorerResult {
+  const scorer = SCORER_REGISTRY[module.type as ScorerType];
+  if (!scorer) {
+    return { score: 50, passed: true };
   }
+  return scorer(cv, (module.params ?? {}) as never);
 }
 
 export function scoreApplication(
@@ -75,7 +65,7 @@ export function scoreApplication(
     };
   }
 
-  const cv: CVData = parseCVText(cvText, profileSkills);
+  const cv = parseCVText(cvText, profileSkills);
 
   const moduleScores: ModuleScoreDetail[] = [];
   let firstFailReason: string | null = null;

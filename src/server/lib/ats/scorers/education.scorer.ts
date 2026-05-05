@@ -1,7 +1,7 @@
 import type { CVData } from "../cv-extractor";
 import type { ScorerResult } from "./skills.scorer";
 
-interface EducationParams {
+export interface EducationParams {
   minGPA: number;
   preferredDegrees: string[];
   hardFilter: boolean;

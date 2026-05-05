@@ -1,6 +1,6 @@
 import type { CVData } from "../cv-extractor";
 
-interface SkillsParams {
+export interface SkillsParams {
   required: string[];
   preferred: string[];
   hardFilter: boolean;

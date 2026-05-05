@@ -1,7 +1,7 @@
 import type { CVData } from "../cv-extractor";
 import type { ScorerResult } from "./skills.scorer";
 
-interface ExperienceParams {
+export interface ExperienceParams {
   minYears: number;
   preferredRoles: string[];
   hardFilter: boolean;

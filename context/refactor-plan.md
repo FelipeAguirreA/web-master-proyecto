@@ -238,16 +238,30 @@ Estado al 2026-04-27:
 
 ---
 
-## FASE 5 — Patrones de diseño donde aporten
+## FASE 5 — Patrones de diseño donde aporten ✅ CERRADA (2026-05-05)
 
-**Regla**: no aplicar patrones "para verse pro". Solo donde resuelven problema real.
+**Regla rectora aplicada**: no aplicar patrones "para verse pro". Solo donde resuelven problema real. **De los 4 candidatos del plan original, solo 1 se aplicó**. Los otros 3 fueron evaluados y descartados conscientemente.
 
-| Candidato                          | Patrón                  | Por qué                                                                      |
-| ---------------------------------- | ----------------------- | ---------------------------------------------------------------------------- |
-| `server/services/notifications/*`  | Observer                | Evento `applicationCreated` → dispara email + notificación + log sin acoplar |
-| `server/lib/ats/scorers/*`         | Strategy (ya implícito) | Formalizar: interfaz `IScorer`, registry                                     |
-| `server/lib/ats/scoring-engine.ts` | Composite               | Combina scores de múltiples scorers                                          |
-| Acciones ATS (mover candidato)     | Command                 | Habilita audit trail + undo                                                  |
+| Candidato                          | Patrón              | Estado tras evaluación                                                                   |
+| ---------------------------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| `server/services/notifications/*`  | Observer            | ❌ **No aplicado** — hoy hay 1 efecto por evento, EventEmitter es overhead sin beneficio |
+| `server/lib/ats/scorers/*`         | Strategy / Registry | ✅ **Aplicado en bump 1.10.20** — eliminó 5 casts feos del switch del engine             |
+| `server/lib/ats/scoring-engine.ts` | Composite           | ❌ **No aplica** — el plan usó mal el nombre. El engine hace iteración + suma, no árbol  |
+| Acciones ATS (mover candidato)     | Command             | ❌ **YAGNI** — audit trail / undo no están pedidos en el proyecto                        |
+
+**Strategy/Registry para scorers** (cerrado en bump 1.10.20):
+
+- Cambio mínimo: `scoring-engine.scoreModule()` reemplaza switch de 6 cases + 5 casts manuales (`params as Parameters<typeof X>[1]`) por lookup en `SCORER_REGISTRY` + 1 cast centralizado (`as never`) con comentario que justifica de dónde viene la garantía de tipo (discriminatedUnion Zod del #F3 audit).
+- Nuevo archivo `src/server/lib/ats/scorer-registry.ts` (~50 líneas, sin clases ni abstracciones extra).
+- Beneficio real: agregar un scorer nuevo es 1 archivo + 2 líneas, antes había que tocar el switch del engine.
+- Suite 1097/1097 verde. Cero cambios funcionales.
+
+**Lecciones de la Fase 5**:
+
+- "Strategy/Registry" se aplicó porque resolvía un problema concreto: 5 casts de tipo manuales que ensuciaban el código. El switch en sí era OK, pero los casts eran ruido visible.
+- "Observer" se descartó porque hoy hay **1 listener por evento**. EventEmitter es valor con 3+ listeners.
+- "Composite" se descartó porque el plan original usó mal el nombre del patrón. El engine no maneja árboles anidados — solo itera scorers planos.
+- "Command" se descartó por YAGNI: el patrón resuelve audit trail / undo, pero ninguno de esos features está pedido. Implementarlo "por si acaso" agrega ~200 líneas de boilerplate sin beneficio.
 
 ---
 

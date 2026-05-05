@@ -1,7 +1,7 @@
 import type { CVData } from "../cv-extractor";
 import type { ScorerResult } from "./skills.scorer";
 
-interface LanguagesParams {
+export interface LanguagesParams {
   required: string[]; // ej: ["Inglés B2"]
   preferred: string[];
   hardFilter: boolean;
