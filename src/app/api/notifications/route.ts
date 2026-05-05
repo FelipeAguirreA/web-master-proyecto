@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { prisma } from "@/server/lib/db";
 
@@ -8,11 +9,22 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId: auth.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: auth.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
 
-  return NextResponse.json(notifications);
+    return NextResponse.json(notifications);
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { route: "notifications.GET" },
+      extra: { userId: auth.user.id },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
 }

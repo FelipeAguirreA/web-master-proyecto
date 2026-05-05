@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.10.13",
+  "version": "1.10.14",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",

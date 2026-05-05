@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.14] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/notifications/*` (Fase 3 paso 3.7 / findings #I1, #I2)** — noveno lote de fixes derivado del audit `/api/*`. Inventario inicial coincide con el real esta vez: 3 handlers (`route.ts` GET + `[id]/route.ts` DELETE + `read-all/route.ts` PATCH). Particularidad: el área **NO tiene service layer** — los handlers acceden directo a Prisma (anotado como ⚠️ #I3). Área más simple del audit: cierra solo 2 patrones (no aplica anti-enumeration porque `deleteMany`+filtro ya lo cubre nativamente, no aplica error.code porque no hay service con throws).
+  - **#I1 — Sin try/catch + Sentry en los 3 handlers**. Severidad baja-media — info disclosure. Patrón #G1/#H1: cualquier error de Prisma (FK violation, conexión refused, deadlock) propagaba al runtime de Next.js que retornaba 500 con stack trace en dev / mensaje crudo en prod. Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "notifications.X.METHOD" }, extra: { userId, ...notificationId? } })` en el catch, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+  - **#I2 — `PATCH /api/notifications/read-all` sin rate limit**. Severidad baja-media — DoS interno. El handler dispara `updateMany` sobre **todas** las notificaciones no leídas del user en una sola query. Para un user con miles de notificaciones, cada llamada toca cientos/miles de rows. Sin throttle, hot-loop al endpoint puede presionar la DB. Fix: `rateLimit("notifications-read-all:${userId}", 10, MIN_MS)` antes de tocar DB. 10/min cubre uso legítimo extremo (apretar "Marcar todo como leído" rápido) y corta hot-loop.
+
+### Tests
+
+- Suite total: **1051 tests / 54 archivos** verde (antes 1037 / 53). Nuevo archivo `src/test/unit/notifications-routes.test.ts` (14 tests) con `vi.hoisted` para mocks de `requireAuth`, `Sentry.captureException`, `rateLimit/rateLimitResponse` + uso de `prismaMock` para mockear acceso directo a Prisma desde los handlers. Cobertura por handler:
+  - `GET /api/notifications` (#I1): 3 tests — 401, 200 con filtro `userId` + `take: 20`, 500 + Sentry sin leak.
+  - `DELETE /api/notifications/[id]` (#I1): 5 tests — 401, **404 cuando deleteMany count=0 (anti-enumeration natural)**, **deleteMany usa filtro de owner**, 500 + Sentry sin leak, 200 happy path.
+  - `PATCH /api/notifications/read-all` (#I1+#I2): 6 tests — 401, **#I2 rate limit 429 sin tocar DB**, **rate limit usa key con `auth.user.id`**, **updateMany filtra por userId Y read=false**, 500 + Sentry sin leak, 200 happy path.
+
+### Notes
+
+- **Anti-enumeration natural en DELETE**: el handler usa `deleteMany` con WHERE `{ id, userId }` en una sola query, en lugar de `findUnique` + ownership check. Si `id` no existe O no es del user, `count` retorna 0 → 404. **No es necesario el patrón "404 unification" del service** que aplicamos en `chat`/`interviews` — el path único nunca diferencia "no existe" de "ajena". Patrón emergente más limpio para casos donde la lógica es trivial.
+- **#I3 (sin service layer)** aceptado como ⚠️ — los 3 handlers tienen lógica trivial (3 ops Prisma simples). Rompe Clean Architecture (`CLAUDE.md`) pero NO es security. Si la lógica crece (filters, observer pattern de Fase 5, cleanup), conviene crear `notifications.service.ts`.
+- **GET sin paginación**: `take: 20` hardcoded — bug de UX, no security. Anotado para sweep funcional posterior.
+- **`requireAuth()` sin role específico**: correcto. Las notificaciones son cross-role (STUDENT y COMPANY las reciben). El filtro por `userId` ya garantiza scope por owner.
+- **Decisión rate limit `10/min` en read-all**: balance UX/anti-spam. El botón "marcar todo como leído" es un click humano — 10/min cubre uso legítimo extremo. Bajarlo a 5 podría frustrar.
+- **Convergencia parcial**: el área cierra solo 2 patrones (#I1=#G1, #I2=#G4-light). NO aplican #G2 (anti-enumeration ya nativa por `deleteMany`+filtro) ni #G3 (no hay service con throws). Confirmación de que el régimen estacionario depende del shape del área — áreas con `service` complejo necesitan los 4 patrones, áreas trivial-CRUD solo 2.
+- **Validación pre-commit**: `tsc --noEmit` corrido **antes** del commit, salida limpia. Lección aprendida del 1.10.12 sigue aplicada.
+- **Paso 3.7**: 9/12 áreas cerradas (`auth`, `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`). Pendientes: `matching`, `perfil`, `health`.
+
 ## [1.10.13] - 2026-05-05
 
 ### Security

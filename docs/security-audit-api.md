@@ -33,7 +33,7 @@
 | `ats`           | 5        | ✅ cerrada (#F1+#F2+#F3+#F4+#F5 fixeados en 1.10.10)              |
 | `chat`          | 6        | ✅ cerrada (#G1+#G2+#G3+#G4 fixeados en 1.10.11, #G5 ⚠️ aceptado) |
 | `interviews`    | 7        | ✅ cerrada (#H1+#H2+#H3+#H4 fixeados en 1.10.13, #H5 ⚠️ aceptado) |
-| `notifications` | 3        | ⏳ pendiente                                                      |
+| `notifications` | 3        | ✅ cerrada (#I1+#I2 fixeados en 1.10.14, #I3 ⚠️ aceptado)         |
 | `matching`      | 2        | ⏳ pendiente                                                      |
 | `perfil`        | 2        | ⏳ pendiente                                                      |
 | `health`        | 1        | ⏳ pendiente                                                      |
@@ -285,7 +285,34 @@
 - **Convergencia confirmada**: el área `interviews` cierra los mismos 4 patrones que ya emergieron en lotes previos (#H1=#G1, #H2=#G2, #H3=#G3, #H4=#G4). El audit ya ha alcanzado régimen estacionario — los próximos lotes (`notifications`, `matching`, `perfil`, `health`) deberían ejecutarse rápido siguiendo el mismo runbook.
 - **Compatibilidad con frontend**: cero cambios de contrato en happy path. Cambios visibles: 404 en lugar de 403 cuando un user toca interviews ajenas (deseado), error genérico en lugar de mensaje crudo en 500 (deseado), 429 en `send-to-chat` con header `Retry-After` cuando se excede 10/min.
 
-## `notifications` (3 handlers) — pendiente
+## `notifications` (3 handlers)
+
+> Inventario inicial: 3. Recuento real: 3 ✅ (primer área donde el conteo coincide). Particularidad: **NO hay service layer** — los handlers acceden directo a Prisma. Funcional pero rompe Clean Architecture, anotado como ⚠️ #I3.
+
+| Método | Path                          | AuthZ              | Zod | Output                                                                                 | Estado                |
+| ------ | ----------------------------- | ------------------ | --- | -------------------------------------------------------------------------------------- | --------------------- |
+| GET    | `/api/notifications`          | `requireAuth()` ✅ | N/A | filtra por `userId === auth.user.id`, take 20 hardcoded                                | ✅ (#I1 cerrado)      |
+| DELETE | `/api/notifications/[id]`     | `requireAuth()` ✅ | N/A | `deleteMany` con filtro `id + userId` → count=0 retorna 404 (anti-enumeration natural) | ✅ (#I1 cerrado)      |
+| PATCH  | `/api/notifications/read-all` | `requireAuth()` ✅ | N/A | rate limit `10/min/user`, `updateMany` filtrado por `userId + read=false`              | ✅ (#I1+#I2 cerrados) |
+
+### Findings cerrados
+
+**🛑 #I1 — Sin try/catch + Sentry en los 3 handlers** (cerrado en 1.10.14). Severidad baja-media — info disclosure. Patrón #G1/#H1: cualquier error de Prisma (FK violation, conexión refused, deadlock, etc.) propagaba al runtime de Next.js que retornaba 500 con stack trace en dev / mensaje crudo en prod. Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "notifications.X.METHOD" }, extra: { userId, ...notificationId? } })` en el catch, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+
+**🛑 #I2 — `PATCH /api/notifications/read-all` sin rate limit** (cerrado en 1.10.14). Severidad baja-media — DoS interno. El handler dispara `updateMany` sobre **todas** las notificaciones no leídas del user en una sola query. Para un user con miles de notificaciones (caso poco común pero posible si nunca se limpian), cada llamada toca cientos/miles de rows. Sin throttle, hot-loop al endpoint puede presionar la DB. Fix: `rateLimit("notifications-read-all:${userId}", 10, MIN_MS)` antes de tocar DB. 10/min es generoso para uso legítimo (apretar "Marcar todo como leído" 1× por sesión) y corta el hot-loop.
+
+### Findings activos
+
+**⚠️ #I3 — Sin service layer (handlers acceden directo a Prisma)** — Severidad: 0 (no security). Los 3 handlers de `notifications/` tienen lógica trivial (3 ops Prisma simples) y la implementan directo en `route.ts`. Esto rompe la convención de Clean Architecture establecida en `CLAUDE.md` (`server/services/` con lógica de negocio pura). NO es un issue de seguridad — solo de arquitectura/mantenibilidad. Si la lógica crece (filters por tipo, marking individual, cleanup automático, observer pattern del refactor-plan Fase 5), conviene crear `src/server/services/notifications.service.ts` y migrar. Por ahora, aceptado como ⚠️ — Boy-Scout para sweep futuro.
+
+### Notas
+
+- **Anti-enumeration natural en DELETE**: el handler usa `deleteMany` con WHERE `{ id, userId }` en una sola query, en lugar de `findUnique` + ownership check. Si `id` no existe O no es del user, `count` retorna 0 → 404. **No es necesario el patrón "404 unification" del service en otras áreas** porque el path único nunca diferencia "no existe" de "ajena". Es un patrón emergente más limpio para casos donde la lógica es trivial — cero superficie para ownership leaks.
+- **GET sin paginación**: el handler tiene `take: 20` hardcoded — bug de UX (un user nunca puede ver más de 20 notificaciones). NO es security. Anotado para sweep funcional posterior.
+- **`requireAuth()` sin role específico**: correcto. Las notificaciones son cross-role (tanto STUDENT como COMPANY las reciben). El filtro por `userId` ya garantiza que cada user solo vea las suyas.
+- **No hay rate limit en GET ni DELETE**: GET es read-only y barato (single index lookup `userId + ORDER BY createdAt + LIMIT 20`). DELETE toca 1 row. No requieren throttle. Solo `read-all` (updateMany sobre N rows) lo necesitaba.
+- **Decisión rate limit `10/min` en read-all**: el botón "marcar todo como leído" es un click humano — 10/min cubre uso legítimo extremo (alguien apretando rápido por error o por inquietud). Bajarlo a 5 podría frustrar al usuario.
+- **Convergencia parcial**: el área cierra solo 2 patrones (#I1=#G1, #I2=#G4-light). NO aplican #G2 (anti-enumeration ya está nativa por `deleteMany`+filtro) ni #G3 (no hay service con throws). Área **más simple del audit** — confirmación de que el régimen estacionario depende del shape del área.
 
 ## `matching` (2 handlers) — pendiente
 
