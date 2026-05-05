@@ -5,6 +5,46 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.22] - 2026-05-05
+
+### Docs
+
+- **Fase 6 paso 2: Runbooks + Sentry alerts spec**. Cierra los gaps #10 (runbooks) y #11 (Sentry alerts) del refactor-plan. Cero código tocado — todos archivos de documentación operacional.
+- **`docs/runbooks/incident-auth-down.md`** — runbook para login/refresh tokens caídos. Estructura: Síntomas → Diagnóstico (orden de chequeo: health → Sentry → logs → providers externos → env vars) → Acción inmediata (4 casos: brute force, refresh reuse, provider externo caído, env vars mal config) → Mitigación → Post-mortem template. Anclado a Sentry tags (`auth:failed_login`, `auth:refresh_reuse`) y logs estructurados (pino con `module=auth`).
+- **`docs/runbooks/incident-db-slow.md`** — runbook para DB lenta o saturada. Cubre `pg_stat_activity` para identificar queries culpables, kill queries vía SQL, restart pooler, scale up plan, batch sizes ATS (#F4), endpoint de health (#L1). Lista los endpoints típicamente problemáticos (`score/job`, `recommendations`, `read-all`).
+- **`docs/runbooks/incident-huggingface-down.md`** — runbook para matching degradado. Refleja el graceful fallback ya implementado (HF caído → embedding [] → recommendations vacías sin romper nada). 4 casos: model warm-up, cuota excedida, key revocada, HF service caído. Plan B documentado (migración a OpenAI / self-hosted / cache Redis) con cuándo NO vale la pena migrar.
+- **`docs/sentry-alerts.md`** — especificación de alertas a configurar manualmente en Sentry dashboard. NO es código — es la spec exacta (tipo de alerta + filtro + threshold + cooldown + runbook asociado) para que el usuario las cree con click. 6 alertas priorizadas por severidad: 2 críticas (DB down, refresh reuse), 3 altas (failed login burst, error rate >1%, P95 >200ms), 1 media (mail failure rate). Plus 3 alertas explícitamente descartadas con justificación (ruido sin info).
+
+### Notes
+
+- **Por qué 4 archivos en lugar de 1 wiki o 1 doc**: los runbooks están diseñados para **leerse en pánico**, no para entenderse en frío. Deben ser scaneables, anclados a comandos exactos, con casos discriminados. Un wiki largo no funciona en una incident response. Cada runbook está pensado para resolver el incidente correspondiente en <15-30 min.
+- **Sentry alerts NO es código por una razón**: las alertas viven en el dashboard de Sentry, no en config files. Son la línea entre "el código emitió el evento" (responsabilidad del repo) y "alguien recibe la notificación" (responsabilidad del runtime).
+- **`tracesSampleRate` no activado todavía**: la alerta de P95 >200ms requiere que Sentry reciba performance data. Esto se hace en F6-L3.
+- **Pre-requisitos para algunas alertas**: refresh reuse / DB down / failed login / mail failure ya funcionan (eventos emitidos por código). Error rate / P95 requieren `tracesSampleRate` (L3 pendiente).
+- **Próximo (L3)**: Sentry config hardening en código — activar `tracesSampleRate`, configurar `release` con `VERCEL_GIT_COMMIT_SHA`, verificar que `instrumentation.ts` carga las configs correctamente.
+- **Nota sobre el commit**: la entrada del CHANGELOG fue introducida en un commit posterior (`docs(changelog): agregar entradas 1.10.21 y 1.10.22`) por una colisión del Edit con el linter. Los archivos de los runbooks y el bump quedaron en el commit `07cc89b`.
+
+## [1.10.21] - 2026-05-05
+
+### Observability
+
+- **Fase 6 paso 1: Logger estructurado pino + correlation ID**. Reemplazo de `console.*` por logger estructurado JSON, alineado con el gap #9 del refactor-plan. En Vercel los logs de `console.*` se pierden rápido y no son parseables por agregadores (Datadog, Loki). pino emite JSON line-delimited con niveles consistentes y bindings de contexto para correlación.
+  - **Nuevo archivo `src/server/lib/logger.ts`**. `createLogger(bindings)` retorna un child logger pino con campos inyectados (route, requestId, userId, etc.). Helper `getRequestId(headers)` extrae el `x-request-id` que el proxy (`src/proxy.ts`) ya inyecta en cada request — útil para correlacionar logs en backends agregadores. JSON puro en producción, `pino-pretty` colorizado en dev.
+  - **Migrados ~20 `console.*` a logger pino** en código server-side: `rate-limit.ts` (2), `mail.ts` (2), `embeddings.ts` (3), `auth.ts` (3), 5 routes auth (logout, refresh, forgot-password, reset-password, empresa/register). Cada catch construye un child logger con `{ route, requestId }` extraído del header — ahora cada error tiene correlation con su request.
+  - **Migrados 2 `console.error` client-side a `Sentry.captureException`**: `ConversationList.tsx` y `InterviewFormModal.tsx` (ambos en `.catch()` de fetches). Antes: error silenciado en console del browser. Ahora: reportado a Sentry con `tags: { component }`.
+
+### Tests
+
+- Suite total: **1097 tests / 57 archivos** verde (sin cambios netos). 4 archivos de test actualizados para mockear `@/server/lib/logger` en lugar de espiar `console.*`: `embeddings.test.ts`, `mail.test.ts`, `rate-limit.upstash.test.ts`, `auth.test.ts`. `InterviewFormModal.test.tsx`: spy de `console.error` reemplazado por mock de Sentry.
+
+### Notes
+
+- **Por qué pino y no winston/bunyan**: pino es el logger Node más rápido (literal: nano-segundos por log), JSON nativo, child loggers con bindings, transport opcional para pretty-print en dev. Estándar de facto en Node moderno.
+- **Email NUNCA va plaintext a logs**: en `auth.ts` el rate limit hit ahora loguea `emailHash` (sha256 truncado a 8 chars) en lugar de `email`. Privacy por default.
+- **Correlation via `x-request-id`**: el proxy inyecta un UUID por request. Cualquier child logger creado dentro del scope de una request puede agregar ese ID — buscar todos los logs de una request es trivial en agregadores.
+- **`.catch(console.error)` → `.catch(Sentry.captureException)` en client**: cliente y server tienen telemetría separada. En cliente NO usamos pino (es server-only) — Sentry es el path correcto.
+- **3 falsos positivos de knip resueltos**: `pino-pretty` agregado a `ignoreDependencies`; `logger` export raíz privatizado a const local.
+
 ## [1.10.20] - 2026-05-05
 
 ### Refactor
