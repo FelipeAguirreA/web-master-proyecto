@@ -5,6 +5,73 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.17] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/health` (Fase 3 paso 3.7 / finding #L1) + CIERRE COMPLETO DEL PASO 3.7** — duodécimo y último lote del audit `/api/*`. Inventario coincide con el real: 1 handler. Endpoint público intencional para load balancers, k8s probes, status pages, monitoring externo. Área cerrada con un finding 🛑 + tres ⚠️ aceptados intencional.
+  - **#L1 — `catch {}` swallowed sin Sentry en el ping a la DB**. Severidad **alta** — observability gap crítico. **El endpoint que monitorea health era el único que NO le avisaba a Sentry cuando la DB caía**. Si pgBouncer se desconectaba, Supabase tenía un incidente, o el connection pool se saturaba, el cliente recibía `503 degraded` correctamente — pero ningún alert llegaba a Sentry/oncall. **Ironía**: el endpoint diseñado para detectar problemas era el que más silenciaba el problema. Patrón #J1 (catch silencioso) elevado a severidad alta porque acá es **literalmente el work del endpoint**. Fix: `Sentry.captureMessage("Health check: DB ping failed", { level: "error", tags: { health: "db_down" }, extra: { error: ... } })` en el catch. El cliente sigue recibiendo el response degraded sin leak del error crudo, pero Sentry/oncall ahora se enteran inmediatamente. Defensa robusta contra Error y string-throws (algunos drivers tiran strings o objetos custom).
+
+### Tests
+
+- Suite total: **1097 tests / 57 archivos** verde (antes 1092 / 56). Nuevo archivo `src/test/unit/health-route.test.ts` (5 tests):
+  - 200 ok cuando DB responde — Sentry NO se llama.
+  - **503 degraded cuando DB falla** — Sentry recibe `captureMessage` con `level=error` + `tags: { health: "db_down" }`.
+  - Response shape: timestamp ISO + version semver.
+  - **Sentry recibe el error crudo en `extra`, cliente NO lo ve** (no leak).
+  - Defensa contra string-throws (algunos drivers tiran strings, no Error instances).
+- `src/test/mocks/prisma.ts`: agregado `$queryRaw` al mock con el mismo patrón que `$transaction` (no enumerable, mockReset en `resetPrismaMock`). Útil para futuros tests que necesiten queries raw.
+
+### Notes
+
+- **Observability es seguridad**: un sistema que falla silenciosamente es indistinguible de un sistema bajo ataque. Cualquier `catch` sin Sentry/logger en producción es una superficie ciega — y los endpoints de monitoring son los más críticos porque su fallo es difícil de detectar.
+- **#L2/#L3/#L4 aceptados intencional**: público sin auth (load balancers, status pages necesitan acceder), sin rate limit (polled cada 5-30s por monitoring externo), version leak (estándar de la industria — k8s, GitHub, npm packages todos exponen version en healthchecks). Documentados.
+
+---
+
+### ✅ Cierre del paso 3.7 (Fase 3 — Seguridad)
+
+**Estado final**: 12/12 áreas auditadas y cerradas a lo largo de los bumps 1.10.5 → 1.10.17.
+
+| Versión | Área            | Findings 🛑                           | Findings ⚠️   |
+| ------- | --------------- | ------------------------------------- | ------------- |
+| 1.10.5  | `auth`          | #A2                                   | #A1           |
+| 1.10.6  | `admin`         | #B1, #B2, #B3                         | —             |
+| 1.10.7  | `users`         | #C1 (eliminado)                       | —             |
+| 1.10.8  | `applications`  | #D1, #D2, #D3, #D4                    | —             |
+| 1.10.9  | `internships`   | #E1, #E2, #E3, #E4                    | #E5           |
+| 1.10.10 | `ats`           | #F1, #F2, #F3, #F4, #F5               | —             |
+| 1.10.11 | `chat`          | #G1, #G2, #G3, #G4                    | #G5           |
+| 1.10.13 | `interviews`    | #H1, #H2, #H3, #H4                    | #H5           |
+| 1.10.14 | `notifications` | #I1, #I2                              | #I3           |
+| 1.10.15 | `matching`      | #J1, #J2 (path traversal CWE-22), #J3 | —             |
+| 1.10.16 | `perfil`        | #K1, #K2                              | #K3           |
+| 1.10.17 | `health`        | #L1                                   | #L2, #L3, #L4 |
+
+**Totales del paso 3.7**: **31 findings 🛑 cerrados con tests + 14 findings ⚠️ documentados**. Suite final 1097/1097 verde (+210 tests vs estado inicial del paso). TSC clean.
+
+**Patrones convergentes** (régimen estacionario):
+
+- #G1 error mapping (try/catch + Sentry + 500 genérico) — aplicado en 11/12 áreas
+- #G2 anti-enumeration / 404 unification — aplicado en 7/12 áreas
+- #G3 error.code pattern (handlers matchean por code, no string includes) — aplicado en 2/12 áreas (chat, interviews)
+- #G4 rate limit en mutations costosas por `auth.user.id` — aplicado en 7/12 áreas
+
+**Hallazgos novedosos**:
+
+- **#J2 (matching)** — Path traversal CWE-22: `originalName` no sanitizado se concatenaba al path de Supabase Storage, permitiendo escapar del folder del user. Único caso de path traversal del audit.
+- **#L1 (health)** — Health check sin Sentry: el endpoint diseñado para detectar problemas era el que más silenciaba el problema. Lección "observability es seguridad".
+- **Anti-enumeration profunda en service** (`interviews` #H2): cambio movido al service mismo (en lugar de solo en el handler) para garantizar consistency si el service se consume desde otros lugares.
+
+**Lecciones metodológicas**:
+
+- **Inventory inicial subcontaba en 6/11 áreas con sub-routes**. Conteo confiable: `Glob src/app/api/AREA/**/route.ts` + leer cada export HTTP.
+- **TSC pre-commit** después del lote 1.10.12 (que arrastró deuda TS del 1.10.10) — todos los lotes posteriores corrieron `tsc --noEmit` antes del commit.
+- **Helper `chatError`/`interviewError`** consolidado en 2 áreas. Candidato a extraer a `src/server/lib/errors.ts` con la próxima área que lo use.
+- **Tests con `vi.hoisted` + mock literal de FormData** (en lugar de `new FormData()` real) para preservar el `type` del File. Patrón establecido en `matching-routes`/`perfil-routes`.
+
+**Con el paso 3.7 cerrado, la Fase 3 (Seguridad) queda completa**. Próximas fases del refactor-plan: Fase 4 (Limpieza dead code), Fase 5 (Patrones de diseño), Fase 6 (Observabilidad y performance).
+
 ## [1.10.16] - 2026-05-05
 
 ### Security

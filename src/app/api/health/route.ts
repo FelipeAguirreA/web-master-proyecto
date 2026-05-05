@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/server/lib/db";
 import { version } from "../../../../package.json";
 
@@ -7,8 +8,16 @@ export async function GET() {
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-  } catch {
+  } catch (err) {
     dbStatus = "error";
+    // Health check es el primer endpoint que debería notificar a Sentry si la
+    // DB cae — load balancers / k8s probes / status pages dependen de esta
+    // respuesta y un fallo silencioso significa que oncall se entera tarde.
+    Sentry.captureMessage("Health check: DB ping failed", {
+      level: "error",
+      tags: { health: "db_down" },
+      extra: { error: err instanceof Error ? err.message : String(err) },
+    });
   }
 
   const status = dbStatus === "ok" ? "ok" : "degraded";
@@ -23,6 +32,6 @@ export async function GET() {
         version,
       },
     },
-    { status: httpStatus }
+    { status: httpStatus },
   );
 }

@@ -179,17 +179,17 @@ thresholds: {
 
 ---
 
-## FASE 3 — Seguridad (OWASP Top 10 aplicado)
+## FASE 3 — Seguridad (OWASP Top 10 aplicado) ✅ CERRADA (2026-05-05)
 
-| Prioridad | Tarea                                                                                         | Estado | Valida con                                  |
-| --------- | --------------------------------------------------------------------------------------------- | ------ | ------------------------------------------- |
-| P0        | JWT a 15min + refresh token rotation                                                          | ✅     | Cerrado en commit `040f1e8` (1.8.0)         |
-| P0        | Rate limit → Upstash/Vercel KV (distribuido)                                                  | ✅     | Cerrado en commits `f256259` + `7026f2c`    |
-| P1.1      | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | ✅     | Cerrado en commit de bump 1.10.0 (paso 3.3) |
-| P1.2      | CI: `pnpm audit --audit-level=moderate`                                                       | ✅     | Cerrado en commit de bump 1.10.2 (paso 3.4) |
-| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | 🟡     | Paso 3.7: doc auditable + fixes por commit  |
-| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ✅     | Cerrado en commit de bump 1.10.4 (paso 3.6) |
-| P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | ✅     | Cerrado en commit de bump 1.10.3 (paso 3.5) |
+| Prioridad | Tarea                                                                                         | Estado | Valida con                                     |
+| --------- | --------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------- |
+| P0        | JWT a 15min + refresh token rotation                                                          | ✅     | Cerrado en commit `040f1e8` (1.8.0)            |
+| P0        | Rate limit → Upstash/Vercel KV (distribuido)                                                  | ✅     | Cerrado en commits `f256259` + `7026f2c`       |
+| P1.1      | CSP: sacar `unsafe-eval`, usar nonces para scripts Next.js                                    | ✅     | Cerrado en commit de bump 1.10.0 (paso 3.3)    |
+| P1.2      | CI: `pnpm audit --audit-level=moderate`                                                       | ✅     | Cerrado en commit de bump 1.10.2 (paso 3.4)    |
+| P2        | Audit endpoints `/api/*`: cada uno usa `requireAuth`, valida Zod, no expone datos ajenos      | ✅     | Paso 3.7 cerrado en bump 1.10.17 (12/12 áreas) |
+| P2        | Login attempts logueados a Sentry con breadcrumbs                                             | ✅     | Cerrado en commit de bump 1.10.4 (paso 3.6)    |
+| P2        | Headers: `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin` | ✅     | Cerrado en commit de bump 1.10.3 (paso 3.5)    |
 
 **Cierre P1.1 (paso 3.3)**: CSP movido de `next.config.ts` a `src/proxy.ts` con nonces dinámicos por request. Producción 100% locked (`script-src` solo `'self' 'nonce-X' 'strict-dynamic' sentry.io`). Dev agrega `'unsafe-eval'` solo porque React 19 lo necesita para callstacks de devtools. Sumadas directivas `base-uri`, `form-action`, `object-src`. `style-src` mantiene `'unsafe-inline'` a propósito (Tailwind/Radix/next-font). Spec en `docs/specs/csp.spec.md`. Tests: 22 unit (`csp.test.ts`) + 6 E2E (`csp.spec.ts`). 869/869 tests verde.
 
@@ -213,6 +213,10 @@ Estado al 2026-04-27:
 - Área `users` ✅ cerrada: originalmente 5 handlers. Finding `#C1` (🛑) en bump **1.10.7**: `PATCH /api/users/role` eliminado por dead code + superficie de role-escalation marginal. Cero callers en frontend (única referencia: `promps/PROMP/modulo-10-company.md`, también limpiado). Los 4 handlers restantes (`me`, `registro`, `profile/student`, `profile/company`) ✅ con `requireAuth(role)` + Zod + uso de `auth.user.id` para evitar leak.
 - Área `applications` ✅ cerrada: 5 handlers. **2 IDORs (OWASP #1 Broken Access Control) detectados y cerrados en bump 1.10.8**: `#D1` `PATCH /api/applications/[id]` permitía a cualquier COMPANY mutar applications de prácticas ajenas; `#D2` `POST /api/applications/[id]/notify` permitía spam/phishing disparando emails a students ajenos. Fix con helper privado `findOwnedApplication(applicationId, companyUserId)` que filtra por `internship.companyId`. Más: `#D3` body sin Zod en notify (patrón #B1) y `#D4` mail a Sentry (patrón #B3). +7 tests netos, suite 909/909 verde.
 - Áreas pendientes (8): `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`, `perfil`, `health`.
+
+**Cierre del paso 3.7 (2026-05-05)**: 12/12 áreas auditadas y cerradas a lo largo de los bumps 1.10.5 → 1.10.17. **31 findings 🛑 cerrados con tests, 14 findings ⚠️ documentados como decisiones conscientes**. Suite 887 → 1097 tests verde (+210 tests). 4 patrones convergentes (#G1 error mapping, #G2 anti-enumeration, #G3 error.code, #G4 rate limit) + 2 hallazgos novedosos (#J2 path traversal CWE-22 en `matching/upload-cv`, #L1 health check sin Sentry — observability gap crítico). Detalles en `docs/security-audit-api.md` sección "Cierre del paso 3.7".
+
+**Con paso 3.7 cerrado, la Fase 3 (Seguridad) queda completa**. Próximo: Fase 4.
 
 ---
 

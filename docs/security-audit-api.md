@@ -1,8 +1,8 @@
 # Security Audit `/api/*` (Fase 3 — Paso 3.7)
 
 > Inventario auditable de todos los handlers HTTP del proyecto.
-> Generado el 2026-04-26.
-> Aprobación final: cuando todos los handlers estén ✅ o ⚠️ documentados, paso 3.7 cierra y la Fase 3 cierra.
+> Generado el 2026-04-26. **Cerrado el 2026-05-05 (1.10.17)**.
+> Aprobación final: ✅ **TODAS las áreas (12/12) cerradas con findings 🛑 fixeados o ⚠️ documentados**. Paso 3.7 ✅ cerrado, Fase 3 ✅ cerrada.
 
 ## Convenciones
 
@@ -36,7 +36,7 @@
 | `notifications` | 3        | ✅ cerrada (#I1+#I2 fixeados en 1.10.14, #I3 ⚠️ aceptado)         |
 | `matching`      | 3        | ✅ cerrada (#J1+#J2+#J3 fixeados en 1.10.15)                      |
 | `perfil`        | 3        | ✅ cerrada (#K1+#K2 fixeados en 1.10.16, #K3 ⚠️ aceptado)         |
-| `health`        | 1        | ⏳ pendiente                                                      |
+| `health`        | 1        | ✅ cerrada (#L1 fixeado en 1.10.17, #L2+#L3+#L4 ⚠️ aceptados)     |
 
 ---
 
@@ -381,4 +381,81 @@ Fix: helper `sanitizeFilename(originalName)` que (a) extrae solo el basename con
 - **Decisión rate limit `10/hora`**: simetría con `upload-cv` y consistencia con costo del POST (Storage upload + Prisma update + CDN cache invalidation). Cubre uso legítimo (cambiar avatar 1-2× por sesión) y frena hot-loop.
 - **Convergencia parcial**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario. NO aplican #G2 (anti-enumeration ya nativa porque `auth.user.id` es directo en el WHERE) ni #G3 (no hay service con throws). Patrón "área trivial-CRUD con sub-handler de upload" — necesita 2 patrones, igual que `notifications`.
 
-## `health` (1 handler) — pendiente
+## `health` (1 handler)
+
+> Inventario inicial coincide con el real: 1 handler. Endpoint público intencional para load balancers, k8s probes, status pages, monitoring externo (Pingdom, UptimeRobot, etc.).
+
+| Método | Path          | AuthZ                  | Validación | Output                                                                          | Estado                                                            |
+| ------ | ------------- | ---------------------- | ---------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/health` | Público intencional ⚠️ | N/A        | `{ status, timestamp, services: { database, version } }`. 200 ok / 503 degraded | ✅ (#L1 cerrado en 1.10.17, #L2+#L3+#L4 ⚠️ aceptados intencional) |
+
+### Findings cerrados
+
+**🛑 #L1 — `catch {}` swallowed sin Sentry en el ping a la DB** (cerrado en 1.10.17). Severidad **alta** — observability gap crítico. **El endpoint que monitorea health era el único que NO le avisaba a Sentry cuando la DB caía**. Si pgBouncer se desconectaba, Supabase tenía un incidente, o el connection pool se saturaba, el cliente recibía `503 degraded` correctamente — pero ningún alert llegaba a Sentry/oncall. Los load balancers ven el 503 y dejan de routear tráfico (correcto), pero el equipo de desarrollo no se enteraba hasta que un user reportaba algo. **Ironía**: el endpoint diseñado para detectar problemas era el que más silenciaba el problema. Patrón #J1 (catch silencioso) elevado a severidad alta porque acá es **literalmente el work del endpoint**. Fix: `Sentry.captureMessage("Health check: DB ping failed", { level: "error", tags: { health: "db_down" }, extra: { error: ... } })` en el catch. El cliente sigue recibiendo el response degraded sin leak del error crudo, pero Sentry/oncall ahora se enteran inmediatamente. Defensa robusta contra Error y string-throws (algunos drivers tiran strings o objetos custom).
+
+### Findings activos
+
+**⚠️ #L2 — Endpoint público sin auth** — Severidad: 0 (decisión intencional). Health checks deben ser accesibles a load balancers, k8s probes, status pages externos, monitoring (Pingdom/UptimeRobot/Datadog), CI/CD smoke tests, etc. Ratelimitear o autenticar este endpoint rompe el use case. ✅ correcto, no se cambia.
+
+**⚠️ #L3 — Sin rate limit** — Severidad: 0 (decisión intencional). Mismo razonamiento que #L2: el endpoint es polled cada 5-30s por múltiples clientes externos legítimos (k8s liveness probe, Vercel healthchecks, status page workers). Rate limit lo rompería. ✅ correcto.
+
+**⚠️ #L4 — `version` del proyecto en la response** — Severidad muy baja, info disclosure mínimo. La response incluye `services.version` (e.g. `"1.10.17"`). Un atacante puede usarlo para buscar CVEs específicos de esa versión exacta. **Decisión: aceptado** — es estándar en healthchecks de la industria (k8s expone version en `/healthz`, GitHub `/health` también, npm packages en general). El beneficio operacional (saber qué versión está corriendo en prod sin conectarse al server) supera el riesgo marginal. Si en algún momento queremos cerrarlo: gate behind admin auth o quitar `version` y dejar solo `git sha` corto.
+
+### Notas
+
+- **#L1 es el último finding cerrado del paso 3.7** — punto justo de cierre. Lección final: **observability es seguridad**. Un sistema que falla silenciosamente es indistinguible de un sistema bajo ataque. Cualquier `catch` sin Sentry/logger en código de producción es una superficie ciega — y los endpoints de monitoring son los más críticos porque su fallo es difícil de detectar (un health check que siempre dice "degraded" pero nadie se entera es peor que ningún health check).
+- **Defensa Error vs string-throw**: el handler usa `err instanceof Error ? err.message : String(err)` para el `extra.error` de Sentry. Razón: algunos drivers de Postgres / connection poolers tiran strings o objetos custom (no `Error` instances). El handler debe ser robusto.
+- **Convergencia mínima**: el área cierra solo 1 patrón (#L1=#G1-elevado). Todos los otros findings son ⚠️ aceptados por diseño (público + sin rate limit + version leak). **Área más simple del audit**, confirmación final del régimen estacionario.
+
+---
+
+## ✅ Cierre del paso 3.7 (2026-05-05)
+
+**Estado final**: 12/12 áreas auditadas y cerradas.
+
+| Versión | Área cerrada    | Findings 🛑                    | Findings ⚠️   |
+| ------- | --------------- | ------------------------------ | ------------- |
+| 1.10.5  | `auth`          | #A2                            | #A1           |
+| 1.10.6  | `admin`         | #B1, #B2, #B3                  | —             |
+| 1.10.7  | `users`         | #C1 (eliminado)                | —             |
+| 1.10.8  | `applications`  | #D1, #D2, #D3, #D4             | —             |
+| 1.10.9  | `internships`   | #E1, #E2, #E3, #E4             | #E5           |
+| 1.10.10 | `ats`           | #F1, #F2, #F3, #F4, #F5        | —             |
+| 1.10.11 | `chat`          | #G1, #G2, #G3, #G4             | #G5           |
+| 1.10.13 | `interviews`    | #H1, #H2, #H3, #H4             | #H5           |
+| 1.10.14 | `notifications` | #I1, #I2                       | #I3           |
+| 1.10.15 | `matching`      | #J1, #J2 (path traversal), #J3 | —             |
+| 1.10.16 | `perfil`        | #K1, #K2                       | #K3           |
+| 1.10.17 | `health`        | #L1                            | #L2, #L3, #L4 |
+
+**Totales**: 31 findings 🛑 cerrados con tests, 14 findings ⚠️ documentados. **Suite final**: 1097/1097 tests verde (53 archivos de unit + component, +210 tests vs estado inicial del paso 3.7). **TSC**: clean.
+
+### Patrones convergentes (régimen estacionario del audit)
+
+El audit identificó 4 patrones que se repiten en la mayoría de áreas con service complejo:
+
+1. **#G1 (error mapping)** — try/catch envolvente + Sentry + 500 genérico, sin leak de mensaje crudo. **Aplica a 11/12 áreas**.
+2. **#G2 (anti-enumeration / 404 unification)** — ownership fail devuelve 404 (no 403) para no diferenciar "no existe" de "ajena". **Aplica a 7/12 áreas** (las trivial-CRUD lo tienen nativo via `deleteMany`+filtro).
+3. **#G3 (error.code pattern)** — service throws `Error & { code }` para que handlers matcheen por code, no por string includes. **Aplica a 2/12 áreas** (chat, interviews — las que tienen service con throws diferenciados).
+4. **#G4 (rate limit en mutations costosas)** — throttle por `auth.user.id` en endpoints que disparan IO caro o mutaciones masivas. **Aplica a 7/12 áreas**.
+
+### Hallazgos novedosos (fuera del régimen estacionario)
+
+- **#J2 — Path traversal en `processCV`** (CWE-22): único finding de path traversal del audit. `originalName` no sanitizado se concatenaba al path de Supabase Storage, permitiendo escapar del folder del user. Severidad alta. Fix: helper `sanitizeFilename` con whitelist estricta. **Lección**: cualquier campo del cliente que se concatene a una ruta necesita sanitización, no solo validation.
+- **#L1 — Health check sin Sentry en DB ping**: el endpoint diseñado para detectar problemas era el que más silenciaba el problema. Severidad alta por la naturaleza del endpoint. **Lección**: observability es seguridad — un sistema que falla silenciosamente es indistinguible de uno bajo ataque.
+- **Anti-enumeration profunda en service** (`interviews` #H2): a diferencia de áreas previas que hacían 404 unification solo en el handler, `interviews` movió el cambio al service mismo (throws `NOT_FOUND` con message genérico para ownership fail). Mejor garantía si el service se consume desde otros lugares (futuros tests, jobs, scripts).
+
+### Lecciones metodológicas
+
+- **Inventario inicial subcontaba en 6/11 áreas con sub-routes** (internships 3→6, ats 5→6, chat 4→6, interviews 4→7, matching 2→3, perfil 2→3). El conteo confiable es `Glob src/app/api/AREA/**/route.ts` + leer cada archivo para contar exports HTTP. Lección consolidada después del 4to caso.
+- **TSC pre-commit** después del lote 1.10.12 (que arrastró deuda TS del 1.10.10) — todos los lotes posteriores corrieron `tsc --noEmit` antes del commit.
+- **Helper `chatError`/`interviewError`** consolidado en 2 áreas. Candidato a extraer a `src/server/lib/errors.ts` cuando aparezca la 3ra área que lo necesite (no apareció en `notifications`/`matching`/`perfil`/`health` por falta de service complejo).
+- **Tests con `vi.hoisted` + mock literal de FormData** (en lugar de `new FormData()` real) para preservar el `type` del File. Patrón establecido en `matching-routes` y reusado en `perfil-routes`.
+
+### Próximo paso de la Fase 3
+
+Con el paso 3.7 cerrado, **la Fase 3 (Seguridad) queda completa**. Próximas fases del refactor-plan:
+
+- Fase 4 — Limpieza dead code y reorganización
+- Fase 5 — Patrones de diseño donde aporten
+- Fase 6 — Observabilidad y performance
