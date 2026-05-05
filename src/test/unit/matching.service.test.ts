@@ -267,6 +267,110 @@ describe("processCV", () => {
       embeddingSize: 3,
     });
   });
+
+  // ─── #J2 — sanitización contra path traversal (CWE-22) ───────────────────
+
+  it("#J2 — bloquea path traversal con ../ en el originalName", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    await processCV(
+      "user-1",
+      Buffer.from("x"),
+      "application/pdf",
+      "../../../etc/passwd.pdf",
+    );
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // El path NUNCA debe contener "../" después de la sanitización
+    expect(callPath).not.toContain("..");
+    // Y debe quedar dentro del folder del user
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-/);
+  });
+
+  it("#J2 — bloquea slashes (forward y back) en el nombre", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    await processCV(
+      "user-1",
+      Buffer.from("x"),
+      "application/pdf",
+      "folder\\sub/file.pdf",
+    );
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // Solo debe quedar el basename ("file.pdf"), no folders intermedios
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-file\.pdf$/);
+  });
+
+  it("#J2 — fuerza extensión a la whitelist (rechaza extensiones desconocidas)", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    await processCV(
+      "user-1",
+      Buffer.from("x"),
+      "application/pdf",
+      "malicious.exe",
+    );
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // Extensión cae a "pdf" (default); el stem "malicious" se preserva
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-malicious\.pdf$/);
+    expect(callPath).not.toContain(".exe");
+  });
+
+  it("#J2 — sanitiza caracteres no alfanuméricos en el stem", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    await processCV(
+      "user-1",
+      Buffer.from("x"),
+      "application/pdf",
+      "Mi CV (final)!.pdf",
+    );
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // Espacios, paréntesis, signos → underscore
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-Mi_CV__final__\.pdf$/);
+  });
+
+  it("#J2 — recorta stem largo a 60 chars", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    const longName = "a".repeat(200) + ".pdf";
+    await processCV("user-1", Buffer.from("x"), "application/pdf", longName);
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // Stem máximo 60 chars + "." + "pdf"
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-a{60}\.pdf$/);
+  });
+
+  it("#J2 — fallback a 'cv.pdf' cuando el nombre queda vacío tras sanitizar", async () => {
+    vi.mocked(uploadFile).mockResolvedValue("https://cdn.example.com/cv.pdf");
+    vi.mocked(extractTextFromCV).mockResolvedValue("Texto");
+    vi.mocked(generateEmbedding).mockResolvedValue([0.1]);
+    prismaMock.studentProfile.upsert.mockResolvedValue({});
+
+    await processCV("user-1", Buffer.from("x"), "application/pdf", "...");
+
+    const callPath = vi.mocked(uploadFile).mock.calls[0][1];
+    // "..." → basename ".." → stem vacío → fallback "cv.pdf"
+    expect(callPath).toMatch(/^cvs\/user-1\/\d+-cv\.pdf$/);
+  });
 });
 
 // ─── Tests de deleteCV ────────────────────────────────────────────────────────

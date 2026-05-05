@@ -5,6 +5,46 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.15] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/matching/*` (Fase 3 paso 3.7 / findings #J1, #J2, #J3)** — décimo lote de fixes derivado del audit `/api/*`. El inventario inicial decía "2 handlers" pero el recuento real es **3** (`recommendations/route.ts` GET + `upload-cv/route.ts` POST+DELETE) — corregido en `docs/security-audit-api.md`. Patrón emergente: subcuenta confirmada en 5/10 áreas auditadas. Área cerrada con tres findings 🛑.
+  - **#J1 — Error mapping leak en los 3 handlers**. Severidad baja-media — info disclosure. Patrón #G1/#H1/#I1 con tres variantes del mismo problema:
+    - `GET /recommendations`: `catch {}` **sin parámetro** — error completamente swallowed sin Sentry. Si HuggingFace, Prisma o el cosine similarity fallan, el evento se pierde y nadie se entera.
+    - `POST /upload-cv`: catch hacía `error.message` al cliente — mensajes crudos de Supabase Storage, HuggingFace o pdf-parse llegaban al frontend.
+    - `DELETE /upload-cv`: idem `error.message` al cliente del upsert Prisma.
+
+    Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags, extra: { userId, fileSize? } })`, response `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+
+  - **#J2 — Path traversal en `processCV` por `originalName` no sanitizado (CWE-22 / OWASP A01)**. Severidad **alta** — broken access control / arbitrary file write. **Primer finding de path traversal del audit**. El service hacía `path = \`cvs/\${userId}/\${timestamp}-\${originalName}\``y mandaba directo a`uploadFile("documents", path, ...)`. Vector de ataque: un STUDENT autenticado sube un archivo cuyo `name`contiene`../../`, `/`, `\\` — el path de Supabase Storage **escapa del folder del user** y puede:
+    1. Sobrescribir CVs ajenos: `name = "../other-user-id/cv.pdf"` → reemplaza el CV de otro student.
+    2. Plantar archivos en buckets vecinos: `name = "../../profile-photos/foo.png"` → escribe fuera del scope `cvs/`.
+    3. Confundir lectura/listado con caracteres de control.
+
+    Fix: helper `sanitizeFilename(originalName)` que (a) extrae solo el basename con `split(/[\\/]/).pop()` (descarta segmentos de path), (b) recorta el stem a 60 chars con `replace(/[^a-zA-Z0-9_-]/g, "_")` (whitelist estricta), (c) fuerza la extensión a la whitelist `pdf|doc|docx` (default `pdf`), (d) fallback a `cv` si el stem queda sin alfanuméricos. **Defensa en profundidad**: el handler ya whitelist-ea el mime (PDF/DOCX), pero el sanitize protege incluso si el browser miente sobre el mime.
+
+  - **#J3 — `DELETE /upload-cv` sin rate limit**. Severidad baja — DoS interno / asimetría. POST tenía `5/hora` pero DELETE no, permitiendo hot-loop al endpoint (un upsert por llamada). Fix: `rateLimit("delete-cv:${userId}", 5, HOUR_MS)` consistente con POST. Mantiene simetría conceptual: subir + borrar CV con el mismo presupuesto en ambas direcciones.
+
+### Tests
+
+- Suite total: **1074 tests / 55 archivos** verde (antes 1051 / 54). Nuevo archivo `src/test/unit/matching-routes.test.ts` (17 tests) + extensión de `matching.service.test.ts` con 6 tests del sanitize anti-traversal.
+  - `GET /api/matching/recommendations` (#J1): 5 tests — 401 sin sesión sin tocar rate limit, 429 sin tocar service, **rate limit usa key con `auth.user.id`**, 500 + Sentry sin leak (ya no swallow), 200 happy path.
+  - `POST /api/matching/upload-cv` (#J1): 7 tests — 401, 429, 400 sin archivo, 400 INVALID_FILE_TYPE, 400 FILE_TOO_LARGE, 500 + Sentry sin leak, 200 happy path.
+  - `DELETE /api/matching/upload-cv` (#J1+#J3): 5 tests — 401, **429 (#J3 rate limit)**, **rate limit usa key con `auth.user.id`**, 500 + Sentry sin leak, 200 happy path.
+  - `processCV` sanitize (#J2): 6 tests — bloquea `../../etc/passwd.pdf`, bloquea slashes mixtos `folder\\sub/file.pdf`, fuerza extensión a whitelist (rechaza `.exe`), sanitiza caracteres especiales (paréntesis, espacios), recorta stems de >60 chars, fallback a `cv.pdf` cuando el stem queda sin alfanuméricos (`...`).
+
+### Notes
+
+- **#J2 es el primer finding de path traversal del audit** — todos los lotes anteriores eran ownership/error-mapping/rate-limit. Lección consolidada: **cualquier campo del cliente que se concatene a una ruta** (filesystem path, S3 key, URL, redirect) necesita sanitización, no solo validation. La whitelist de mime es ortogonal — protege contra "subió un .exe" pero NO contra "subió un .pdf llamado `../../foo.pdf`". Patrón a buscar en futuras auditorías.
+- **Mock de FormData**: el test usa un mock literal `{ get: (key) => file }` en lugar de `new FormData()` real. Razón: `FormData.set()` re-envuelve el File y normaliza el `type` a `application/octet-stream`, rompiendo los tests de validación de mime. El mock directo preserva el `type` exacto del fakeFile.
+- **`getRecommendations` sin paginación**: el service hace `findMany` sin take/skip — carga todas las internships APPROVED en memoria. Para N=10000 es ~38MB + CPU O(N×384). NO security crítico (rate limit 20/hora ya frena abuso). Anotado para sweep funcional.
+- **CV bucket policy**: el bucket Supabase `documents` define quién accede al `cvUrl`. Fuera del scope del audit del handler.
+- **Decisión rate limit `5/hora`**: alineado con costo de HuggingFace embedding (~500ms-2s + cuota mensual). Cubre uso legítimo (subir, revisar, reemplazar 1-2× por sesión) y frena abuso de cuota.
+- **Convergencia parcial + 1 patrón nuevo**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario, **más #J2 (path traversal)**. NO aplican #G2 (anti-enumeration ya cubierta porque cada user tiene UN CV y el service usa `auth.user.id` directo) ni #G3 (no hay throws con codes propios). El audit sigue convergiendo pero todavía descubre vectores específicos.
+- **Validación pre-commit**: `tsc --noEmit` corrido **antes** del commit, salida limpia. Lección aprendida del 1.10.12 sigue aplicándose en todos los lotes desde entonces.
+- **Paso 3.7**: 10/12 áreas cerradas (`auth`, `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`, `notifications`, `matching`). Pendientes: `perfil`, `health`. Cierre del paso a la vista.
+
 ## [1.10.14] - 2026-05-05
 
 ### Security

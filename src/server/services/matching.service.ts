@@ -6,6 +6,30 @@ import {
   calculateMatchScore,
 } from "@/server/lib/embeddings";
 
+const ALLOWED_EXTENSIONS = new Set(["pdf", "doc", "docx"]);
+
+/**
+ * Sanitiza el nombre original del archivo antes de usarlo en el path de Storage.
+ * Defensa contra path traversal (CWE-22): si llega `../../etc/passwd` el path
+ * resultante escaparía del folder del user. Mantiene solo el basename, recorta
+ * a 60 chars, deja solo `[a-zA-Z0-9_-]` y matchea la extensión a una whitelist.
+ * Si no hay extensión válida, default a `pdf` (el handler ya whitelist-ea PDF/DOCX).
+ */
+function sanitizeFilename(originalName: string): string {
+  const basename = originalName.split(/[\\/]/).pop() ?? originalName;
+  const dotIdx = basename.lastIndexOf(".");
+  const rawExt = dotIdx >= 0 ? basename.slice(dotIdx + 1).toLowerCase() : "";
+  const extension = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : "pdf";
+  const stem = (dotIdx >= 0 ? basename.slice(0, dotIdx) : basename)
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 60);
+  // Si el stem quedó vacío o sin caracteres alfanuméricos (e.g. "...", "~/~"),
+  // fallback a "cv" para que el path final sea legible y predecible.
+  const hasAlnum = /[a-zA-Z0-9]/.test(stem);
+  const safeStem = hasAlnum ? stem : "cv";
+  return `${safeStem}.${extension}`;
+}
+
 /**
  * Procesa un CV subido por el estudiante:
  * 1. Sube el archivo a Supabase Storage
@@ -20,7 +44,8 @@ export async function processCV(
   originalName: string,
 ): Promise<{ cvUrl: string; embeddingSize: number }> {
   const timestamp = Date.now();
-  const path = `cvs/${userId}/${timestamp}-${originalName}`;
+  const safeName = sanitizeFilename(originalName);
+  const path = `cvs/${userId}/${timestamp}-${safeName}`;
 
   const cvUrl = await uploadFile("documents", path, fileBuffer, mimetype);
 

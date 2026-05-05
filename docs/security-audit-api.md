@@ -34,7 +34,7 @@
 | `chat`          | 6        | ✅ cerrada (#G1+#G2+#G3+#G4 fixeados en 1.10.11, #G5 ⚠️ aceptado) |
 | `interviews`    | 7        | ✅ cerrada (#H1+#H2+#H3+#H4 fixeados en 1.10.13, #H5 ⚠️ aceptado) |
 | `notifications` | 3        | ✅ cerrada (#I1+#I2 fixeados en 1.10.14, #I3 ⚠️ aceptado)         |
-| `matching`      | 2        | ⏳ pendiente                                                      |
+| `matching`      | 3        | ✅ cerrada (#J1+#J2+#J3 fixeados en 1.10.15)                      |
 | `perfil`        | 2        | ⏳ pendiente                                                      |
 | `health`        | 1        | ⏳ pendiente                                                      |
 
@@ -314,7 +314,43 @@
 - **Decisión rate limit `10/min` en read-all**: el botón "marcar todo como leído" es un click humano — 10/min cubre uso legítimo extremo (alguien apretando rápido por error o por inquietud). Bajarlo a 5 podría frustrar al usuario.
 - **Convergencia parcial**: el área cierra solo 2 patrones (#I1=#G1, #I2=#G4-light). NO aplican #G2 (anti-enumeration ya está nativa por `deleteMany`+filtro) ni #G3 (no hay service con throws). Área **más simple del audit** — confirmación de que el régimen estacionario depende del shape del área.
 
-## `matching` (2 handlers) — pendiente
+## `matching` (3 handlers)
+
+> Inventario inicial decía 2. Recuento real: 3 (`recommendations/route.ts` GET + `upload-cv/route.ts` POST+DELETE). Subcuenta confirmada en 5 áreas (internships, ats, chat, interviews, matching).
+
+| Método | Path                            | AuthZ                       | Validación                                               | Output                                                                                   | Estado                |
+| ------ | ------------------------------- | --------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
+| GET    | `/api/matching/recommendations` | `requireAuth("STUDENT")` ✅ | N/A                                                      | rate limit `20/hora/user`, lista filtrada por `auth.user.id` + `companyStatus: APPROVED` | ✅ (#J1 cerrado)      |
+| POST   | `/api/matching/upload-cv`       | `requireAuth("STUDENT")` ✅ | mime whitelist (PDF/DOCX) + size 5MB + sanitize filename | rate limit `5/hora/user`, sanitize anti path-traversal en service                        | ✅ (#J1+#J2 cerrados) |
+| DELETE | `/api/matching/upload-cv`       | `requireAuth("STUDENT")` ✅ | N/A                                                      | rate limit `5/hora/user`, upsert clear `cvUrl/cvText/embedding` por `auth.user.id`       | ✅ (#J1+#J3 cerrados) |
+
+### Findings cerrados
+
+**🛑 #J1 — Error mapping leak en los 3 handlers** (cerrado en 1.10.15). Severidad baja-media — info disclosure. Patrón #G1/#H1/#I1. Tres variantes del mismo problema:
+
+- `GET /recommendations`: `catch {}` **sin parámetro** — error completamente swallowed sin Sentry. Si HuggingFace, Prisma o el cosine similarity fallan, el evento se pierde y nadie se entera.
+- `POST /upload-cv`: catch hacía `error.message` al cliente — mensajes crudos de Supabase Storage (path policy denied, bucket not found), HuggingFace (rate limit, model loading) o pdf-parse (corrupted PDF) llegaban al frontend.
+- `DELETE /upload-cv`: idem error.message al cliente — leak de errores Prisma del upsert.
+
+Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "matching.X.METHOD" }, extra: { userId, fileSize? } })`, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+
+**🛑 #J2 — Path traversal en `processCV` por `originalName` no sanitizado (CWE-22 / OWASP A01)** (cerrado en 1.10.15). Severidad **alta** — broken access control / arbitrary file write. El service hacía `path = \`cvs/${userId}/${timestamp}-${originalName}\``y mandaba directo a`uploadFile("documents", path, ...)`. Vector de ataque: un STUDENT autenticado sube un archivo cuyo `name`contiene`../../`, `/`, `\\`, o caracteres especiales — el path de Supabase Storage **escapa del folder del user** y puede:
+
+1. **Sobrescribir CVs ajenos**: `name = "../other-user-id/cv.pdf"` → reemplaza el CV de otro student.
+2. **Plantar archivos en buckets vecinos**: `name = "../../profile-photos/foo.png"` → escribe fuera del scope `cvs/`.
+3. **Confundir lectura/listado**: nombres con caracteres de control rompen búsquedas y herramientas downstream.
+
+Fix: helper `sanitizeFilename(originalName)` que (a) extrae solo el basename con `split(/[\\/]/).pop()` (descarta segmentos de path), (b) recorta el stem a 60 chars con `replace(/[^a-zA-Z0-9_-]/g, "_")` (whitelist estricta), (c) fuerza la extensión a la whitelist `pdf|doc|docx` (default `pdf` si no matchea), (d) fallback a `cv` si el stem queda sin alfanuméricos. **Defensa en profundidad**: el handler ya whitelist-ea el mime (PDF/DOCX), pero el sanitize protege incluso si la whitelist falla (ej. browser miente sobre el mime). 6 tests específicos en `matching.service.test.ts` cubren `../../`, slashes, extensiones desconocidas (`.exe`), caracteres especiales, stems largos (>60), y nombres vacíos.
+
+**🛑 #J3 — `DELETE /upload-cv` sin rate limit** (cerrado en 1.10.15). Severidad baja — DoS interno / asimetría. POST tenía `5/hora` pero DELETE no, permitiendo hot-loop al endpoint (un upsert por llamada). Fix: `rateLimit("delete-cv:${userId}", 5, HOUR_MS)` consistente con POST. Mantiene simetría conceptual: el flujo "subir + borrar CV" tiene el mismo presupuesto en ambas direcciones.
+
+### Notas
+
+- **#J2 es el primer finding de path traversal del audit**. Todos los lotes anteriores eran ownership/error-mapping/rate-limit. Lección aprendida: **cualquier campo que provenga del cliente y se concatene a una ruta** (filesystem path, S3 key, URL, redirect target) necesita sanitización, no solo validation. La whitelist de mime es ortogonal — protege contra "subió un .exe" pero NO contra "subió un .pdf llamado `../../foo.pdf`". Patrón a buscar en futuras auditorías de `storage`, `redirect`, etc.
+- **`getRecommendations` sin paginación**: el service hace `findMany({ where: { isActive: true, company: { companyStatus: "APPROVED" } } })` sin take/skip — carga todas las internships activas en memoria para el cosine similarity. Para N=10000 es ~38MB en memoria y CPU O(N×384). NO security crítico (rate limit 20/hora ya frena abuso), pero es un techo escalable. Anotado para sweep funcional posterior.
+- **CV almacenado en Supabase Storage bucket `documents`**: el bucket policy define quién accede al `cvUrl` resultante (público o signed URL). Fuera del scope del audit del handler — el handler solo guarda el URL. Validación de bucket policy es responsabilidad del Setup/Deploy (Módulo 12).
+- **Decisión rate limit `5/hora` en upload-cv**: alineado con costo del POST (HuggingFace embedding generation cuesta ~500ms-2s + cuota mensual). 5/hora cubre uso legítimo (subir, revisar, reemplazar 1-2× por sesión) y frena abuso de cuota. Mismo límite para DELETE por simetría.
+- **Convergencia parcial + un patrón nuevo**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario, **más #J2 (path traversal — patrón nuevo)**. NO aplican #G2 (anti-enumeration ya cubierta porque cada user tiene UN CV y el service usa `auth.user.id` directo) ni #G3 (no hay throws con codes propios). El audit sigue convergiendo pero todavía descubre vectores específicos de cada área.
 
 ## `perfil` (2 handlers) — pendiente
 
