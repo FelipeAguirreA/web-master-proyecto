@@ -5,6 +5,12 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.12] - 2026-05-05
+
+### Fixes
+
+- **TSC error en `src/app/api/ats/config/route.ts:175` (deuda del 1.10.10)**. El refactor #F3 sumó un `discriminatedUnion("type", ...)` con schemas estrictos por scorer que produce tipos con arrays mutables (`required: string[]`, etc.), pero `Prisma.ATSModuleCreateManyInput.params` espera `Prisma.InputJsonValue` (que tiene arrays readonly). `tsc --noEmit` reportaba `TS2322` con cadena larga de incompatibilidad estructural. Fix: cast explícito `params: m.params as Prisma.InputJsonValue` en el `createMany` del upsert atómico, con comentario justificando que el schema Zod ya validó el shape concreto. `tsc --noEmit` ahora limpio. Tests del área `ats` (33) intactos.
+
 ## [1.10.11] - 2026-05-05
 
 ### Security

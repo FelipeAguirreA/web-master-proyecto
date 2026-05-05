@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/server/lib/db";
 import { requireAuth } from "@/server/lib/auth-guard";
 
@@ -179,7 +180,10 @@ export async function POST(req: NextRequest) {
             isActive: m.isActive,
             weight: m.weight,
             order: m.order,
-            params: m.params,
+            // Zod discriminatedUnion produce tipos con arrays mutables, mientras
+            // que Prisma.InputJsonValue espera readonly. Cast seguro: el schema
+            // ya validó que cada `params` matchea el shape concreto del scorer.
+            params: m.params as Prisma.InputJsonValue,
           })),
         });
       }
