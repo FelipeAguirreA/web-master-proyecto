@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import {
   getInterviewById,
@@ -30,20 +31,23 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const interview = await getInterviewById(interviewId, auth.user.id);
     return NextResponse.json(interview);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    if (message.includes("Not authorized")) {
-      return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
-      );
-    }
-    if (message.includes("not found")) {
+    const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND") {
       return NextResponse.json(
         { error: "Entrevista no encontrada", code: "NOT_FOUND" },
         { status: 404 },
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "interviews.[id].GET" },
+      extra: { userId: auth.user.id, interviewId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }
 
@@ -75,21 +79,42 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
     return NextResponse.json(updated);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
     const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND") {
+      return NextResponse.json(
+        { error: "Entrevista no encontrada", code: "NOT_FOUND" },
+        { status: 404 },
+      );
+    }
     if (code === "INTERVIEW_ALREADY_EXISTS") {
       return NextResponse.json(
-        { error: message, code: "INTERVIEW_ALREADY_EXISTS" },
+        {
+          error: "Este candidato ya tiene una entrevista agendada.",
+          code: "INTERVIEW_ALREADY_EXISTS",
+        },
         { status: 409 },
       );
     }
-    if (message.includes("Not authorized")) {
+    if (code === "NEW_CANDIDATE_NO_CONVERSATION") {
       return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
+        {
+          error:
+            "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
+          code: "NEW_CANDIDATE_NO_CONVERSATION",
+        },
+        { status: 400 },
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "interviews.[id].PATCH" },
+      extra: { userId: auth.user.id, interviewId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }
 
@@ -105,19 +130,22 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     await deleteInterview(interviewId, auth.user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    if (message.includes("Not authorized")) {
-      return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
-      );
-    }
-    if (message.includes("not found")) {
+    const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND") {
       return NextResponse.json(
         { error: "Entrevista no encontrada", code: "NOT_FOUND" },
         { status: 404 },
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "interviews.[id].DELETE" },
+      extra: { userId: auth.user.id, interviewId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { getAvailableCandidates } from "@/server/services/interviews.service";
 
@@ -17,19 +18,22 @@ export async function GET(
     const candidates = await getAvailableCandidates(jobId, auth.user.id);
     return NextResponse.json(candidates);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    if (message.includes("Not authorized")) {
-      return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
-      );
-    }
-    if (message.includes("not found")) {
+    const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND") {
       return NextResponse.json(
         { error: "Práctica no encontrada", code: "NOT_FOUND" },
         { status: 404 },
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "interviews.available-candidates.GET" },
+      extra: { userId: auth.user.id, jobId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }

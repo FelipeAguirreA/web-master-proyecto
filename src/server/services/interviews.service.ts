@@ -1,6 +1,19 @@
 import { prisma } from "@/server/lib/db";
 import { Prisma } from "@prisma/client";
 
+export type InterviewErrorCode =
+  | "NOT_FOUND"
+  | "FORBIDDEN"
+  | "INTERVIEW_ALREADY_EXISTS"
+  | "APPLICATION_MISMATCH"
+  | "NEW_CANDIDATE_NO_CONVERSATION";
+
+function interviewError(code: InterviewErrorCode, message: string) {
+  const err = new Error(message) as Error & { code: InterviewErrorCode };
+  err.code = code;
+  return err;
+}
+
 function formatInterviewMessage(
   interview: {
     title: string;
@@ -72,12 +85,17 @@ export async function createInterview(
     },
   });
 
-  if (!application) throw new Error("Application not found");
+  // Anti-enumeration: ownership ANTES que cualquier otro check para no
+  // diferenciar paths sobre apps ajenas.
+  if (!application) throw interviewError("NOT_FOUND", "Application not found");
   if (application.internship.company.userId !== companyUserId) {
-    throw new Error("Not authorized");
+    throw interviewError("NOT_FOUND", "Application not found");
   }
   if (application.internshipId !== data.internshipId) {
-    throw new Error("Application does not belong to this internship");
+    throw interviewError(
+      "APPLICATION_MISMATCH",
+      "Application does not belong to this internship",
+    );
   }
 
   // Verificar que no exista ya entrevista para esta aplicación
@@ -86,11 +104,10 @@ export async function createInterview(
   });
 
   if (existing) {
-    const err = new Error(
+    throw interviewError(
+      "INTERVIEW_ALREADY_EXISTS",
       "Este candidato ya tiene una entrevista agendada. Puedes editarla.",
-    ) as Error & { code: string };
-    err.code = "INTERVIEW_ALREADY_EXISTS";
-    throw err;
+    );
   }
 
   return prisma.interview.create({
@@ -167,8 +184,10 @@ export async function getInterviewById(
     },
   });
 
-  if (!interview) throw new Error("Interview not found");
-  if (interview.companyId !== companyUserId) throw new Error("Not authorized");
+  if (!interview) throw interviewError("NOT_FOUND", "Interview not found");
+  if (interview.companyId !== companyUserId) {
+    throw interviewError("NOT_FOUND", "Interview not found");
+  }
 
   return interview;
 }
@@ -194,8 +213,10 @@ export async function updateInterview(
     },
   });
 
-  if (!interview) throw new Error("Interview not found");
-  if (interview.companyId !== companyUserId) throw new Error("Not authorized");
+  if (!interview) throw interviewError("NOT_FOUND", "Interview not found");
+  if (interview.companyId !== companyUserId) {
+    throw interviewError("NOT_FOUND", "Interview not found");
+  }
 
   const changingCandidate =
     data.applicationId && data.applicationId !== interview.applicationId;
@@ -208,9 +229,11 @@ export async function updateInterview(
       },
     });
 
-    if (!newApplication) throw new Error("New application not found");
+    if (!newApplication) {
+      throw interviewError("NOT_FOUND", "New application not found");
+    }
     if (newApplication.internship.company.userId !== companyUserId) {
-      throw new Error("Not authorized for new application");
+      throw interviewError("NOT_FOUND", "New application not found");
     }
 
     // Verificar que el nuevo candidato no tenga ya entrevista
@@ -223,11 +246,10 @@ export async function updateInterview(
     });
 
     if (existingForNew) {
-      const err = new Error(
+      throw interviewError(
+        "INTERVIEW_ALREADY_EXISTS",
         "Este candidato ya tiene una entrevista agendada. Puedes editarla.",
-      ) as Error & { code: string };
-      err.code = "INTERVIEW_ALREADY_EXISTS";
-      throw err;
+      );
     }
 
     // Si ya fue enviada al chat anterior → notificar al candidato anterior
@@ -249,7 +271,8 @@ export async function updateInterview(
     });
 
     if (!newConv) {
-      throw new Error(
+      throw interviewError(
+        "NEW_CANDIDATE_NO_CONVERSATION",
         "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
       );
     }
@@ -314,8 +337,10 @@ export async function deleteInterview(
     },
   });
 
-  if (!interview) throw new Error("Interview not found");
-  if (interview.companyId !== companyUserId) throw new Error("Not authorized");
+  if (!interview) throw interviewError("NOT_FOUND", "Interview not found");
+  if (interview.companyId !== companyUserId) {
+    throw interviewError("NOT_FOUND", "Interview not found");
+  }
 
   // Si ya fue enviada → notificar al candidato
   if (interview.sentToChat) {
@@ -359,8 +384,10 @@ export async function sendInterviewToChat(
     },
   });
 
-  if (!interview) throw new Error("Interview not found");
-  if (interview.companyId !== companyUserId) throw new Error("Not authorized");
+  if (!interview) throw interviewError("NOT_FOUND", "Interview not found");
+  if (interview.companyId !== companyUserId) {
+    throw interviewError("NOT_FOUND", "Interview not found");
+  }
 
   const isUpdate = interview.sentToChat;
   const content = formatInterviewMessage(
@@ -424,9 +451,9 @@ export async function getAvailableCandidates(
     include: { company: { select: { userId: true } } },
   });
 
-  if (!internship) throw new Error("Internship not found");
+  if (!internship) throw interviewError("NOT_FOUND", "Internship not found");
   if (internship.company.userId !== companyUserId) {
-    throw new Error("Not authorized");
+    throw interviewError("NOT_FOUND", "Internship not found");
   }
 
   // Candidatos en INTERVIEW que no tienen entrevista SCHEDULED

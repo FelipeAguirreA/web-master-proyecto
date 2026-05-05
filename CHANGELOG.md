@@ -5,6 +5,39 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.13] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/interviews/*` (Fase 3 paso 3.7 / findings #H1, #H2, #H3, #H4)** — octavo lote de fixes derivado del audit `/api/*`. El inventario inicial decía "4 handlers" pero el recuento real es **7** (`route.ts` GET+POST + `[id]/route.ts` GET+PATCH+DELETE + `send-to-chat/route.ts` POST + `available-candidates/[jobId]/route.ts` GET) — corregido en `docs/security-audit-api.md`. Área completa cerrada con cuatro findings 🛑 + uno ⚠️ aceptado.
+  - **#H1 — Error mapping leak universal en los 7 handlers**. Severidad baja-media — info disclosure. Patrón #E3/#F2/#G1: todos los catch hacían `{ error: err.message }` con status 500, propagando mensajes crudos de Prisma/infra. Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "interviews.X.METHOD" }, extra: { userId, interviewId/jobId } })` en el catch, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+  - **#H2 — Ownership fail diferenciaba 403 vs 404 (anti-enumeration)**. Severidad media — IDOR enumeration. 5 handlers retornaban 404/403 según existence/ownership, permitiendo enumerar IDs válidos de interviews ajenas. **Fix más profundo que en áreas previas**: en lugar de unificar solo en el handler, se cambió el throw del **service** mismo — cuando el caller no es owner, el service ahora throws `NOT_FOUND` con mensaje genérico ("Interview not found", "Application not found", "Internship not found"). Doble defensa: el service por sí solo no expone la diferencia, y el handler solo matchea por `code === "NOT_FOUND"` → 404.
+  - **#H3 — String matching frágil para mapear errores → códigos consistentes**. Severidad baja — defensa en profundidad / mantenibilidad. Patrón #G3: handlers usaban `message.includes("Not authorized")` / `message.includes("not found")` para decidir status code. **Inconsistencia interna**: el service ya usaba `err.code = "INTERVIEW_ALREADY_EXISTS"` puntualmente, pero el resto seguía con string matching. Fix: añadida `InterviewErrorCode` union (`NOT_FOUND | FORBIDDEN | INTERVIEW_ALREADY_EXISTS | APPLICATION_MISMATCH | NEW_CANDIDATE_NO_CONVERSATION`) + helper `interviewError(code, message)`. Migrados los 14 throws sin code al patrón. Tests del service migrados a `rejects.toMatchObject({ message, code })`.
+  - **#H4 — `POST /api/interviews/[id]/send-to-chat` sin rate limit**. Severidad media — spam/notification flood. El handler dispara una transacción de 3 ops Prisma (`message.create` + `interview.update` + `conversation.update`) más broadcast realtime al student via Supabase. Sin throttle, una company podía spamear notifications de "Entrevista agendada/actualizada" al chat del student. Fix: `rateLimit("interview-send-to-chat:${userId}", 10, MIN_MS)` antes de tocar DB. 10/min es generoso para uso legítimo (1 al agendar + 1-2 al editar) y corta el flood.
+
+### Tests
+
+- Suite total: **1037 tests / 53 archivos** verde (antes 1002 / 52). Nuevo archivo `src/test/unit/interviews-routes.test.ts` (35 tests) con `vi.hoisted` para mocks de `requireAuth`, `Sentry.captureException`, los 7 services de interviews y `rateLimit/rateLimitResponse`. Cobertura por handler:
+  - `POST /api/interviews` (#H1+#H2+#H3): 7 tests — 401, 400 Zod, NOT_FOUND, **400 APPLICATION_MISMATCH**, 409 INTERVIEW_ALREADY_EXISTS, 500 + Sentry sin leak, 201 happy path.
+  - `GET /api/interviews` (#H1): 3 tests — 401, 200 con lista, 500 + Sentry sin leak.
+  - `GET /api/interviews/[id]` (#H1+#H2+#H3): 4 tests — 401, **NOT_FOUND incluye ownership fail (anti-enumeration)**, 500 + Sentry, 200 happy path.
+  - `PATCH /api/interviews/[id]` (#H1+#H2+#H3): 7 tests — 401, 400 Zod, NOT_FOUND, 409 ALREADY_EXISTS, **400 NEW_CANDIDATE_NO_CONVERSATION**, 500 + Sentry, 200 happy path.
+  - `DELETE /api/interviews/[id]` (#H1+#H2+#H3): 4 tests — 401, NOT_FOUND, 500 + Sentry, 200 happy path.
+  - `POST /api/interviews/[id]/send-to-chat` (#H1+#H2+#H3+#H4): 6 tests — 401, **#H4 rate limit 429 sin tocar DB**, **rate limit usa key con `auth.user.id`**, NOT_FOUND, 500 + Sentry sin leak, 201 happy path.
+  - `GET /api/interviews/available-candidates/[jobId]` (#H1+#H2+#H3): 4 tests — 401, NOT_FOUND, 500 + Sentry, 200 happy path.
+- `src/test/unit/interviews.service.test.ts`: 45 tests verde (mismo conteo). Migrados los 16 asserts de `rejects.toThrow(message)` a `rejects.toMatchObject({ message, code })` para verificar el `code` correcto en cada throw. Los 7 tests que antes verificaban "Not authorized" ahora verifican `NOT_FOUND` (anti-enumeration #H2).
+
+### Notes
+
+- **Helper `interviewError`** sigue el mismo shape que `chatError` (área `chat`, 1.10.11). Patrón consolidado en 2 áreas — candidato a extraer a `src/server/lib/errors.ts` con la próxima área que lo use (probablemente `notifications`).
+- **Anti-enumeration profunda en #H2**: a diferencia de áreas previas donde el "404 unification" se hacía solo en el handler (mapeando FORBIDDEN→404), acá el cambio se aplicó **en el service**. Razón: el service también es consumido por otros lugares (futuros tests, jobs, scripts). Que el service por sí solo no exponga la diferencia es una mejor garantía.
+- **`APPLICATION_MISMATCH` y `NEW_CANDIDATE_NO_CONVERSATION` mantienen 400 (no 404)**: ambos códigos solo se lanzan **después de ownership confirmada**, no hay enumeration risk. Son errores de payload/UX del cliente. 400 con código específico ayuda al frontend a mostrar mensaje útil.
+- **#H5 (validación URL en `meetingLink`)** aceptado como ⚠️ — el flow legítimo necesita texto libre ("TBD", "Zoom dial-in: +56...", etc.) y las companies son trusted (aprobadas por admin). El campo se renderiza como texto plano (no `<a href>`), así que `javascript:` no se ejecuta. Documentado.
+- **Convergencia confirmada**: el área `interviews` cierra los mismos 4 patrones que ya emergieron en lotes previos (#H1=#G1, #H2=#G2, #H3=#G3, #H4=#G4). El audit ya alcanzó régimen estacionario — los próximos lotes deberían ejecutarse rápido.
+- **Compatibilidad con frontend**: cero cambios de contrato en happy path. Cambios visibles: 404 en lugar de 403 cuando un user toca interviews ajenas (deseado), error genérico en lugar de mensaje crudo en 500 (deseado), 429 en `send-to-chat` con header `Retry-After` cuando se excede 10/min.
+- **Validación pre-commit**: lección aprendida del lote anterior (1.10.12 fixeó deuda TSC). Esta vez `tsc --noEmit` se corrió **antes** del commit, no después. Salida limpia.
+- **Paso 3.7**: 8/12 áreas cerradas (`auth`, `admin`, `users`, `applications`, `internships`, `ats`, `chat`, `interviews`). Pendientes: `notifications`, `matching`, `perfil`, `health`.
+
 ## [1.10.12] - 2026-05-05
 
 ### Fixes

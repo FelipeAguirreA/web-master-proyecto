@@ -32,7 +32,7 @@
 | `internships`   | 6        | ✅ cerrada (#E1+#E2+#E3+#E4 fixeados en 1.10.9, #E5 ⚠️ aceptado)  |
 | `ats`           | 5        | ✅ cerrada (#F1+#F2+#F3+#F4+#F5 fixeados en 1.10.10)              |
 | `chat`          | 6        | ✅ cerrada (#G1+#G2+#G3+#G4 fixeados en 1.10.11, #G5 ⚠️ aceptado) |
-| `interviews`    | 4        | ⏳ pendiente                                                      |
+| `interviews`    | 7        | ✅ cerrada (#H1+#H2+#H3+#H4 fixeados en 1.10.13, #H5 ⚠️ aceptado) |
 | `notifications` | 3        | ⏳ pendiente                                                      |
 | `matching`      | 2        | ⏳ pendiente                                                      |
 | `perfil`        | 2        | ⏳ pendiente                                                      |
@@ -247,7 +247,43 @@
 - **Por qué `INTERVIEW_REQUIRED` mantiene 403 y no se unifica a 404**: ese código solo se lanza DESPUÉS de ownership confirmada (caller ES owner de la application), entonces no hay enumeration risk. Devolver 404 ahí confundiría al frontend legítimo. 403 con código `PIPELINE_STATUS_REQUIRED` es correcto.
 - **Convergencia confirmada**: el área `chat` cierra los mismos 4 patrones que ya emergieron en lotes previos (#G1 = #E3/#F2, #G2 = #D1/#F1, #G3 nuevo, #G4 = #F4/#F5). El `error.code` pattern (#G3) extiende el helper que ya usábamos puntualmente en interviews/chat → ahora consistente en todo chat.
 
-## `interviews` (4 handlers) — pendiente
+## `interviews` (7 handlers)
+
+> Inventario inicial decía 4. Recuento real: 7 (`route.ts` GET+POST, `[id]/route.ts` GET+PATCH+DELETE, `send-to-chat/route.ts` POST, `available-candidates/[jobId]/route.ts` GET). Mismo patrón de subcuenta detectado en `internships`, `chat` y `ats`.
+
+| Método | Path                                           | AuthZ                       | Zod                         | Output                                                                  | Estado                        |
+| ------ | ---------------------------------------------- | --------------------------- | --------------------------- | ----------------------------------------------------------------------- | ----------------------------- |
+| POST   | `/api/interviews`                              | `requireAuth("COMPANY")` ✅ | `createSchema` ✅           | ownership + 404 unificado, APPLICATION_MISMATCH→400, ALREADY_EXISTS→409 | ✅ (#H1+#H2+#H3 cerrados)     |
+| GET    | `/api/interviews`                              | `requireAuth("COMPANY")` ✅ | N/A (query string opcional) | filtra por `companyId === auth.user.id`                                 | ✅ (#H1 cerrado)              |
+| GET    | `/api/interviews/[interviewId]`                | `requireAuth("COMPANY")` ✅ | N/A                         | ownership + 404 unificado                                               | ✅ (#H1+#H2+#H3 cerrados)     |
+| PATCH  | `/api/interviews/[interviewId]`                | `requireAuth("COMPANY")` ✅ | `updateSchema` ✅           | ownership + 404 unificado, ALREADY_EXISTS→409, NO_CONVERSATION→400      | ✅ (#H1+#H2+#H3 cerrados)     |
+| DELETE | `/api/interviews/[interviewId]`                | `requireAuth("COMPANY")` ✅ | N/A                         | ownership + 404 unificado                                               | ✅ (#H1+#H2+#H3 cerrados)     |
+| POST   | `/api/interviews/[interviewId]/send-to-chat`   | `requireAuth("COMPANY")` ✅ | N/A                         | rate limit `10/min/user`, ownership + 404 unificado                     | ✅ (#H1+#H2+#H3+#H4 cerrados) |
+| GET    | `/api/interviews/available-candidates/[jobId]` | `requireAuth("COMPANY")` ✅ | N/A                         | ownership + 404 unificado                                               | ✅ (#H1+#H2+#H3 cerrados)     |
+
+### Findings cerrados
+
+**🛑 #H1 — Error mapping leak universal en los 7 handlers** (cerrado en 1.10.13). Severidad baja-media — info disclosure. Patrón #E3/#F2/#G1: todos los catch hacían `{ error: err.message }` con status 500, propagando mensajes crudos de Prisma/infra. Fix universal: `try/catch` + `Sentry.captureException(err, { tags: { route: "interviews.X.METHOD" }, extra: { userId, interviewId/jobId } })`, response `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500. Whitelist de mensajes propagables: solo los códigos conocidos del service.
+
+**🛑 #H2 — Ownership fail diferenciaba 403 vs 404 (anti-enumeration)** (cerrado en 1.10.13). Severidad media — IDOR enumeration. Patrón #D1/#F1/#G2: 5 handlers (`GET/PATCH/DELETE` de `[id]`, `send-to-chat`, `available-candidates`) retornaban `404 "no encontrada"` cuando no existía vs `403 "No autorizado"` cuando existía pero no era de la company. Permitía enumerar IDs válidos de interviews ajenas. Fix: dentro del **service** se cambió el throw de FORBIDDEN → NOT_FOUND con el mismo message ("Interview not found", "Application not found", "Internship not found", "New application not found"). Anti-enumeration profunda — no solo el handler, también el service oculta la existencia del recurso. El handler solo matchea por `code === "NOT_FOUND"` → 404 con mensaje genérico.
+
+**🛑 #H3 — String matching frágil para mapear errores → códigos consistentes** (cerrado en 1.10.13). Severidad baja — defensa en profundidad / mantenibilidad. Patrón #G3: handlers matcheaban con `message.includes("Not authorized")` / `message.includes("not found")` — frágil ante refactor. **Inconsistencia interna**: el service ya usaba `err.code = "INTERVIEW_ALREADY_EXISTS"` puntualmente (en `createInterview` y `updateInterview`), pero el resto seguía con string matching. Fix: añadida `InterviewErrorCode` union (`NOT_FOUND | FORBIDDEN | INTERVIEW_ALREADY_EXISTS | APPLICATION_MISMATCH | NEW_CANDIDATE_NO_CONVERSATION`) + helper `interviewError(code, message)`. Migrados los 14 throws sin code al patrón. Handlers matchean por `err.code` exclusivamente. Tests del service migrados a `rejects.toMatchObject({ message, code })`.
+
+**🛑 #H4 — `POST /api/interviews/[id]/send-to-chat` sin rate limit** (cerrado en 1.10.13). Severidad media — spam/notification flood. El handler dispara una transacción de 3 ops Prisma (`message.create` + `interview.update` + `conversation.update`) más broadcast realtime al student via Supabase. Sin throttle, una company autenticada podía spamear notifications de "Entrevista agendada/actualizada" al chat del student (acoso, presión sobre Realtime, churn de mensajes). Fix: `rateLimit("interview-send-to-chat:${userId}", 10, MIN_MS)` antes de tocar DB. 10/min es generoso para uso legítimo (re-enviar tras editar fecha) y corta el flood.
+
+### Findings activos
+
+**⚠️ #H5 — `meetingLink` sin validación URL** — Severidad baja, riesgo aceptado. El schema acepta `z.string().optional()` para `meetingLink`. Idealmente sería `z.string().url()`, pero el flow legítimo necesita texto libre: empresas pueden poner "TBD", "Zoom dial-in: +56...", "Link por confirmar", etc. Las companies son trusted (aprobadas por admin) y el campo se renderiza en el chat como texto plano (no `<a href>`), así que un `javascript:alert(1)` no se ejecuta. Riesgo residual: bajo. Si quisiéramos cerrarlo: `z.union([z.string().url(), z.literal(""), z.string().regex(/^TBD/i)])` o simplemente `z.string().refine(v => !v.startsWith("javascript:"))`.
+
+### Notas
+
+- **Anti-enumeration profunda en #H2**: a diferencia de áreas previas donde el "404 unification" se hacía solo en el handler (mapeando FORBIDDEN→404), acá el cambio se aplicó **en el service**: cuando el caller no es owner, el throw mismo es `NOT_FOUND` con un mensaje genérico ("Interview not found"). Razón: el service también es consumido por otros lugares (futuros tests, jobs, scripts). Que el service por sí solo no exponga la diferencia es una mejor garantía.
+- **Helper `interviewError`** sigue el mismo shape que `chatError` (área `chat`, 1.10.11). Patrón consolidado en 2 áreas — candidato a extraer a `src/server/lib/errors.ts` con la próxima área que lo use (probablemente `notifications`).
+- **Decisión rate limit `10/min` en send-to-chat**: balance UX/anti-spam. Una company legítima puede mandar al chat 1× al agendar y reenviar 1-2× al editar (fecha cambia, link cambia). 10/min es ~4× el uso legítimo máximo en pico — frena spam sin estorbar.
+- **`APPLICATION_MISMATCH` mantiene 400 (no 404)**: este código solo se lanza después de ownership confirmada (la app ES del caller pero el internshipId del payload no matchea). No hay enumeration risk acá, es un error de payload del cliente. 400 con código específico ayuda al frontend a mostrar mensaje útil.
+- **`NEW_CANDIDATE_NO_CONVERSATION` mantiene 400 (no 404)**: idem APPLICATION_MISMATCH — sale después de ownership confirmada del nuevo candidato. Es un guard de UX (forzar al usuario a iniciar el chat antes de reasignar la entrevista). 400 con mensaje específico es correcto.
+- **Convergencia confirmada**: el área `interviews` cierra los mismos 4 patrones que ya emergieron en lotes previos (#H1=#G1, #H2=#G2, #H3=#G3, #H4=#G4). El audit ya ha alcanzado régimen estacionario — los próximos lotes (`notifications`, `matching`, `perfil`, `health`) deberían ejecutarse rápido siguiendo el mismo runbook.
+- **Compatibilidad con frontend**: cero cambios de contrato en happy path. Cambios visibles: 404 en lugar de 403 cuando un user toca interviews ajenas (deseado), error genérico en lugar de mensaje crudo en 500 (deseado), 429 en `send-to-chat` con header `Retry-After` cuando se excede 10/min.
 
 ## `notifications` (3 handlers) — pendiente
 

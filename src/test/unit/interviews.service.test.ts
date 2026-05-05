@@ -62,15 +62,18 @@ const validCreatePayload = {
 // ─── createInterview ────────────────────────────────────────────────────────
 
 describe("createInterview", () => {
-  it("lanza error si la application no existe", async () => {
+  it("lanza error con code NOT_FOUND si la application no existe", async () => {
     prismaMock.application.findUnique.mockResolvedValue(null);
 
     await expect(
       createInterview(COMPANY_USER_ID, validCreatePayload),
-    ).rejects.toThrow("Application not found");
+    ).rejects.toMatchObject({
+      message: "Application not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si la application no pertenece a una práctica de esta empresa", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si la application no pertenece a una práctica de esta empresa — anti-enumeration", async () => {
     prismaMock.application.findUnique.mockResolvedValue({
       ...mockApplication,
       internship: { company: { userId: "other-company-user" } },
@@ -78,10 +81,13 @@ describe("createInterview", () => {
 
     await expect(
       createInterview(COMPANY_USER_ID, validCreatePayload),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Application not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si el internshipId del payload no matchea con el de la application", async () => {
+  it("lanza APPLICATION_MISMATCH si el internshipId del payload no matchea con el de la application", async () => {
     prismaMock.application.findUnique.mockResolvedValue({
       ...mockApplication,
       internshipId: "other-internship",
@@ -89,7 +95,10 @@ describe("createInterview", () => {
 
     await expect(
       createInterview(COMPANY_USER_ID, validCreatePayload),
-    ).rejects.toThrow("Application does not belong to this internship");
+    ).rejects.toMatchObject({
+      message: "Application does not belong to this internship",
+      code: "APPLICATION_MISMATCH",
+    });
   });
 
   it("lanza INTERVIEW_ALREADY_EXISTS si ya hay entrevista para esta application", async () => {
@@ -243,15 +252,18 @@ describe("getInterviewsByCompany", () => {
 // ─── getInterviewById ───────────────────────────────────────────────────────
 
 describe("getInterviewById", () => {
-  it("lanza error si la entrevista no existe", async () => {
+  it("lanza error con code NOT_FOUND si la entrevista no existe", async () => {
     prismaMock.interview.findUnique.mockResolvedValue(null);
 
     await expect(
       getInterviewById(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Interview not found");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza Not authorized si companyId no matchea", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si companyId no matchea — anti-enumeration", async () => {
     prismaMock.interview.findUnique.mockResolvedValue({
       ...mockInterviewBase,
       companyId: "other-company",
@@ -259,7 +271,10 @@ describe("getInterviewById", () => {
 
     await expect(
       getInterviewById(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("retorna la entrevista cuando pertenece a la empresa", async () => {
@@ -274,15 +289,18 @@ describe("getInterviewById", () => {
 // ─── updateInterview ────────────────────────────────────────────────────────
 
 describe("updateInterview", () => {
-  it("lanza error si la entrevista no existe", async () => {
+  it("lanza error con code NOT_FOUND si la entrevista no existe", async () => {
     prismaMock.interview.findUnique.mockResolvedValue(null);
 
     await expect(
       updateInterview(INTERVIEW_ID, COMPANY_USER_ID, { title: "Nuevo" }),
-    ).rejects.toThrow("Interview not found");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza Not authorized si companyId no matchea", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si companyId no matchea — anti-enumeration", async () => {
     prismaMock.interview.findUnique.mockResolvedValue({
       ...mockInterviewBase,
       companyId: "other-company",
@@ -290,7 +308,10 @@ describe("updateInterview", () => {
 
     await expect(
       updateInterview(INTERVIEW_ID, COMPANY_USER_ID, { title: "Nuevo" }),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("edición simple: solo aplica los campos presentes en data (skip undefined)", async () => {
@@ -340,7 +361,7 @@ describe("updateInterview", () => {
       internship: { company: { userId: COMPANY_USER_ID } },
     };
 
-    it("lanza error si la nueva application no existe", async () => {
+    it("lanza NOT_FOUND si la nueva application no existe", async () => {
       prismaMock.interview.findUnique.mockResolvedValue(mockInterviewBase);
       prismaMock.application.findUnique.mockResolvedValue(null);
 
@@ -348,10 +369,13 @@ describe("updateInterview", () => {
         updateInterview(INTERVIEW_ID, COMPANY_USER_ID, {
           applicationId: NEW_APP_ID,
         }),
-      ).rejects.toThrow("New application not found");
+      ).rejects.toMatchObject({
+        message: "New application not found",
+        code: "NOT_FOUND",
+      });
     });
 
-    it("lanza error si la nueva application es de otra empresa", async () => {
+    it("lanza NOT_FOUND (no FORBIDDEN) si la nueva application es de otra empresa — anti-enumeration", async () => {
       prismaMock.interview.findUnique.mockResolvedValue(mockInterviewBase);
       prismaMock.application.findUnique.mockResolvedValue({
         ...newApplication,
@@ -362,7 +386,10 @@ describe("updateInterview", () => {
         updateInterview(INTERVIEW_ID, COMPANY_USER_ID, {
           applicationId: NEW_APP_ID,
         }),
-      ).rejects.toThrow("Not authorized for new application");
+      ).rejects.toMatchObject({
+        message: "New application not found",
+        code: "NOT_FOUND",
+      });
     });
 
     it("lanza INTERVIEW_ALREADY_EXISTS si el nuevo candidato ya tiene otra entrevista SCHEDULED", async () => {
@@ -432,7 +459,7 @@ describe("updateInterview", () => {
       expect(prismaMock.message.create).not.toHaveBeenCalled();
     });
 
-    it("lanza error si el nuevo candidato no tiene conversación activa", async () => {
+    it("lanza NEW_CANDIDATE_NO_CONVERSATION si el nuevo candidato no tiene conversación activa", async () => {
       prismaMock.interview.findUnique.mockResolvedValue(mockInterviewBase);
       prismaMock.application.findUnique.mockResolvedValue(newApplication);
       prismaMock.interview.findFirst.mockResolvedValue(null);
@@ -442,9 +469,11 @@ describe("updateInterview", () => {
         updateInterview(INTERVIEW_ID, COMPANY_USER_ID, {
           applicationId: NEW_APP_ID,
         }),
-      ).rejects.toThrow(
-        "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
-      );
+      ).rejects.toMatchObject({
+        message:
+          "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
+        code: "NEW_CANDIDATE_NO_CONVERSATION",
+      });
     });
 
     it("resetea sentToChat a false y sentToChatAt a null al reasignar", async () => {
@@ -485,15 +514,18 @@ describe("deleteInterview", () => {
     },
   };
 
-  it("lanza error si la entrevista no existe", async () => {
+  it("lanza error con code NOT_FOUND si la entrevista no existe", async () => {
     prismaMock.interview.findUnique.mockResolvedValue(null);
 
     await expect(
       deleteInterview(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Interview not found");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza Not authorized si companyId no matchea", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si companyId no matchea — anti-enumeration", async () => {
     prismaMock.interview.findUnique.mockResolvedValue({
       ...mockInterviewWithRelations,
       companyId: "other-company",
@@ -501,7 +533,10 @@ describe("deleteInterview", () => {
 
     await expect(
       deleteInterview(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("NO manda mensaje al chat si la entrevista nunca fue enviada (sentToChat=false)", async () => {
@@ -577,15 +612,18 @@ describe("sendInterviewToChat", () => {
     sender: { id: COMPANY_USER_ID, name: "Juan", image: null, role: "COMPANY" },
   };
 
-  it("lanza error si la entrevista no existe", async () => {
+  it("lanza error con code NOT_FOUND si la entrevista no existe", async () => {
     prismaMock.interview.findUnique.mockResolvedValue(null);
 
     await expect(
       sendInterviewToChat(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Interview not found");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza Not authorized si companyId no matchea", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si companyId no matchea — anti-enumeration", async () => {
     prismaMock.interview.findUnique.mockResolvedValue({
       ...mockInterviewWithInternship,
       companyId: "other-company",
@@ -593,7 +631,10 @@ describe("sendInterviewToChat", () => {
 
     await expect(
       sendInterviewToChat(INTERVIEW_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Interview not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("usa heading 'Entrevista agendada' la primera vez (sentToChat=false)", async () => {
@@ -739,15 +780,18 @@ describe("getAvailableCandidates", () => {
     company: { userId: COMPANY_USER_ID },
   };
 
-  it("lanza error si la práctica no existe", async () => {
+  it("lanza error con code NOT_FOUND si la práctica no existe", async () => {
     prismaMock.internship.findUnique.mockResolvedValue(null);
 
     await expect(
       getAvailableCandidates(INTERNSHIP_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Internship not found");
+    ).rejects.toMatchObject({
+      message: "Internship not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza Not authorized si la práctica no pertenece a esta empresa", async () => {
+  it("lanza NOT_FOUND (no FORBIDDEN) si la práctica no pertenece a esta empresa — anti-enumeration", async () => {
     prismaMock.internship.findUnique.mockResolvedValue({
       ...mockInternship,
       company: { userId: "other-company" },
@@ -755,7 +799,10 @@ describe("getAvailableCandidates", () => {
 
     await expect(
       getAvailableCandidates(INTERNSHIP_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Internship not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("filtra solo applications en pipeline INTERVIEW sin entrevista (interview is null)", async () => {
