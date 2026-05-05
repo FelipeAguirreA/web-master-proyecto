@@ -5,6 +5,29 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Packages que DEBEN bumpear con la misma versión exacta. Sin esto,
+    # Dependabot abre 1 PR por package, y el de react@x.y.z+1 falla en tests
+    # con "Incompatible React versions" hasta que llegue el de react-dom.
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      sentry:
+        patterns:
+          - "@sentry/*"
+      prisma:
+        patterns:
+          - "@prisma/*"
+          - "prisma"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "@testing-library/*"
+          - "@playwright/*"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
