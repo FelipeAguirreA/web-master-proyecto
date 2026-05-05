@@ -5,6 +5,36 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.19] - 2026-05-05
+
+### Refactor
+
+- **Fase 4 paso 2: reorganización de `src/lib/`**. Movidos 2 archivos a su capa correcta de Clean Architecture según los gaps documentados en `refactor-plan.md`. Cero cambios funcionales, solo paths.
+  - **`src/lib/auth.ts` → `src/server/lib/auth.ts`** (con `git mv` para preservar historia). Razón: el archivo es **100% server-only** — importa de `next/headers` (cookies API), `next-auth` (`getServerSession`), `@/server/lib/db` (Prisma), `@/server/lib/rate-limit`, `@/server/services/refresh-tokens.service`, `bcryptjs` y `crypto`. Contenía toda la lógica sensible de auth (`authOptions`, `getAuthSession`, callbacks de signIn/jwt/session, events.signIn que emite refresh tokens, rate limit por IP+email, telemetría a Sentry de failed logins). Su lugar correcto es `server/lib/`. Imports actualizados en 5 archivos: `src/app/page.tsx`, `src/app/api/auth/[...nextauth]/route.ts`, `src/server/lib/auth-guard.ts`, `src/test/unit/auth.test.ts`, `src/test/unit/auth-guard.test.ts` (+ el `vi.mock("@/lib/auth", ...)` del último).
+  - **`src/lib/supabase/realtime-client.ts` → `src/lib/client/supabase.ts`** (con `git mv`). Razón: es un cliente Realtime de Supabase usado **solo desde un client component** (`ChatWindow.tsx` con `"use client"`). El folder `src/lib/client/` ya existía (contiene `fetch-with-refresh.ts`) — consolida la convención. Folder vacío `src/lib/supabase/` eliminado. Import actualizado en `src/components/chat/ChatWindow.tsx` + `vi.mock` en `src/test/components/ChatWindow.test.tsx`.
+- Estado final de `src/lib/`: solo código realmente shared/client-side queda — `env.ts` (validación Zod, usable en ambos lados), `constants.ts` (constants compartidas como `ADMIN_EMAIL`), `client/fetch-with-refresh.ts`, `client/supabase.ts`. Cero imports de `next/headers`, `next-auth`, `bcryptjs` o Prisma desde `src/lib/`. La regla de Clean Architecture del CLAUDE.md (`server/services/` no importa de `next/server`) ahora se extiende también a `src/lib/` — solo código portable / client-side.
+
+### Refactor-plan corregido (Fase 4 ítem obsoleto)
+
+- **`Renombrar src/proxy.ts → src/middleware.ts` marcado como N/A**. En Next.js 16 (versión actual del proyecto: `16.2.3`), la convención del framework es `proxy.ts` con función exportada `proxy()` (no `middleware.ts` ni `middleware()` como en Next.js 15). Esto ya estaba documentado en la Fase 0 (validado con `curl -I` mostrando header `x-request-id`). Ítem actualizado en `context/refactor-plan.md` para reflejar que está resuelto por convención del framework — no requiere acción.
+
+### Tests
+
+- Suite total: **1097 tests / 57 archivos** verde (sin cambios — el move solo afecta paths de imports, no comportamiento).
+- TSC clean ✅. Knip 0 findings ✅.
+
+### Notes
+
+- **`git mv` vs delete + create**: usado `git mv` para que el historial preserve la trazabilidad del archivo (git reconoce el rename como una operación atómica, no como add+delete). Útil para `git blame` y `git log --follow`.
+- **Folder `src/lib/supabase/` removido**: quedó vacío después de mover el único archivo. `rmdir` eliminó el directorio (no se pueden trackear directorios vacíos en git).
+- **Próximos sub-items de Fase 4 ya cubiertos**:
+  - ✅ knip dead code (paso 1 / 1.10.18)
+  - ✅ Reorganización `src/lib/` (paso 2 / 1.10.19)
+  - ✅ Cleanup `src/types/index.ts` (cubierto en paso 1 — knip identificó los 4 types muertos)
+  - ✅ ESLint `no-unused-vars` (cubierto implícitamente por knip + el sweep elimina los exports innecesarios; los warnings residuales son de `_request` parámetros y `<img>` tags pre-existentes, no related)
+  - ⚠️ Renombrar `proxy.ts` → `middleware.ts`: N/A en Next.js 16 (documentado)
+- **Fase 4 cerrada**. Próximo: Fase 5 (Patrones de diseño donde aporten) o Fase 6 (Observabilidad y performance).
+
 ## [1.10.18] - 2026-05-05
 
 ### Cleanup

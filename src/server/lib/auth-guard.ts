@@ -1,5 +1,4 @@
-import { getAuthSession } from "@/lib/auth";
-import { ADMIN_EMAIL } from "@/lib/auth";
+import { getAuthSession, ADMIN_EMAIL } from "@/server/lib/auth";
 
 type RequiredRole = "STUDENT" | "COMPANY";
 

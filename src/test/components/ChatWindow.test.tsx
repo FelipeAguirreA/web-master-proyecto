@@ -25,7 +25,7 @@ vi.mock("next-auth/react", () => ({
   useSession: useSessionMock,
 }));
 
-vi.mock("@/lib/supabase/realtime-client", () => ({
+vi.mock("@/lib/client/supabase", () => ({
   supabaseRealtime: {
     channel: channelMock,
     removeChannel: removeChannelMock,

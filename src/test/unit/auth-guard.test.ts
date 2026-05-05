@@ -10,13 +10,13 @@ const { ADMIN_EMAIL_MOCK } = vi.hoisted(() => ({
   ADMIN_EMAIL_MOCK: "admin@practix.test",
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/server/lib/auth", () => ({
   getAuthSession: vi.fn(),
   ADMIN_EMAIL: ADMIN_EMAIL_MOCK,
 }));
 
 import { requireAuth, requireAdmin } from "@/server/lib/auth-guard";
-import { getAuthSession } from "@/lib/auth";
+import { getAuthSession } from "@/server/lib/auth";
 
 const mockGetAuthSession = vi.mocked(getAuthSession);
 

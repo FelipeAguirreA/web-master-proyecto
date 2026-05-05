@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAuthSession, ADMIN_EMAIL } from "@/lib/auth";
+import { getAuthSession, ADMIN_EMAIL } from "@/server/lib/auth";
 import { PublicNav } from "@/components/layout/PublicNav";
 
 export default async function Home() {

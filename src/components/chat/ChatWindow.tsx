@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { supabaseRealtime } from "@/lib/supabase/realtime-client";
+import { supabaseRealtime } from "@/lib/client/supabase";
 import MessageBubble from "./MessageBubble";
 import InterviewMessageCard from "./InterviewMessageCard";
 import MessageInput from "./MessageInput";

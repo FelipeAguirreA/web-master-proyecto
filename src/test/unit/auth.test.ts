@@ -51,7 +51,7 @@ vi.mock("@sentry/nextjs", () => ({
 import bcrypt from "bcryptjs";
 import { createHash } from "crypto";
 import { getServerSession } from "next-auth";
-import { authOptions, getAuthSession } from "@/lib/auth";
+import { authOptions, getAuthSession } from "@/server/lib/auth";
 
 function expectedHash(email: string): string {
   return createHash("sha256")
