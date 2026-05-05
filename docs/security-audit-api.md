@@ -35,7 +35,7 @@
 | `interviews`    | 7        | ✅ cerrada (#H1+#H2+#H3+#H4 fixeados en 1.10.13, #H5 ⚠️ aceptado) |
 | `notifications` | 3        | ✅ cerrada (#I1+#I2 fixeados en 1.10.14, #I3 ⚠️ aceptado)         |
 | `matching`      | 3        | ✅ cerrada (#J1+#J2+#J3 fixeados en 1.10.15)                      |
-| `perfil`        | 2        | ⏳ pendiente                                                      |
+| `perfil`        | 3        | ✅ cerrada (#K1+#K2 fixeados en 1.10.16, #K3 ⚠️ aceptado)         |
 | `health`        | 1        | ⏳ pendiente                                                      |
 
 ---
@@ -352,6 +352,33 @@ Fix: helper `sanitizeFilename(originalName)` que (a) extrae solo el basename con
 - **Decisión rate limit `5/hora` en upload-cv**: alineado con costo del POST (HuggingFace embedding generation cuesta ~500ms-2s + cuota mensual). 5/hora cubre uso legítimo (subir, revisar, reemplazar 1-2× por sesión) y frena abuso de cuota. Mismo límite para DELETE por simetría.
 - **Convergencia parcial + un patrón nuevo**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario, **más #J2 (path traversal — patrón nuevo)**. NO aplican #G2 (anti-enumeration ya cubierta porque cada user tiene UN CV y el service usa `auth.user.id` directo) ni #G3 (no hay throws con codes propios). El audit sigue convergiendo pero todavía descubre vectores específicos de cada área.
 
-## `perfil` (2 handlers) — pendiente
+## `perfil` (3 handlers)
+
+> Inventario inicial decía 2. Recuento real: 3 (`route.ts` GET+PUT + `avatar/route.ts` POST). Subcuenta confirmada en 6/11 áreas auditadas — el patrón a esta altura es esperar siempre +1.
+
+| Método | Path                 | AuthZ              | Validación                                  | Output                                                                                              | Estado                |
+| ------ | -------------------- | ------------------ | ------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------- |
+| GET    | `/api/perfil`        | `requireAuth()` ✅ | N/A                                         | filtra por `auth.user.id`, incluye `companyProfile.companyStatus` para empresas                     | ✅ (#K1 cerrado)      |
+| PUT    | `/api/perfil`        | `requireAuth()` ✅ | `updateSchema` (Zod) ✅                     | update `name/lastName/phone` del propio user, trim, `where: { id: auth.user.id }`                   | ✅ (#K1 cerrado)      |
+| POST   | `/api/perfil/avatar` | `requireAuth()` ✅ | mime whitelist (jpg/png/webp) + size 2MB ✅ | rate limit `10/hora/user`, path = `avatars/${userId}.${ext}` (no path traversal — userId hardcoded) | ✅ (#K1+#K2 cerrados) |
+
+### Findings cerrados
+
+**🛑 #K1 — Sin try/catch + Sentry en los 3 handlers** (cerrado en 1.10.16). Severidad baja-media — info disclosure. Patrón #G1/#H1/#I1/#J1: cualquier error de Prisma o Storage propagaba al runtime de Next.js. Fix universal: `try/catch` envolvente en cada handler, `Sentry.captureException(err, { tags: { route: "perfil.X.METHOD" }, extra: { userId, role? } })`, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500. Plus: errores de validación ahora incluyen `code` (`VALIDATION_ERROR`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`) — alineado con el patrón establecido en lotes previos.
+
+**🛑 #K2 — `POST /api/perfil/avatar` sin rate limit** (cerrado en 1.10.16). Severidad baja-media — DoS interno + churn de CDN. Cada llamada hace upload a Supabase Storage + `prisma.user.update` + (para COMPANY) un segundo `prisma.companyProfile.update`. Sin throttle, hot-loop al endpoint dispara N uploads + 2N updates por segundo, presionando el bucket policy y el CDN cache. Fix: `rateLimit("avatar:${auth.user.id}", 10, HOUR_MS)` antes de tocar Storage. **Simétrico con `upload-cv`** (#J3, ya cerrado en 1.10.15) — ambos endpoints de upload de archivos por user comparten el mismo presupuesto conceptual.
+
+### Findings activos
+
+**⚠️ #K3 — Sin service layer (handlers acceden directo a Prisma + Storage)** — Severidad: 0 (no security). Mismo patrón que `notifications` (#I3). Los 3 handlers tienen lógica trivial pero ya rozan complejidad (POST avatar tiene whitelist + sanitization + dual-write entre `User` y `CompanyProfile`). Si crece (avatar resize, soft-delete de versiones anteriores, observer pattern Fase 5), conviene crear `src/server/services/perfil.service.ts`. Aceptado por ahora — Boy-Scout para sweep funcional posterior.
+
+### Notas
+
+- **Anti-path-traversal natural en POST avatar**: a diferencia de `upload-cv` (#J2), el path acá usa `auth.user.id` directo (`avatars/${userId}.${ext}`) sin tocar el `originalName` del cliente. **Cero superficie para path traversal**. Decisión arquitectural acertada del autor original — no hubo que sanitizar nada porque el shape correcto ya estaba.
+- **Una imagen por user (overwrite)**: el path es determinístico (`avatars/userId.png`), así que cada upload **sobreescribe** la imagen anterior. NO se acumulan versiones. Trade-off: sin historia ni rollback, pero también sin churn de bucket. La query string `?v=${Date.now()}` rompe el cache del CDN para forzar refresh inmediato del nuevo avatar — patrón cache-busting estándar.
+- **Dual-write a `CompanyProfile.logo` para COMPANY**: si la primera update de `User.image` succede pero la segunda falla, queda inconsistencia (avatar nuevo en User, logo viejo en CompanyProfile). El catch de #K1 cubre el error con Sentry, pero NO hace rollback. Aceptable: el listado de prácticas usa el `companyProfile.logo` y el header del dashboard usa el `User.image` — la inconsistencia es visualmente perceptible (header ≠ listado) pero no rompe seguridad. Para una fix robusta: `prisma.$transaction([userUpdate, companyProfileUpdate])`. Anotado para sweep futuro.
+- **No hay magic-bytes check**: el handler valida solo el `file.type` declarado por el browser, no inspecciona los primeros bytes para confirmar que un archivo declarado como `image/jpeg` realmente es un JPEG. Riesgo real bajo: el `cvUrl`/`avatar` se sirve via Supabase Storage que setea el `Content-Type` del header response a partir del mime declarado en el upload, así que un archivo polígloto JS-en-JPG sería descargado como JPG por el browser y no se ejecutaría. Para cerrarlo: librería como `file-type` que lee magic bytes. NO es bloqueante para cerrar el área.
+- **Decisión rate limit `10/hora`**: simetría con `upload-cv` y consistencia con costo del POST (Storage upload + Prisma update + CDN cache invalidation). Cubre uso legítimo (cambiar avatar 1-2× por sesión) y frena hot-loop.
+- **Convergencia parcial**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario. NO aplican #G2 (anti-enumeration ya nativa porque `auth.user.id` es directo en el WHERE) ni #G3 (no hay service con throws). Patrón "área trivial-CRUD con sub-handler de upload" — necesita 2 patrones, igual que `notifications`.
 
 ## `health` (1 handler) — pendiente
