@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.16] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/perfil/*` (Fase 3 paso 3.7 / findings #K1, #K2)** — undécimo lote de fixes derivado del audit `/api/*`. El inventario inicial decía "2 handlers" pero el recuento real es **3** (`route.ts` GET+PUT + `avatar/route.ts` POST) — corregido en `docs/security-audit-api.md`. Subcuenta confirmada en 6/11 áreas auditadas. Área cerrada con dos findings 🛑 + uno ⚠️ aceptado.
+  - **#K1 — Sin try/catch + Sentry en los 3 handlers**. Severidad baja-media — info disclosure. Patrón #G1/#H1/#I1/#J1: cualquier error de Prisma o Storage propagaba al runtime de Next.js. Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "perfil.X.METHOD" }, extra: { userId, role? } })`, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500. Plus: errores de validación ahora incluyen `code` (`VALIDATION_ERROR`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`).
+  - **#K2 — `POST /api/perfil/avatar` sin rate limit**. Severidad baja-media — DoS interno + churn de CDN. Cada llamada hace upload a Supabase Storage + `prisma.user.update` + (para COMPANY) un segundo update sobre `CompanyProfile`. Sin throttle, hot-loop al endpoint dispara N uploads + 2N updates por segundo, presionando bucket policy y CDN cache. Fix: `rateLimit("avatar:${auth.user.id}", 10, HOUR_MS)` antes de tocar Storage. **Simétrico con `upload-cv`** (#J3, 1.10.15) — ambos endpoints de upload por user comparten presupuesto conceptual.
+
+### Tests
+
+- Suite total: **1092 tests / 56 archivos** verde (antes 1074 / 55). Nuevo archivo `src/test/unit/perfil-routes.test.ts` (18 tests). Cobertura por handler:
+  - `GET /api/perfil` (#K1): 3 tests — 401, 200 con `where: id === auth.user.id`, 500 + Sentry sin leak.
+  - `PUT /api/perfil` (#K1): 5 tests — 401, 400 Zod, **update con `where: { id: auth.user.id }` (no leak ajeno)**, **trim a name/lastName/phone**, 500 + Sentry sin leak.
+  - `POST /api/perfil/avatar` (#K1+#K2): 10 tests — 401, **#K2 rate limit 429 sin tocar service**, **rate limit usa key con `auth.user.id`**, 400 INVALID_FILE_TYPE, 400 FILE_TOO_LARGE, **path usa `auth.user.id` directo (no originalName — anti path-traversal natural)**, **dual-write a CompanyProfile.logo solo para COMPANY**, **STUDENT no toca CompanyProfile**, 500 + Sentry sin leak, 200 happy path con `?v=` cache-busting.
+
+### Notes
+
+- **Anti-path-traversal natural en POST avatar**: a diferencia de `upload-cv` (#J2 de 1.10.15), el path usa `auth.user.id` directo (`avatars/${userId}.${ext}`) sin tocar el `originalName` del cliente. **Cero superficie para path traversal**.
+- **Dual-write a `CompanyProfile.logo` para COMPANY**: si la primera update de `User.image` succede pero la segunda falla, queda inconsistencia (avatar nuevo en User, logo viejo en CompanyProfile). El catch de #K1 cubre con Sentry pero NO hace rollback. Aceptable: la inconsistencia es visualmente perceptible (header ≠ listado) pero no rompe seguridad. Para fix robusto futuro: `prisma.$transaction([userUpdate, companyProfileUpdate])`.
+- **No hay magic-bytes check**: el handler valida solo el `file.type` declarado por el browser. Riesgo real bajo: el avatar se sirve via Supabase Storage que setea el `Content-Type` del header a partir del mime declarado. Polyglot JS-en-JPG sería descargado como JPG por el browser.
+- **#K3 (sin service layer)** aceptado como ⚠️ — mismo patrón que `notifications` (#I3). Boy-scout para sweep futuro.
+- **Decisión rate limit `10/hora`**: simetría con `upload-cv` y consistencia con costo del POST.
+- **Convergencia parcial**: el área cierra #G1 (error mapping) y #G4 (rate limit) del régimen estacionario. NO aplican #G2 ni #G3. Patrón "área trivial-CRUD con sub-handler de upload".
+- **Paso 3.7**: 11/12 áreas cerradas. Falta: `health` (1 handler) — siguiente y último lote para cerrar el paso 3.7 completo.
+- **Nota sobre el commit**: la entrada del CHANGELOG fue introducida en un commit posterior (`docs(changelog): agregar entrada 1.10.16`) por una colisión del Edit anterior con el linter. El bump de version (`package.json`) y los archivos de código quedaron en el commit `f9bd73c`.
+
 ## [1.10.15] - 2026-05-05
 
 ### Security
