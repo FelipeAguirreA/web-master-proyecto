@@ -23,20 +23,20 @@
 
 ## Áreas
 
-| Área            | Handlers | Estado                                                           |
-| --------------- | -------- | ---------------------------------------------------------------- |
-| `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado)              |
-| `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)                    |
-| `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                             |
-| `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)                  |
-| `internships`   | 6        | ✅ cerrada (#E1+#E2+#E3+#E4 fixeados en 1.10.9, #E5 ⚠️ aceptado) |
-| `ats`           | 5        | ✅ cerrada (#F1+#F2+#F3+#F4+#F5 fixeados en 1.10.10)             |
-| `chat`          | 4        | ⏳ pendiente                                                     |
-| `interviews`    | 4        | ⏳ pendiente                                                     |
-| `notifications` | 3        | ⏳ pendiente                                                     |
-| `matching`      | 2        | ⏳ pendiente                                                     |
-| `perfil`        | 2        | ⏳ pendiente                                                     |
-| `health`        | 1        | ⏳ pendiente                                                     |
+| Área            | Handlers | Estado                                                            |
+| --------------- | -------- | ----------------------------------------------------------------- |
+| `auth`          | 6        | ✅ cerrada (#A2 fixeado en 1.10.5, #A1 ⚠️ aceptado)               |
+| `admin`         | 2        | ✅ cerrada (#B1, #B2, #B3 fixeados en 1.10.6)                     |
+| `users`         | 4\*      | ✅ cerrada (#C1 eliminado en 1.10.7)                              |
+| `applications`  | 5        | ✅ cerrada (#D1+#D2+#D3+#D4 fixeados en 1.10.8)                   |
+| `internships`   | 6        | ✅ cerrada (#E1+#E2+#E3+#E4 fixeados en 1.10.9, #E5 ⚠️ aceptado)  |
+| `ats`           | 5        | ✅ cerrada (#F1+#F2+#F3+#F4+#F5 fixeados en 1.10.10)              |
+| `chat`          | 6        | ✅ cerrada (#G1+#G2+#G3+#G4 fixeados en 1.10.11, #G5 ⚠️ aceptado) |
+| `interviews`    | 4        | ⏳ pendiente                                                      |
+| `notifications` | 3        | ⏳ pendiente                                                      |
+| `matching`      | 2        | ⏳ pendiente                                                      |
+| `perfil`        | 2        | ⏳ pendiente                                                      |
+| `health`        | 1        | ⏳ pendiente                                                      |
 
 ---
 
@@ -212,7 +212,40 @@
 - **`#F3` cap de 20 módulos**: el seed/UI nunca crea más de ~7 (los 6 enum types + 1 CUSTOM). 20 es un cap defensivo amplio sin pegarle al uso real.
 - **`scoreApplication` no es async** — el `await` de `Promise.all` en #F4 espera por los `prisma.application.update`, que sí es async. La función pura de scoring no agrega latency entre I/O.
 
-## `chat` (4 handlers) — pendiente
+## `chat` (6 handlers)
+
+> Inventario inicial decía 4. Recuento real: 6 (`conversations/route.ts` GET+POST, `[conversationId]/route.ts` GET, `messages/route.ts` GET+POST, `read/route.ts` PATCH).
+
+| Método | Path                                    | AuthZ                       | Zod                                 | Output                                                                   | Estado                        |
+| ------ | --------------------------------------- | --------------------------- | ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------- |
+| POST   | `/api/chat/conversations`               | `requireAuth("COMPANY")` ✅ | `z.object({ applicationId })` ✅    | ownership + 404 unificado, INTERVIEW_REQUIRED → 403                      | ✅ (#G1+#G2+#G3 cerrados)     |
+| GET    | `/api/chat/conversations`               | `requireAuth()` ✅          | N/A                                 | filtra por `auth.user.id` según role (COMPANY/STUDENT)                   | ✅ (#G1 cerrado)              |
+| GET    | `/api/chat/conversations/[id]`          | `requireAuth()` ✅          | N/A                                 | ownership + 404 unificado                                                | ✅ (#G1+#G2+#G3 cerrados)     |
+| GET    | `/api/chat/conversations/[id]/messages` | `requireAuth()` ✅          | N/A                                 | ownership + 404 unificado, side-effect: marca leídos                     | ✅ (#G1+#G2+#G3 cerrados)     |
+| POST   | `/api/chat/conversations/[id]/messages` | `requireAuth()` ✅          | `z.object({ content: 1..4000 })` ✅ | rate limit `30/min/user`, ownership + 404, STUDENT_CANNOT_INITIATE → 403 | ✅ (#G1+#G2+#G3+#G4 cerrados) |
+| PATCH  | `/api/chat/conversations/[id]/read`     | `requireAuth()` ✅          | N/A                                 | ownership + 404 unificado                                                | ✅ (#G1+#G2+#G3 cerrados)     |
+
+### Findings cerrados
+
+**🛑 #G1 — Error mapping leak universal en los 6 handlers** (cerrado en 1.10.11). Severidad baja-media — info disclosure. Patrón calcado de #E3/#F2: todos los catch hacían `{ error: err.message }` con status 500, propagando mensajes crudos de Prisma/infra (nombres de tabla, FK violations, conexión refused, etc.). Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "chat.X.METHOD" }, extra: { userId, conversationId } })` en el catch, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500. Whitelist de mensajes propagables: solo los códigos conocidos del service.
+
+**🛑 #G2 — Ownership fail diferenciaba 403 vs 404 (anti-enumeration)** (cerrado en 1.10.11). Severidad media — IDOR enumeration. Patrón #D1/#F1: handlers retornaban `404 "Conversation not found"` cuando no existía vs `403 "No autorizado"` cuando existía pero el caller no era parte de la conversación. Eso permite a un user autenticado **enumerar IDs válidos** de conversations ajenas. Fix: ambos casos (`code === "NOT_FOUND" || code === "FORBIDDEN"`) devuelven `404 { code: "NOT_FOUND" }` con mismo mensaje. Plus, dentro del service `getOrCreateConversation` se reordenó `existence → ownership → stage` (en lugar de `existence → stage → ownership`) para no leak `pipelineStatus` de apps ajenas: una app que NO es del caller devuelve `NOT_FOUND` regardless del stage. INTERVIEW_REQUIRED solo se lanza después de ownership confirmada — OK exponerlo como 403 con código específico.
+
+**🛑 #G3 — String matching frágil para mapear errores → códigos consistentes** (cerrado en 1.10.11). Severidad baja — defensa en profundidad / mantenibilidad. Los handlers matcheaban con `message.includes("Not authorized")` / `message.includes("INTERVIEW stage")` para decidir status code. Si alguien refactoreaba el wording del throw, los handlers respondían 500 sin avisar. **Inconsistencia interna**: `sendMessage` ya usaba `err.code = "STUDENT_CANNOT_INITIATE"` (patrón limpio), el resto del service no. Fix: extendido el patrón `code` a TODOS los throws — agregada `ChatErrorCode` union (`NOT_FOUND | FORBIDDEN | INTERVIEW_REQUIRED | STUDENT_CANNOT_INITIATE`) y helper local `chatError(code, message)`. Handlers matchean por `err.code` (no por message). Tests del service migrados a `rejects.toMatchObject({ message, code })`.
+
+**🛑 #G4 — `POST /api/chat/conversations/[id]/messages` sin rate limit** (cerrado en 1.10.11). Severidad media — spam / DoS de chat. Cada mensaje crea row + bumpea `updatedAt` de la conversación + dispara realtime broadcast a Supabase. Sin throttle, una company autenticada podía spamear miles de mensajes/minuto a un student (acoso, llenado de inbox, presión sobre Realtime). Fix: `rateLimit("chat-message:${userId}", 30, MIN_MS)` antes de tocar DB. 30 mensajes/min es generoso para uso legítimo (más que suficiente para una conversación humana) y corta el spam-flood.
+
+### Findings activos
+
+**⚠️ #G5 — `POST /api/chat/conversations` sin rate limit** — Severidad baja, costo bajo de abuso. Aceptado como ⚠️ porque cada llamada requiere (a) auth COMPANY, (b) application existente, (c) ownership match, (d) `pipelineStatus === "INTERVIEW"`. Solo crea una conversation idempotente (si existe, la retorna). Riesgo real: muy bajo. Si quisiéramos cerrarlo: `rateLimit("chat-create-conv:${userId}", 30, MIN_MS)`.
+
+### Notas
+
+- **Helper `chatError(code, message)`** en el service centraliza el patrón `Error & { code }` que ya usaba `interviews.service.ts` ad-hoc. Si aparece en más áreas del audit (probable), considerar extraer a `src/server/lib/errors.ts`.
+- **Reorden en `getOrCreateConversation`** (existence → ownership → stage) es estructural — la lógica de negocio no cambia, pero la **secuencia de checks ahora respeta defense-in-depth**. Esto es algo a mirar en otros services del proyecto en próximos sweeps.
+- **Decisión rate limit `30/min` en POST messages**: balance entre UX (tipear rápido en chat es legítimo) y anti-spam. Subirlo (e.g. 60) aumenta riesgo de spam con costo nulo en UX. Bajarlo (e.g. 15) puede frustrar usuarios legítimos en conversaciones intensas. 30/min = 1 mensaje cada 2s → muy razonable.
+- **Por qué `INTERVIEW_REQUIRED` mantiene 403 y no se unifica a 404**: ese código solo se lanza DESPUÉS de ownership confirmada (caller ES owner de la application), entonces no hay enumeration risk. Devolver 404 ahí confundiría al frontend legítimo. 403 con código `PIPELINE_STATUS_REQUIRED` es correcto.
+- **Convergencia confirmada**: el área `chat` cierra los mismos 4 patrones que ya emergieron en lotes previos (#G1 = #E3/#F2, #G2 = #D1/#F1, #G3 nuevo, #G4 = #F4/#F5). El `error.code` pattern (#G3) extiende el helper que ya usábamos puntualmente en interviews/chat → ahora consistente en todo chat.
 
 ## `interviews` (4 handlers) — pendiente
 

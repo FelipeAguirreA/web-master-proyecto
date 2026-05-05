@@ -5,6 +5,38 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.11] - 2026-05-05
+
+### Security
+
+- **Hardening en `/api/chat/*` (Fase 3 paso 3.7 / findings #G1, #G2, #G3, #G4)** — séptimo lote de fixes derivado del audit `/api/*`. El inventario inicial decía "4 handlers" pero el recuento real es **6** (`conversations/route.ts` GET+POST + `[conversationId]/route.ts` GET + `messages/route.ts` GET+POST + `read/route.ts` PATCH) — corregido en `docs/security-audit-api.md`. Área completa cerrada con cuatro findings 🛑 + uno ⚠️ aceptado.
+  - **#G1 — Error mapping leak universal en los 6 handlers**. Severidad baja-media — info disclosure. Patrón calcado de #E3/#F2: todos los catch hacían `{ error: err.message }` con status 500, propagando mensajes crudos de Prisma/infra. Fix universal: `try/catch` envolvente, `Sentry.captureException(err, { tags: { route: "chat.X.METHOD" }, extra: { userId, conversationId } })` en el catch, response genérico `{ error: "Error interno", code: "INTERNAL_ERROR" }` con 500.
+  - **#G2 — Ownership fail diferenciaba 403 vs 404 (anti-enumeration)**. Severidad media — IDOR enumeration. Patrón #D1/#F1: handlers retornaban `404 "Conversation not found"` cuando no existía vs `403 "No autorizado"` cuando existía pero el caller no era parte de la conversación. Eso permite enumerar IDs válidos de conversations ajenas. Fix: ambos casos (`code === "NOT_FOUND" || code === "FORBIDDEN"`) devuelven `404 { code: "NOT_FOUND" }` con mismo mensaje. Plus, dentro del service `getOrCreateConversation` se reordenó `existence → ownership → stage` (en lugar de `existence → stage → ownership`) para no leak `pipelineStatus` de apps ajenas: una app que NO es del caller devuelve `NOT_FOUND` regardless del stage. `INTERVIEW_REQUIRED` solo se lanza después de ownership confirmada — OK exponerlo como 403 con código específico.
+  - **#G3 — String matching frágil para mapear errores → códigos consistentes**. Severidad baja — defensa en profundidad / mantenibilidad. Los handlers matcheaban con `message.includes("Not authorized")` / `message.includes("INTERVIEW stage")` para decidir status code. Si alguien refactoreaba el wording del throw, los handlers respondían 500 sin avisar. **Inconsistencia interna detectada**: `sendMessage` ya usaba `err.code = "STUDENT_CANNOT_INITIATE"` (patrón limpio), el resto del service no. Fix: extendido el patrón `code` a TODOS los throws — agregada `ChatErrorCode` union (`NOT_FOUND | FORBIDDEN | INTERVIEW_REQUIRED | STUDENT_CANNOT_INITIATE`) y helper local `chatError(code, message)`. Handlers matchean por `err.code` (no por message). Tests del service migrados a `rejects.toMatchObject({ message, code })`.
+  - **#G4 — `POST /api/chat/conversations/[id]/messages` sin rate limit**. Severidad media — spam / DoS de chat. Cada mensaje crea row + bumpea `updatedAt` de la conversación + dispara realtime broadcast a Supabase. Sin throttle, una company autenticada podía spamear miles de mensajes/minuto a un student (acoso, llenado de inbox, presión sobre Realtime). Fix: `rateLimit("chat-message:${userId}", 30, MIN_MS)` antes de tocar DB. 30 mensajes/min es generoso para uso legítimo (~1 cada 2s) y corta el spam-flood.
+
+### Tests
+
+- Suite total: **1002 tests / 52 archivos** verde (antes 967 / 51). Nuevo archivo `src/test/unit/chat-routes.test.ts` (34 tests) con `vi.hoisted` para mocks de `requireAuth`, `Sentry.captureException`, los 6 services de chat y `rateLimit/rateLimitResponse`. Cobertura por handler:
+  - `POST /api/chat/conversations` (#G1+#G2+#G3): 6 tests — 401 sin sesión, 400 sin `applicationId`, 404 NOT_FOUND, 403 PIPELINE_STATUS_REQUIRED para INTERVIEW_REQUIRED, 500 + Sentry sin leak del error crudo, 201 happy path.
+  - `GET /api/chat/conversations` (#G1): 3 tests — 401, filtra por role STUDENT, 500 + Sentry sin leak.
+  - `GET /api/chat/conversations/[id]` (#G1+#G2+#G3): 5 tests — 401, NOT_FOUND, **404 unification para FORBIDDEN**, 500 + Sentry, 200 happy path.
+  - `GET /api/chat/conversations/[id]/messages` (#G1+#G2+#G3): 5 tests — 401, NOT_FOUND, **404 unification para FORBIDDEN**, 500 + Sentry sin leak, 200 happy path.
+  - `POST /api/chat/conversations/[id]/messages` (#G1+#G2+#G3+#G4): 10 tests — 401, **#G4 (rate limit 429 sin tocar DB)**, **rate limit usa key con `auth.user.id` (no IP)**, 400 content vacío, 400 content > 4000 chars, NOT_FOUND, **404 unification para FORBIDDEN**, 403 STUDENT_CANNOT_INITIATE, 500 + Sentry sin leak, 201 happy path.
+  - `PATCH /api/chat/conversations/[id]/read` (#G1+#G2+#G3): 5 tests — 401, NOT_FOUND, **404 unification para FORBIDDEN**, 500 + Sentry, 200 happy path.
+- `src/test/unit/chat.service.test.ts`: 31 → 32 tests. Migrados los 8 tests existentes que usaban `rejects.toThrow(message)` a `rejects.toMatchObject({ message, code })` para verificar que cada throw expone el `code` correcto. Nuevo test `ownership se chequea ANTES que pipelineStatus` que verifica el reorden de #G2 (una app que NO es del caller y NO está en INTERVIEW devuelve `NOT_FOUND`, no `INTERVIEW_REQUIRED`).
+
+### Notes
+
+- **Helper `chatError(code, message)`** en `chat.service.ts` centraliza el patrón `Error & { code }` que ya usaba `interviews.service.ts` ad-hoc. Si aparece en más áreas del audit (probable), considerar extraer a `src/server/lib/errors.ts` en un sweep futuro.
+- **Reorden en `getOrCreateConversation`** (existence → ownership → stage) es estructural — la lógica de negocio no cambia, pero la **secuencia de checks ahora respeta defense-in-depth**. Algo a mirar en otros services en próximos sweeps.
+- **Decisión rate limit `30/min` en POST messages**: balance entre UX (tipear rápido en chat es legítimo) y anti-spam. Subirlo (e.g. 60) aumenta riesgo de spam con costo nulo en UX. Bajarlo (e.g. 15) puede frustrar usuarios legítimos en conversaciones intensas. 30/min = 1 mensaje cada 2s → muy razonable.
+- **Por qué `INTERVIEW_REQUIRED` mantiene 403 y no se unifica a 404**: ese código solo se lanza DESPUÉS de ownership confirmada (caller ES owner de la application), entonces no hay enumeration risk. Devolver 404 ahí confundiría al frontend legítimo. 403 con código `PIPELINE_STATUS_REQUIRED` es correcto.
+- **#G5 (rate limit en `POST /api/chat/conversations`)** aceptado como ⚠️ — costo bajo de abuso. Cada llamada requiere (a) auth COMPANY, (b) application existente, (c) ownership match, (d) `pipelineStatus === "INTERVIEW"`. Solo crea una conversation idempotente. Riesgo real bajo. Si quisiéramos cerrarlo: `rateLimit("chat-create-conv:${userId}", 30, MIN_MS)`.
+- **Convergencia confirmada**: el área `chat` cierra los mismos 4 patrones que ya emergieron en lotes previos (#G1 = #E3/#F2, #G2 = #D1/#F1, #G3 nuevo, #G4 = #F4/#F5). El `error.code` pattern (#G3) extiende el helper que ya usábamos puntualmente en interviews/chat → ahora consistente en todo chat.
+- **Compatibilidad con frontend**: cero cambios de contrato en happy path. Cambios visibles: 404 en lugar de 403 cuando un user toca conversaciones ajenas (deseado), error genérico en lugar de mensaje crudo en 500 (deseado), 429 en POST messages con header `Retry-After` cuando se excede 30/min.
+- **Paso 3.7**: 7/12 áreas cerradas (`auth`, `admin`, `users`, `applications`, `internships`, `ats`, `chat`). Pendientes: `interviews`, `notifications`, `matching`, `perfil`, `health`.
+
 ## [1.10.10] - 2026-04-27
 
 ### Security

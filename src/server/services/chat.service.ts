@@ -1,5 +1,17 @@
 import { prisma } from "@/server/lib/db";
 
+export type ChatErrorCode =
+  | "NOT_FOUND"
+  | "FORBIDDEN"
+  | "INTERVIEW_REQUIRED"
+  | "STUDENT_CANNOT_INITIATE";
+
+function chatError(code: ChatErrorCode, message: string) {
+  const err = new Error(message) as Error & { code: ChatErrorCode };
+  err.code = code;
+  return err;
+}
+
 // ─── Conversations ──────────────────────────────────────────────────────────
 
 export async function getOrCreateConversation(
@@ -15,12 +27,18 @@ export async function getOrCreateConversation(
     },
   });
 
-  if (!application) throw new Error("Application not found");
-  if (application.pipelineStatus !== "INTERVIEW") {
-    throw new Error("Chat only available for applications in INTERVIEW stage");
-  }
+  // Anti-enumeration: ownership ANTES que stage para no leak pipelineStatus
+  // de apps ajenas. Apps que no son del owner devuelven el mismo NOT_FOUND
+  // que apps inexistentes.
+  if (!application) throw chatError("NOT_FOUND", "Application not found");
   if (application.internship.company.userId !== companyUserId) {
-    throw new Error("Not authorized");
+    throw chatError("NOT_FOUND", "Application not found");
+  }
+  if (application.pipelineStatus !== "INTERVIEW") {
+    throw chatError(
+      "INTERVIEW_REQUIRED",
+      "Chat only available for applications in INTERVIEW stage",
+    );
   }
 
   // Retornar existente si ya hay conversación
@@ -155,9 +173,9 @@ export async function getConversationById(
     },
   });
 
-  if (!conv) throw new Error("Conversation not found");
+  if (!conv) throw chatError("NOT_FOUND", "Conversation not found");
   if (conv.companyId !== userId && conv.studentId !== userId) {
-    throw new Error("Not authorized");
+    throw chatError("FORBIDDEN", "Not authorized");
   }
 
   return {
@@ -193,9 +211,9 @@ export async function getMessages(
     select: { companyId: true, studentId: true },
   });
 
-  if (!conv) throw new Error("Conversation not found");
+  if (!conv) throw chatError("NOT_FOUND", "Conversation not found");
   if (conv.companyId !== userId && conv.studentId !== userId) {
-    throw new Error("Not authorized");
+    throw chatError("FORBIDDEN", "Not authorized");
   }
 
   const messages = await prisma.message.findMany({
@@ -240,20 +258,19 @@ export async function sendMessage(
     },
   });
 
-  if (!conv) throw new Error("Conversation not found");
+  if (!conv) throw chatError("NOT_FOUND", "Conversation not found");
   if (conv.companyId !== senderId && conv.studentId !== senderId) {
-    throw new Error("Not authorized");
+    throw chatError("FORBIDDEN", "Not authorized");
   }
 
   // Estudiante no puede iniciar la conversación
   const isStudent = conv.studentId === senderId;
   const hasMessages = conv.messages.length > 0;
   if (isStudent && !hasMessages) {
-    const err = new Error(
+    throw chatError(
+      "STUDENT_CANNOT_INITIATE",
       "La empresa debe iniciar la conversación",
-    ) as Error & { code: string };
-    err.code = "STUDENT_CANNOT_INITIATE";
-    throw err;
+    );
   }
 
   const [message] = await prisma.$transaction([
@@ -286,9 +303,9 @@ export async function markConversationRead(
     select: { companyId: true, studentId: true },
   });
 
-  if (!conv) throw new Error("Conversation not found");
+  if (!conv) throw chatError("NOT_FOUND", "Conversation not found");
   if (conv.companyId !== userId && conv.studentId !== userId) {
-    throw new Error("Not authorized");
+    throw chatError("FORBIDDEN", "Not authorized");
   }
 
   await prisma.message.updateMany({

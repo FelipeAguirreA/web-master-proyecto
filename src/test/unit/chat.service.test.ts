@@ -72,15 +72,18 @@ const mockConversationListItemRaw = {
 // ─── getOrCreateConversation ────────────────────────────────────────────────
 
 describe("getOrCreateConversation", () => {
-  it("lanza error si la application no existe", async () => {
+  it("lanza error con code NOT_FOUND si la application no existe", async () => {
     prismaMock.application.findUnique.mockResolvedValue(null);
 
     await expect(
       getOrCreateConversation(COMPANY_USER_ID, APPLICATION_ID),
-    ).rejects.toThrow("Application not found");
+    ).rejects.toMatchObject({
+      message: "Application not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si la application no está en INTERVIEW", async () => {
+  it("lanza error con code INTERVIEW_REQUIRED si la application no está en INTERVIEW", async () => {
     prismaMock.application.findUnique.mockResolvedValue({
       ...mockApplicationInInterview,
       pipelineStatus: "REVIEWED",
@@ -88,12 +91,13 @@ describe("getOrCreateConversation", () => {
 
     await expect(
       getOrCreateConversation(COMPANY_USER_ID, APPLICATION_ID),
-    ).rejects.toThrow(
-      "Chat only available for applications in INTERVIEW stage",
-    );
+    ).rejects.toMatchObject({
+      message: "Chat only available for applications in INTERVIEW stage",
+      code: "INTERVIEW_REQUIRED",
+    });
   });
 
-  it("lanza error si el companyUserId no es dueño de la práctica", async () => {
+  it("lanza error con code NOT_FOUND (no FORBIDDEN) si el companyUserId no es dueño de la práctica — anti-enumeration", async () => {
     prismaMock.application.findUnique.mockResolvedValue({
       ...mockApplicationInInterview,
       internship: { company: { userId: "other-company-user" } },
@@ -101,7 +105,27 @@ describe("getOrCreateConversation", () => {
 
     await expect(
       getOrCreateConversation(COMPANY_USER_ID, APPLICATION_ID),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Application not found",
+      code: "NOT_FOUND",
+    });
+  });
+
+  it("ownership se chequea ANTES que pipelineStatus para no leak el stage de apps ajenas", async () => {
+    prismaMock.application.findUnique.mockResolvedValue({
+      ...mockApplicationInInterview,
+      pipelineStatus: "REVIEWED",
+      internship: { company: { userId: "other-company-user" } },
+    });
+
+    // Una app que NO es del caller y NO está en INTERVIEW debería caer
+    // en NOT_FOUND (no INTERVIEW_REQUIRED), para no diferenciar paths.
+    await expect(
+      getOrCreateConversation(COMPANY_USER_ID, APPLICATION_ID),
+    ).rejects.toMatchObject({
+      message: "Application not found",
+      code: "NOT_FOUND",
+    });
   });
 
   it("retorna la conversación existente sin crear otra (idempotente)", async () => {
@@ -272,22 +296,28 @@ describe("getConversationById", () => {
     },
   };
 
-  it("lanza error si la conversación no existe", async () => {
+  it("lanza error con code NOT_FOUND si la conversación no existe", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue(null);
 
     await expect(
       getConversationById(CONVERSATION_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Conversation not found");
+    ).rejects.toMatchObject({
+      message: "Conversation not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si el userId no pertenece a la conversación", async () => {
+  it("lanza error con code FORBIDDEN si el userId no pertenece a la conversación", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue(
       mockSingleConversation,
     );
 
     await expect(
       getConversationById(CONVERSATION_ID, "intruder-user"),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Not authorized",
+      code: "FORBIDDEN",
+    });
   });
 
   it("mapea la identidad de empresa con fallback al user", async () => {
@@ -323,23 +353,29 @@ describe("getMessages", () => {
       },
     }));
 
-  it("lanza error si la conversación no existe", async () => {
+  it("lanza error con code NOT_FOUND si la conversación no existe", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue(null);
 
-    await expect(getMessages(CONVERSATION_ID, COMPANY_USER_ID)).rejects.toThrow(
-      "Conversation not found",
-    );
+    await expect(
+      getMessages(CONVERSATION_ID, COMPANY_USER_ID),
+    ).rejects.toMatchObject({
+      message: "Conversation not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si el userId no pertenece a la conversación", async () => {
+  it("lanza error con code FORBIDDEN si el userId no pertenece a la conversación", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       companyId: COMPANY_USER_ID,
       studentId: STUDENT_USER_ID,
     });
 
-    await expect(getMessages(CONVERSATION_ID, "intruder-user")).rejects.toThrow(
-      "Not authorized",
-    );
+    await expect(
+      getMessages(CONVERSATION_ID, "intruder-user"),
+    ).rejects.toMatchObject({
+      message: "Not authorized",
+      code: "FORBIDDEN",
+    });
   });
 
   it("marca como leídos los mensajes recibidos no leídos (side effect)", async () => {
@@ -437,15 +473,18 @@ describe("sendMessage", () => {
     },
   };
 
-  it("lanza error si la conversación no existe", async () => {
+  it("lanza error con code NOT_FOUND si la conversación no existe", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue(null);
 
     await expect(
       sendMessage(CONVERSATION_ID, COMPANY_USER_ID, "Hola"),
-    ).rejects.toThrow("Conversation not found");
+    ).rejects.toMatchObject({
+      message: "Conversation not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si el senderId no pertenece a la conversación", async () => {
+  it("lanza error con code FORBIDDEN si el senderId no pertenece a la conversación", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       ...mockConversationRow,
       messages: [],
@@ -453,7 +492,10 @@ describe("sendMessage", () => {
 
     await expect(
       sendMessage(CONVERSATION_ID, "intruder-user", "Hola"),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Not authorized",
+      code: "FORBIDDEN",
+    });
   });
 
   it("lanza error con code STUDENT_CANNOT_INITIATE si el estudiante intenta iniciar la conversación", async () => {
@@ -540,15 +582,18 @@ describe("sendMessage", () => {
 // ─── markConversationRead ───────────────────────────────────────────────────
 
 describe("markConversationRead", () => {
-  it("lanza error si la conversación no existe", async () => {
+  it("lanza error con code NOT_FOUND si la conversación no existe", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue(null);
 
     await expect(
       markConversationRead(CONVERSATION_ID, COMPANY_USER_ID),
-    ).rejects.toThrow("Conversation not found");
+    ).rejects.toMatchObject({
+      message: "Conversation not found",
+      code: "NOT_FOUND",
+    });
   });
 
-  it("lanza error si el userId no pertenece a la conversación", async () => {
+  it("lanza error con code FORBIDDEN si el userId no pertenece a la conversación", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       companyId: COMPANY_USER_ID,
       studentId: STUDENT_USER_ID,
@@ -556,7 +601,10 @@ describe("markConversationRead", () => {
 
     await expect(
       markConversationRead(CONVERSATION_ID, "intruder-user"),
-    ).rejects.toThrow("Not authorized");
+    ).rejects.toMatchObject({
+      message: "Not authorized",
+      code: "FORBIDDEN",
+    });
   });
 
   it("marca como leídos solo los mensajes recibidos no leídos (no los propios)", async () => {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import {
   getOrCreateConversation,
@@ -32,8 +33,15 @@ export async function POST(req: NextRequest) {
     );
     return NextResponse.json(conversation, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    if (message.includes("INTERVIEW stage")) {
+    const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND") {
+      return NextResponse.json(
+        { error: "Postulación no encontrada", code: "NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+    if (code === "INTERVIEW_REQUIRED") {
       return NextResponse.json(
         {
           error:
@@ -43,13 +51,15 @@ export async function POST(req: NextRequest) {
         { status: 403 },
       );
     }
-    if (message.includes("Not authorized")) {
-      return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
-      );
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "chat.conversations.POST" },
+      extra: { userId: auth.user.id, applicationId: parsed.data.applicationId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }
 
@@ -61,14 +71,23 @@ export async function GET() {
 
   const role = auth.user.role as "COMPANY" | "STUDENT";
   if (role !== "COMPANY" && role !== "STUDENT") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json(
+      { error: "No autorizado", code: "FORBIDDEN" },
+      { status: 403 },
+    );
   }
 
   try {
     const conversations = await getConversationsByUser(auth.user.id, role);
     return NextResponse.json(conversations);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    return NextResponse.json({ error: message }, { status: 500 });
+    Sentry.captureException(err, {
+      tags: { route: "chat.conversations.GET" },
+      extra: { userId: auth.user.id, role },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }

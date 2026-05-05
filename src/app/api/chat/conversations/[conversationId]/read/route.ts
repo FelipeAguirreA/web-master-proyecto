@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { markConversationRead } from "@/server/services/chat.service";
 
@@ -17,13 +18,22 @@ export async function PATCH(
     await markConversationRead(conversationId, auth.user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error interno";
-    if (message.includes("Not authorized")) {
+    const code = (err as Error & { code?: string }).code;
+
+    if (code === "NOT_FOUND" || code === "FORBIDDEN") {
       return NextResponse.json(
-        { error: "No autorizado", code: "FORBIDDEN" },
-        { status: 403 },
+        { error: "Conversación no encontrada", code: "NOT_FOUND" },
+        { status: 404 },
       );
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+
+    Sentry.captureException(err, {
+      tags: { route: "chat.read.PATCH" },
+      extra: { userId: auth.user.id, conversationId },
+    });
+    return NextResponse.json(
+      { error: "Error interno", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
   }
 }
