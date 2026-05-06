@@ -2,9 +2,9 @@
 
 ## Resumen
 
-**Duración total**: 12 módulos
+**Duración total**: 14 módulos originales + 7 extensiones (chat, calendario, ATS, notificaciones, perfil unificado, admin, rediseño Warm Tech) + 6 fases de refactor (ADRs, Testing, Seguridad OWASP, dead code, patrones, observabilidad)
 **Proyecto final**: PractiX - Portal de prácticas laborales con matching inteligente
-**Stack**: Next.js 14 (full-stack) + Prisma + Supabase + TailwindCSS + HuggingFace
+**Stack**: Next.js 16 (full-stack) + React 19 + Prisma 7 + Supabase + Tailwind v4 + HuggingFace
 **Metodología**: SDD (Spec-Driven Development) + TDD (Test-Driven Development)
 
 ---
@@ -14,9 +14,11 @@
 Este proyecto usa dos metodologías complementarias que trabajan juntas:
 
 ### SDD — Spec-Driven Development
+
 Antes de escribir código, se define la especificación de cada feature: qué hace, qué recibe, qué retorna, y qué errores maneja. Esto evita implementar sobre suposiciones.
 
 ### TDD — Test-Driven Development
+
 Dentro de cada módulo, los tests se escriben ANTES de la implementación:
 
 ```
@@ -31,10 +33,10 @@ Playwright E2E al cerrar el módulo completo
 
 ### Cuándo aplica cada uno
 
-| Qué | Cuándo |
-|-----|--------|
-| Specs SDD | Antes de cada service nuevo |
-| Unit tests (Vitest) | Junto al service, en el mismo módulo |
+| Qué                    | Cuándo                                 |
+| ---------------------- | -------------------------------------- |
+| Specs SDD              | Antes de cada service nuevo            |
+| Unit tests (Vitest)    | Junto al service, en el mismo módulo   |
 | E2E tests (Playwright) | Módulo 13, cuando la app está completa |
 
 > Los tests de unit NO van al módulo 13. Cada módulo que agrega un service incluye sus propios tests.
@@ -43,22 +45,22 @@ Playwright E2E al cerrar el módulo completo
 
 ## Estructura de Módulos
 
-| #   | Módulo                                                       | Resultado                                        |
-| --- | ------------------------------------------------------------ | ------------------------------------------------ |
-| 1   | [Setup del Proyecto](./modulo-01-setup.md)                   | Next.js + Tailwind + Prisma + Docker + Husky     |
-| 2   | [Base de Datos](./modulo-02-database.md)                     | 5 modelos Prisma + Supabase conectado            |
-| 3   | [Autenticación](./modulo-03-auth.md)                         | NextAuth con Google OAuth + middleware            |
-| 4   | [API - Usuarios y Perfiles](./modulo-04-users.md)            | Endpoints de perfiles estudiante/empresa          |
-| 5   | [API - Prácticas CRUD](./modulo-05-internships.md)           | CRUD completo con filtros y paginación            |
-| 6   | [API - Postulaciones](./modulo-06-applications.md)           | Sistema de postulaciones con estados              |
-| 7   | [Landing Page + Layout](./modulo-07-landing.md)              | Landing atractiva + layout con navegación         |
-| 8   | [Listado de Prácticas](./modulo-08-listing.md)               | Listado con filtros, búsqueda y paginación        |
-| 9   | [Dashboard Estudiante](./modulo-09-student.md)               | Perfil, subir CV, postulaciones, recomendaciones  |
-| 10  | [Dashboard Empresa](./modulo-10-company.md)                  | Crear prácticas, ver postulantes                  |
-| 11  | [Matching IA](./modulo-11-matching.md)                       | CV parsing + embeddings + similitud de coseno     |
-| 12  | [Notificaciones + Deploy](./modulo-12-deploy.md)             | Emails + Sentry + Docker prod + CI/CD + Vercel   |
-| 13  | [Testing](./modulo-13-testing.md)                            | Vitest + Testing Library + Playwright E2E        |
-| 14  | [Seguridad](./modulo-14-security.md)                         | Rate limiting + headers + OWASP checklist        |
+| #   | Módulo                                             | Resultado                                                                                                                                           |
+| --- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | [Setup del Proyecto](./modulo-01-setup.md)         | Next.js + Tailwind + Prisma + Docker + Husky                                                                                                        |
+| 2   | [Base de Datos](./modulo-02-database.md)           | 5 modelos Prisma core + Supabase (extensiones agregan 6 modelos más: Conversation, Message, Interview, Notification, PasswordResetToken, ATSConfig) |
+| 3   | [Autenticación](./modulo-03-auth.md)               | NextAuth con Google OAuth + middleware                                                                                                              |
+| 4   | [API - Usuarios y Perfiles](./modulo-04-users.md)  | Endpoints de perfiles estudiante/empresa                                                                                                            |
+| 5   | [API - Prácticas CRUD](./modulo-05-internships.md) | CRUD completo con filtros y paginación                                                                                                              |
+| 6   | [API - Postulaciones](./modulo-06-applications.md) | Sistema de postulaciones con estados                                                                                                                |
+| 7   | [Landing Page + Layout](./modulo-07-landing.md)    | Landing atractiva + layout con navegación                                                                                                           |
+| 8   | [Listado de Prácticas](./modulo-08-listing.md)     | Listado con filtros, búsqueda y paginación                                                                                                          |
+| 9   | [Dashboard Estudiante](./modulo-09-student.md)     | Perfil, subir CV, postulaciones, recomendaciones                                                                                                    |
+| 10  | [Dashboard Empresa](./modulo-10-company.md)        | Crear prácticas, ver postulantes                                                                                                                    |
+| 11  | [Matching IA](./modulo-11-matching.md)             | CV parsing + embeddings + similitud de coseno                                                                                                       |
+| 12  | [Notificaciones + Deploy](./modulo-12-deploy.md)   | Emails + Sentry + Docker prod + CI/CD + Vercel                                                                                                      |
+| 13  | [Testing](./modulo-13-testing.md)                  | Vitest + Testing Library + Playwright E2E                                                                                                           |
+| 14  | [Seguridad](./modulo-14-security.md)               | Rate limiting + headers + OWASP checklist                                                                                                           |
 
 ---
 
@@ -115,9 +117,10 @@ practix/
 │       └── index.ts
 │
 ├── .env.local
-├── next.config.js
-├── tailwind.config.ts
+├── next.config.ts                 # Next.js 16 config + Sentry wrapper + security headers
+├── prisma.config.ts               # Prisma 7: la URL salió del schema y vive acá
 └── package.json
+# NOTA: Tailwind v4 NO usa tailwind.config.ts — la config va en src/app/globals.css con @theme
 ```
 
 ### Principio de Clean Architecture Aplicado
@@ -154,21 +157,25 @@ POSTULACIONES:
 
 ## Stack Tecnológico (todo gratuito, un solo deploy)
 
-| Capa            | Tecnología                  | Servicio           |
-| --------------- | --------------------------- | ------------------ |
-| Full-stack      | Next.js 14 (App Router)     | Vercel (free)      |
-| Estilos         | TailwindCSS                 | —                  |
-| DB              | PostgreSQL + Prisma         | Supabase (free)    |
-| Auth            | NextAuth.js (Google OAuth)  | —                  |
-| Storage         | Supabase Storage            | Supabase (free)    |
-| IA              | HuggingFace Inference API   | HuggingFace (free) |
-| Email           | Brevo (ex Sendinblue)       | Brevo (free)       |
-| Monitoreo       | Sentry                      | Sentry (free)      |
-| Dev environment | Docker + Docker Compose     | Local              |
-| Testing         | Vitest + Testing Library    | —                  |
-| E2E             | Playwright                  | —                  |
-| CI/CD           | GitHub Actions              | GitHub (free)      |
-| Git hooks       | Husky + lint-staged         | —                  |
+| Capa            | Tecnología                                                     | Servicio           |
+| --------------- | -------------------------------------------------------------- | ------------------ |
+| Full-stack      | Next.js 16 (App Router) + React 19                             | Vercel (free)      |
+| Estilos         | Tailwind v4 (config CSS `@theme`)                              | —                  |
+| DB              | PostgreSQL + Prisma 7 (`prisma.config.ts`)                     | Supabase (free)    |
+| Auth            | NextAuth.js (Google OAuth + credentials empresa)               | —                  |
+| Storage         | Supabase Storage                                               | Supabase (free)    |
+| Realtime        | Supabase Realtime (chat)                                       | Supabase (free)    |
+| IA              | HuggingFace Inference API (`BAAI/bge-small-en-v1.5`, 384 dims) | HuggingFace (free) |
+| Email           | Brevo (ex Sendinblue)                                          | Brevo (free)       |
+| Logger          | pino structured + correlation `x-request-id`                   | —                  |
+| Rate limiting   | Upstash Redis (distribuido)                                    | Upstash (free)     |
+| Monitoreo       | Sentry (releases ligados a commit + sourcemaps)                | Sentry (free)      |
+| Dev environment | Docker + Docker Compose (postgres en 5433)                     | Local              |
+| Testing         | Vitest + Testing Library (1097 tests, 100% func)               | —                  |
+| E2E             | Playwright (53 tests)                                          | —                  |
+| CI/CD           | GitHub Actions + Dependabot agrupado                           | GitHub (free)      |
+| Git hooks       | Husky + lint-staged + commitlint                               | —                  |
+| Dead code       | knip (devDep)                                                  | —                  |
 
 **Un solo deploy. Cero CORS. Tipos compartidos.**
 

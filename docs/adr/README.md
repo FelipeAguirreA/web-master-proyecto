@@ -33,11 +33,11 @@ Cada ADR tiene:
 
 ## Índice
 
-| #   | Título                                                                                              | Status             |
-| --- | --------------------------------------------------------------------------------------------------- | ------------------ |
-| 001 | [Monolito modular + Clean Architecture](./001-monolito-modular-clean-architecture.md)               | Aceptado           |
-| 002 | [Autenticación con NextAuth + JWT rotativo](./002-auth-nextauth-jwt-rotativo.md)                    | Propuesto (Fase 3) |
-| 003 | [Rate limiting con Upstash Redis](./003-rate-limiting-upstash.md)                                   | Propuesto (Fase 3) |
-| 004 | [Testing strategy — pirámide](./004-testing-strategy-piramide.md)                                   | Aceptado (parcial) |
-| 005 | [Observabilidad con Sentry + logger estructurado](./005-observabilidad-sentry-logger.md)            | Aceptado (parcial) |
-| 006 | [Matching con embeddings HuggingFace + cosine similarity](./006-matching-embeddings-huggingface.md) | Aceptado           |
+| #   | Título                                                                                              | Status                                                   |
+| --- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 001 | [Monolito modular + Clean Architecture](./001-monolito-modular-clean-architecture.md)               | Aceptado                                                 |
+| 002 | [Autenticación con NextAuth + JWT rotativo](./002-auth-nextauth-jwt-rotativo.md)                    | Aceptado e implementado (bump 1.8.0)                     |
+| 003 | [Rate limiting con Upstash Redis](./003-rate-limiting-upstash.md)                                   | Aceptado e implementado (bump 1.8.x)                     |
+| 004 | [Testing strategy — pirámide](./004-testing-strategy-piramide.md)                                   | Aceptado e implementado (Fase 2 — bump 1.5.0)            |
+| 005 | [Observabilidad con Sentry + logger estructurado](./005-observabilidad-sentry-logger.md)            | Aceptado e implementado (Fase 6 — bumps 1.10.21–1.10.23) |
+| 006 | [Matching con embeddings HuggingFace + cosine similarity](./006-matching-embeddings-huggingface.md) | Aceptado e implementado                                  |

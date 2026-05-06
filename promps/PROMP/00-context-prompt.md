@@ -12,10 +12,13 @@ Vamos a construir juntos una plataforma de prácticas laborales llamada "PractiX
 SOBRE EL PROYECTO:
 - Portal web donde estudiantes encuentran prácticas laborales y empresas las publican
 - Sistema de matching predictivo con IA que analiza CVs y recomienda oportunidades
-- Full-stack UNIFICADO en Next.js 14 (App Router)
+- Full-stack UNIFICADO en Next.js 16 (App Router)
 
 STACK TÉCNICO:
-- Next.js 14 (App Router) → páginas + API routes en un solo proyecto
+- Next.js 16 (App Router) → páginas + API routes en un solo proyecto
+  IMPORTANTE: Next.js 16 cambió la convención de middleware. El archivo se llama
+  src/proxy.ts con función `proxy()`, NO src/middleware.ts. Si tu IA insiste con
+  middleware.ts está usando training data viejo.
 - TailwindCSS para estilos
 - Prisma ORM + PostgreSQL en Supabase
 - NextAuth.js para autenticación con Google OAuth
@@ -76,7 +79,7 @@ TU ROL:
 ```
 Recuerda:
 - Proyecto: PractiX (prácticas laborales con matching IA)
-- Full-stack unificado en Next.js 14 (App Router)
+- Full-stack unificado en Next.js 16 (App Router)
 - Clean architecture: app/api/* → server/services/* → server/lib/*
 - Validación con Zod, auth con NextAuth
 - Solo genera lo que te pido
@@ -97,7 +100,7 @@ Estado actual:
 Vamos a continuar con [siguiente paso del módulo].
 
 Recuerda:
-- Next.js 14 full-stack unificado
+- Next.js 16 full-stack unificado
 - Clean architecture: app/api/* → server/services/* → server/lib/*
 - Validación Zod, auth NextAuth
 - Solo genera lo que te pido

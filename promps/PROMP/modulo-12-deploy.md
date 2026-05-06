@@ -80,19 +80,24 @@ Integra el envío de emails en los services existentes.
    - Después de crear la application exitosamente
    - Buscar el email de la empresa (internship → company → user)
    - Llamar sendNewApplicationEmail (fire-and-forget, sin await)
-   - .catch(console.error) para no romper si falla
+   - .catch(err => Sentry.captureException(err, { tags: { mail: "new_application" } }))
+     (post Fase 3 paso 3.7: los fallos de mail van a Sentry, NO console.error.
+     Esto fue uno de los patrones convergentes del audit /api/* — finding #B3.)
 
 2. En applications.service.ts → función updateApplicationStatus:
    - Después de actualizar el status
    - Buscar el email del estudiante (application → student)
    - Llamar sendStatusUpdateEmail (fire-and-forget)
-   - .catch(console.error)
+   - .catch(err => Sentry.captureException(err, { tags: { mail: "status_update" } }))
 
 IMPORTANTE:
 - No usar await → no bloquear el response esperando al email
 - No lanzar error si falla → los emails son best-effort
+- Sentry.captureException permite que el equipo se entere del fallo sin
+  romper la experiencia del usuario. console.error en Vercel se pierde
+  rápido y NO es accionable.
 
-Importar las funciones de '@/server/lib/mail'.
+Importar las funciones de '@/server/lib/mail' y Sentry de '@sentry/nextjs'.
 ```
 
 ---
@@ -102,37 +107,93 @@ Importar las funciones de '@/server/lib/mail'.
 **Prompt para la IA:**
 
 ```
-Configura Sentry para monitoreo de errores en PractiX (Next.js 14).
+Configura Sentry para monitoreo de errores en PractiX (Next.js 16).
 
-1. Crear cuenta en https://sentry.io (free tier — 5k errores/mes)
+1. Crear cuenta en https://sentry.io (free tier — 5k errores/mes, 10k spans
+   transactions/mes para Performance Monitoring)
    - New Project → Next.js → copiar DSN
 
-2. Correr el wizard de Sentry para Next.js:
+2. Correr el wizard oficial:
    npx @sentry/wizard@latest -i nextjs
 
    Esto crea automáticamente:
    - sentry.client.config.ts
    - sentry.server.config.ts
    - sentry.edge.config.ts
-   - instrumenta next.config.js
+   - instrumentation.ts + instrumentation-client.ts
+   - envuelve next.config.ts con withSentryConfig()
+   - genera UN Org Auth Token y lo agrega como SENTRY_AUTH_TOKEN en GitHub Actions
 
-3. Verificar sentry.client.config.ts:
-   - dsn: process.env.NEXT_PUBLIC_SENTRY_DSN
-   - tracesSampleRate: 0.1 (10% en producción, suficiente para el free tier)
+3. GOTCHA REAL — el wizard NO configura SENTRY_AUTH_TOKEN en Vercel.
+   Esto es la causa más común de tener stack traces minificados en producción.
+   Hay que hacerlo a mano:
+
+   a. Crear un Organization Auth Token en Sentry (NO Personal Token):
+      URL: https://<tu-org>.sentry.io/settings/auth-tokens/
+      → Create New Token
+      → Name: "vercel-and-github-sourcemap-upload"
+      → Scope: org:ci (cubre Source Map Upload + Release Creation + Code Mappings)
+      → Copiar el token (solo se ve UNA vez)
+
+   b. Agregar en Vercel:
+      Project Settings → Environment Variables → Add New
+      Key: SENTRY_AUTH_TOKEN
+      Value: <token>
+      Environments: marcar Production + Preview + Development
+
+   c. Verificar que GitHub Actions también lo tiene (el wizard lo creó):
+      Repo Settings → Secrets and variables → Actions → SENTRY_AUTH_TOKEN
+
+   d. Si el wizard generó un Personal Token tuyo, revocarlo y dejar solo
+      el Org Auth Token. Los Personal Tokens se rompen cuando cambiás de cuenta.
+
+4. Verificar sentry.client.config.ts:
+   - dsn: NEXT_PUBLIC_SENTRY_DSN
+   - tracesSampleRate: 0.1 (10% — buen default para empezar; bajar a 0.05 si
+     se llena la cuota del free tier de spans)
    - replaysOnErrorSampleRate: 1.0
+   - integrations: [Sentry.replayIntegration()]
 
-4. Verificar sentry.server.config.ts:
-   - dsn: process.env.NEXT_PUBLIC_SENTRY_DSN
+5. Verificar sentry.server.config.ts y sentry.edge.config.ts:
+   - dsn: NEXT_PUBLIC_SENTRY_DSN
    - tracesSampleRate: 0.1
+   - sendDefaultPii: true
 
-5. Agregar al .env.local:
+6. En next.config.ts (envuelto con withSentryConfig), agregar release ligado
+   al commit exacto. En las opciones del segundo argumento:
+
+   release: {
+     name: process.env.VERCEL_GIT_COMMIT_SHA
+       ? `practix@${process.env.VERCEL_GIT_COMMIT_SHA}`
+       : undefined,
+   }
+
+   Vercel expone VERCEL_GIT_COMMIT_SHA automáticamente en build. Con esto:
+   - Cada issue en Sentry queda etiquetado con el commit exacto
+   - Los sourcemaps subidos quedan asociados a esa release
+   - Desde un issue podés ver el commit que lo causó (link a GitHub si está
+     configurado el repo en Sentry → Code Mappings)
+
+7. .env.local:
    NEXT_PUBLIC_SENTRY_DSN=https://xxxx@xxxx.ingest.sentry.io/xxxx
-   SENTRY_ORG=tu-org-slug
-   SENTRY_PROJECT=practix
+   # SENTRY_AUTH_TOKEN va SOLO en Vercel + GitHub Actions, NO en .env.local
+   # (no se necesita en build local)
 
-6. Para probar que funciona, agregar temporalmente en una página:
+8. Configurar 3 alertas críticas en el dashboard de Sentry (Issue Alerts,
+   no Metric Alerts — las Metric Alerts requieren tier paga):
+
+   - "🛑 Base de datos caída": Issue Alert con filtro `tags.health: "db_down"`.
+     Disparada desde /api/health cuando el ping a Postgres falla. Email inmediato.
+   - "🛑 Reuse de refresh token": Issue Alert con filtro `tags.auth: "refresh_reuse"`.
+     Alta severidad — posible robo de token. Email inmediato.
+   - "⚠️ Login burst (brute-force)": >10 fallos en 5 min con `tags.auth: "login_failed"`.
+
+   Para más detalle de las 6 alertas (3 cerradas + 2 diferidas + 1 descartada),
+   ver docs/sentry-alerts.md.
+
+9. Probar que funciona — agregar temporalmente en una página:
    throw new Error("Test Sentry - eliminar después")
-   Verificar que aparece en el dashboard de Sentry.
+   Verificar que aparece en el dashboard con la release `practix@<sha>`.
 ```
 
 ---
@@ -148,7 +209,7 @@ Ubicación: src/app/api/health/route.ts
 
 Debe:
 - Responder GET /api/health
-- Verificar conexión a la base de datos con una query simple: SELECT 1
+- Verificar conexión a la base de datos con una query simple (SELECT 1)
 - Retornar JSON:
   {
     "status": "ok" | "degraded",
@@ -160,7 +221,20 @@ Debe:
   }
 - Status HTTP 200 si todo ok, 503 si la DB falla
 - NO requiere autenticación (lo usan monitoreos externos)
-- Manejar el error de DB con try/catch, nunca lanzar hacia el cliente
+- Manejar el error de DB con try/catch — nunca lanzar el error original al cliente
+
+IMPORTANTE: si la DB falla, ADEMÁS de devolver 503, llamar a:
+  Sentry.captureMessage("Database health check failed", {
+    level: "error",
+    tags: { health: "db_down" },
+  })
+
+Esto es lo que dispara la alerta "🛑 Base de datos caída" del Paso 4. Sin
+esta línea, el endpoint funciona pero la alerta NUNCA se dispara — porque
+el filtro de la alerta es `tags.health: "db_down"`. Es un gap fácil de pasar
+por alto: el endpoint devuelve 503 correctamente y parece "todo bien", pero
+nadie se entera del incidente. Este finding salió en el audit /api/health
+del paso 3.7 de la Fase 3 (referencia: #L1).
 ```
 
 ---
@@ -170,28 +244,58 @@ Debe:
 **Prompt para la IA:**
 
 ```
-Agrega security headers de producción a next.config.js en PractiX.
+Configura security headers de producción en PractiX.
 
-Agregar la sección "headers" que aplique a todas las rutas ("/(.*)")
-con los siguientes headers HTTP:
+Hay DOS lugares donde van headers, por una razón importante: el CSP necesita
+nonces dinámicos por request (no se puede generar en build), entonces vive
+en el middleware. El resto vive en next.config.ts.
 
-- X-DNS-Prefetch-Control: on
-- Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-- X-Frame-Options: SAMEORIGIN
-- X-Content-Type-Options: nosniff
-- Referrer-Policy: origin-when-cross-origin
-- Permissions-Policy: camera=(), microphone=(), geolocation=()
-- Content-Security-Policy (CSP):
-  default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.sentry.io;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-  font-src 'self' https://fonts.gstatic.com;
-  img-src 'self' data: https://*.supabase.co https://lh3.googleusercontent.com;
-  connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io
-               https://router.huggingface.co https://api.brevo.com;
-  frame-ancestors 'none';
+A. Headers estáticos en next.config.ts — sección "headers" que aplique a
+   todas las rutas ("/(.*)") con:
 
-Mantener la configuración existente de images.remotePatterns.
+   - X-DNS-Prefetch-Control: on
+   - Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+   - X-Frame-Options: SAMEORIGIN
+   - X-Content-Type-Options: nosniff
+   - Referrer-Policy: origin-when-cross-origin
+   - Permissions-Policy: camera=(), microphone=(), geolocation=()
+   - X-Permitted-Cross-Domain-Policies: none
+   - Cross-Origin-Opener-Policy: same-origin
+
+   Mantener la configuración existente de images.remotePatterns
+   (lh3.googleusercontent.com + *.supabase.co).
+
+B. Content-Security-Policy en src/proxy.ts (middleware de Next.js 16) — NO
+   en next.config.ts. El middleware genera un nonce aleatorio por request
+   y lo inyecta en el CSP y en los <script> de Next.js.
+
+   En producción, el script-src queda strict (sin 'unsafe-eval' ni
+   'unsafe-inline' globales — solo el nonce):
+
+     default-src 'self';
+     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.sentry.io;
+     style-src 'self' 'unsafe-inline';
+     font-src 'self' https://fonts.gstatic.com;
+     img-src 'self' data: https://*.supabase.co https://lh3.googleusercontent.com;
+     connect-src 'self' https://*.supabase.co https://*.ingest.sentry.io
+                  https://router.huggingface.co https://api.brevo.com;
+     frame-ancestors 'none';
+     base-uri 'self';
+     form-action 'self';
+     object-src 'none';
+
+   En dev, agregar 'unsafe-eval' al script-src — React 19 lo necesita para
+   los callstacks de devtools. Detectar por NODE_ENV o similar.
+
+   El style-src mantiene 'unsafe-inline' a propósito: Tailwind, Radix y
+   next-font lo necesitan y el ataque vector es bajo (no ejecuta código).
+
+   Spec completa de CSP: docs/specs/csp.spec.md (Fase 3 paso 3.3 del
+   refactor-plan, bump 1.10.0).
+
+   NOTA: en Next.js 16 el archivo de middleware se llama src/proxy.ts con
+   función `proxy()`, NO `middleware.ts` con `middleware()`. Si tu IA
+   insiste con middleware.ts está usando training data viejo.
 ```
 
 ---
@@ -201,7 +305,7 @@ Mantener la configuración existente de images.remotePatterns.
 **Prompt para la IA:**
 
 ```
-Crea un Dockerfile multi-stage optimizado para producción de PractiX (Next.js 14).
+Crea un Dockerfile multi-stage optimizado para producción de PractiX (Next.js 16).
 
 Etapas:
 1. "deps" → node:20-alpine: instalar solo dependencias de producción con pnpm
@@ -250,9 +354,26 @@ Jobs:
      f. pnpm exec tsc --noEmit  (type check)
      g. pnpm test (vitest run)
      h. pnpm build
-       - Usar secrets para las variables requeridas por el build:
-         DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, etc.
-         (definir como "dummy values" para que el build pase en CI)
+       - GOTCHA REAL: NO usar ${{ secrets.* }} para las env vars del build.
+         GitHub no expone los secrets a los runs de Pull Request de Dependabot
+         por security policy — si usás secrets, los PRs de Dependabot fallan
+         al buildear y todos los bumps quedan rojos.
+       - En su lugar, definir env vars con placeholders dummy literales que
+         solo satisfagan la validación Zod de src/lib/env.ts:
+           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+           NEXTAUTH_SECRET: placeholder-secret-min-32-chars-for-zod-validation
+           NEXTAUTH_URL: http://localhost:3000
+           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+           SUPABASE_SERVICE_KEY: placeholder-service-key
+           GOOGLE_CLIENT_ID: placeholder-google-client-id
+           GOOGLE_CLIENT_SECRET: placeholder-google-client-secret
+       - Razón profunda: src/lib/env.ts hace safeParse() de process.env a
+         module-load time, lo que se ejecuta durante "Collecting page data"
+         del next build. Si una env requerida falta, el build falla con un
+         mensaje genérico sin pista. Los placeholders solo satisfacen Zod —
+         los valores reales viven SOLO en Vercel project settings, el build
+         de CI nunca conecta a infra real.
 
 2. "security" (audit de dependencias):
    - runs-on: ubuntu-latest
@@ -261,12 +382,22 @@ Jobs:
      a. Checkout
      b. Setup pnpm
      c. pnpm install --frozen-lockfile
-     d. pnpm audit --audit-level=high
-        (falla solo si hay vulnerabilidades HIGH o CRITICAL)
+     d. pnpm audit --audit-level=moderate
+        (falla si hay vulnerabilidades MODERATE, HIGH o CRITICAL — antes era
+        --audit-level=high pero la Fase 3 paso 3.4 lo subió a moderate; las
+        9 vulns activas se resolvieron con pnpm.overrides)
 
-Secrets necesarios en GitHub:
-- NEXTAUTH_SECRET (cualquier string de 32 chars para CI)
-- DATABASE_URL (puede ser dummy para que compile)
+Configuración Dependabot — .github/dependabot.yml:
+- package-ecosystem: "npm" weekly, open-pull-requests-limit: 5
+- groups (CRÍTICO — sin esto los PRs fallan):
+  - react: react, react-dom, @types/react, @types/react-dom
+    (sin agrupar, Dependabot abre PRs separados y react@x sin react-dom
+    igualado falla con "Incompatible React versions")
+  - sentry: @sentry/*
+  - prisma: @prisma/*, prisma
+  - testing: vitest, @vitest/*, @testing-library/*, @playwright/*
+- ignore: dependency-name "*", update-types ["version-update:semver-major"]
+  (majors requieren revisión manual)
 ```
 
 ---
@@ -321,17 +452,31 @@ Dame los archivos que necesitan cambios.
 3. Framework: Next.js (auto-detectado)
    Root directory: ./ (raíz del proyecto)
 
-4. Environment Variables (agregar TODAS):
-   DATABASE_URL=<tu-connection-string-de-supabase>
+4. Environment Variables (agregar TODAS — falta una y el build falla en
+   "Collecting page data" por la validación Zod de src/lib/env.ts):
+
+   Requeridas:
+   DATABASE_URL=<connection-string Supabase pooler, puerto 6543>
+   DIRECT_URL=<connection-string Supabase directo, puerto 5432, para Prisma CLI>
    NEXT_PUBLIC_SUPABASE_URL=<tu-supabase-url>
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu-anon-key>     ← olvidada con frecuencia, rompe el build
    SUPABASE_SERVICE_KEY=<tu-service-key>
    NEXTAUTH_URL=https://<tu-app>.vercel.app
    NEXTAUTH_SECRET=<generar: openssl rand -base64 32>
    GOOGLE_CLIENT_ID=<tu-client-id>
    GOOGLE_CLIENT_SECRET=<tu-client-secret>
+
+   Opcionales pero recomendadas en prod:
    HUGGINGFACE_API_KEY=<tu-hf-key>
    BREVO_API_KEY=<tu-brevo-key>
    BREVO_SENDER_EMAIL=<tu-email-verificado>
+   NEXT_PUBLIC_SENTRY_DSN=<tu-dsn>
+   SENTRY_AUTH_TOKEN=<tu-org-auth-token>           ← sin esto, sourcemaps NO se suben
+   UPSTASH_REDIS_REST_URL=<url>
+   UPSTASH_REDIS_REST_TOKEN=<token>
+
+   Marcar TODAS las env vars en los 3 environments: Production + Preview + Development
+   (Preview se usa para deploys de PRs y necesita las mismas vars que prod).
 
 5. Click "Deploy" → esperar el build
 
@@ -483,14 +628,22 @@ Al final del módulo tienes:
 
 ```
 📊 Métricas del MVP:
-- 1 proyecto Next.js 14 full-stack
-- 4 services de lógica de negocio (clean architecture)
-- 10+ API routes
-- 6 páginas frontend
-- 5 modelos de datos con relaciones
-- Matching IA con embeddings + similitud de coseno
-- Auth con Google OAuth
-- Emails transaccionales
+- 1 proyecto Next.js 16 full-stack
+- 6+ services de lógica de negocio (users, internships, applications, matching,
+  chat, interviews — más extensiones agregan ATS scorers, notifications)
+- 40+ API routes agrupadas por área
+- Núcleo + extensiones de páginas frontend (landing, listing, detalle, auth flow,
+  dashboards estudiante/empresa, perfil unificado, inbox/chat, calendario, ATS,
+  candidatos, admin de empresas)
+- 11 modelos de datos con relaciones (5 core + 6 de extensiones)
+- Matching IA con embeddings BAAI/bge-small-en-v1.5 + cosine similarity
+- Auth con Google OAuth (estudiantes) + credentials con bcrypt (empresas)
+- Refresh token rotation (JWT 15min)
+- Rate limiting distribuido con Upstash Redis
+- Emails transaccionales con Brevo
+- Logger estructurado pino con correlation x-request-id
+- Sentry con releases ligados a commit + sourcemaps + 3 alertas
+- Chat realtime con Supabase Realtime
 - 1 solo deploy en Vercel (gratis)
 
 🏗️ Clean Architecture:
@@ -512,7 +665,7 @@ Al final del módulo tienes:
 
 Has construido un MVP completo con:
 
-- ✅ Full-stack unificado (Next.js 14)
+- ✅ Full-stack unificado (Next.js 16 + React 19)
 - ✅ Clean Architecture (separación de capas)
 - ✅ Base de datos relacional (Prisma + PostgreSQL)
 - ✅ Autenticación OAuth (Google)

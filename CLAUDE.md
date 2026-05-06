@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project: PractiX
 
 Portal de prácticas laborales con matching inteligente.  
-Full-stack unificado en **Next.js 14 (App Router)** — un solo deploy en Vercel.
+Full-stack unificado en **Next.js 16 (App Router)** + React 19 — un solo deploy en Vercel.
 
 ---
 
@@ -27,6 +27,7 @@ docker compose up         # PostgreSQL local para desarrollo
 ```
 
 Para correr un test específico:
+
 ```bash
 pnpm vitest run src/test/unit/internships.service.test.ts
 ```
@@ -58,7 +59,7 @@ Las llamadas fetch del frontend siempre usan URL relativa (`fetch('/api/...')`) 
 
 - `Application` tiene `@@unique([studentId, internshipId])` — un estudiante no puede postularse dos veces
 - Prácticas usan **soft delete** (campo `isActive: Boolean`)
-- Embeddings almacenados como `Float[]` en `StudentProfile` e `Internship` (384 dimensiones, modelo `sentence-transformers/all-MiniLM-L6-v2`)
+- Embeddings almacenados como `Float[]` en `StudentProfile` e `Internship` (384 dimensiones, modelo `BAAI/bge-small-en-v1.5`). Decisión y migración desde `sentence-transformers/all-MiniLM-L6-v2` documentadas en ADR 006.
 - Prisma Client singleton en `src/server/lib/db.ts` (patrón `globalThis` para dev)
 
 ---
@@ -75,7 +76,7 @@ Las llamadas fetch del frontend siempre usan URL relativa (`fetch('/api/...')`) 
 ## AI Matching
 
 - CV parser: `pdf-parse` para PDF, `mammoth` para DOCX
-- Embeddings: HuggingFace Inference API, modelo `sentence-transformers/all-MiniLM-L6-v2` (384 dims)
+- Embeddings: HuggingFace Inference API, modelo `BAAI/bge-small-en-v1.5` (384 dims, feature-extraction nativa)
 - Similitud: cosine similarity, score normalizado 0–100
 - El embedding de una práctica se genera al crearla (`internships.service.ts → createInternship`)
 - CVs almacenados en Supabase Storage, bucket `documents`
@@ -116,22 +117,51 @@ Cada commit que modifica código debe actualizar `package.json` (semver) y agreg
 
 ## Module Roadmap
 
-| # | Módulo | Resultado |
-|---|--------|-----------|
-| 1 | Setup | Next.js + Tailwind + Prisma + Docker + Husky |
-| 2 | Database | 5 modelos Prisma + Supabase conectado |
-| 3 | Auth | NextAuth Google OAuth + middleware |
-| 4 | Users API | Perfiles estudiante/empresa |
-| 5 | Internships API | CRUD con filtros y paginación |
-| 6 | Applications API | Estados: PENDING → REVIEWED → ACCEPTED/REJECTED |
-| 7 | Landing + Layout | UI pública con navegación |
-| 8 | Listing | Listado con filtros, búsqueda, paginación |
-| 9 | Student Dashboard | Perfil, subir CV, postulaciones, recomendaciones |
-| 10 | Company Dashboard | Crear prácticas, ver postulantes rankeados |
-| 11 | AI Matching | CV parsing + embeddings + cosine similarity |
-| 12 | Deploy | Emails + Sentry + GitHub Actions + Vercel |
-| 13 | Testing | Vitest unit + Playwright E2E |
-| 14 | Security | Rate limiting + headers + OWASP |
+> Estado al 2026-05-06: 14 módulos originales + 7 extensiones + refactor-plan completo (Fases 0–6 core) cerrados. Solo F6.4 (NFR <200ms) y F6.5 (UX optimistic + skeletons) quedan opcionales.
 
-Ver `promps/PROMP/` para los prompts detallados de cada módulo.  
-Ver `context/project-state.md` para el estado actual del proyecto (módulo en curso).
+### Módulos originales (14/14 ✅)
+
+| #   | Módulo            | Resultado                                        |
+| --- | ----------------- | ------------------------------------------------ |
+| 1   | Setup             | Next.js + Tailwind + Prisma + Docker + Husky     |
+| 2   | Database          | 5 modelos Prisma + Supabase conectado            |
+| 3   | Auth              | NextAuth Google OAuth + middleware               |
+| 4   | Users API         | Perfiles estudiante/empresa                      |
+| 5   | Internships API   | CRUD con filtros y paginación                    |
+| 6   | Applications API  | Estados: PENDING → REVIEWED → ACCEPTED/REJECTED  |
+| 7   | Landing + Layout  | UI pública con navegación                        |
+| 8   | Listing           | Listado con filtros, búsqueda, paginación        |
+| 9   | Student Dashboard | Perfil, subir CV, postulaciones, recomendaciones |
+| 10  | Company Dashboard | Crear prácticas, ver postulantes rankeados       |
+| 11  | AI Matching       | CV parsing + embeddings + cosine similarity      |
+| 12  | Deploy            | Emails + Sentry + GitHub Actions + Vercel        |
+| 13  | Testing           | Vitest unit + Playwright E2E                     |
+| 14  | Security          | Rate limiting + headers + OWASP                  |
+
+### Extensiones (7/7 ✅)
+
+| Módulo                      | Resultado                                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| Mejoras estudiante          | Registro guiado + perfil unificado                                                        |
+| Admin panel                 | Aprobación de empresas (`(admin)/admin/empresas`)                                         |
+| Rediseño Stitch (Warm Tech) | Públicas + auth + dashboards (3 oleadas) + admin                                          |
+| ATS para empresas           | Pipeline kanban + scoring engine 5 scorers + ScoreBreakdownModal                          |
+| Chat tiempo real            | Supabase Realtime + conversaciones + mensajes (ver `CHAT_MODULE.md` para setup histórico) |
+| Calendario entrevistas      | CRUD interviews + send-to-chat                                                            |
+| Notificaciones              | Bell + panel + DELETE real + read-all                                                     |
+
+### Refactor + hardening (Fases 0–6 ✅, ver `context/refactor-plan.md`)
+
+| Fase | Resultado                                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------- |
+| 0    | Sanity check middleware (Next.js 16: `proxy.ts` no `middleware.ts`)                                     |
+| 1    | 6 ADRs en `docs/adr/`                                                                                   |
+| 2    | Coverage 100% func / 80% lines + 1097 unit/component + 53 E2E                                           |
+| 3    | OWASP Top 10 + audit `/api/*` (12 áreas, 31 findings 🛑 + 14 ⚠️ documentados)                           |
+| 4    | knip + reorganización `src/lib/`                                                                        |
+| 5    | Strategy/Registry para scorers ATS (1 patrón aplicado, 3 descartados conscientemente)                   |
+| 6    | Logger pino + correlation ID + Sentry alerts + runbooks + tracesSampleRate + releases ligados a commits |
+
+Ver `promps/PROMP/` para los prompts detallados de cada módulo original.
+Ver `context/project-state.md` para el estado actual del proyecto.
+Ver `context/refactor-plan.md` para el detalle de Fases 0–6.

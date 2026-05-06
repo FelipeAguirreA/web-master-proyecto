@@ -1,13 +1,14 @@
 # Módulo 7: Landing Page + Layout Base
 
 ## Resultado Final
+
 Landing page atractiva + layout de navegación + página de login.
 
 ---
 
 ## Paso 0: Activar la página de login en NextAuth
 
-En `src/lib/auth.ts`, descomentar la línea que fue dejada pendiente en el Módulo 3:
+En `src/server/lib/auth.ts` (path post-Fase 4 del refactor — antes `src/lib/auth.ts`), descomentar la línea que fue dejada pendiente en el Módulo 3:
 
 ```
 pages: { signIn: "/login" }
@@ -20,6 +21,7 @@ Sin este paso, NextAuth sigue redirigiendo a su página default en lugar de `/lo
 ## Paso 1: Root Layout
 
 **Prompt para la IA:**
+
 ```
 Actualiza el root layout de PractiX.
 
@@ -39,6 +41,7 @@ Requisitos:
 ## Paso 2: Landing Page
 
 **Prompt para la IA:**
+
 ```
 Crea la landing page de PractiX.
 
@@ -49,7 +52,7 @@ Server component (sin 'use client'). Usar lucide-react para íconos.
 Secciones:
 
 1. NAVBAR (fixed top, bg-white/80 backdrop-blur, border-b):
-   - Logo: texto "PractiX" donde "Practi" es text-brand-700 
+   - Logo: texto "PractiX" donde "Practi" es text-brand-700
      y "X" es text-accent-500. font-bold text-xl tracking-tight
    - Links: "Explorar" → /practicas (text-sm text-gray-600)
    - Botón: "Iniciar sesión" → /login (bg-brand-600 text-white rounded-lg)
@@ -82,10 +85,10 @@ Secciones:
 
 4. PARA QUIÉN (py-20, grid md:grid-cols-2 gap-8, max-w-5xl):
    - Card "Para Estudiantes": ícono GraduationCap w-10 text-brand-600
-     Lista con ✓: matching basado en CV, score de afinidad, alertas, 
+     Lista con ✓: matching basado en CV, score de afinidad, alertas,
      postulación en un click, 100% gratuito
    - Card "Para Empresas": ícono Building2 w-10 text-accent-500
-     Lista con ✓: publica en minutos, candidatos rankeados, 
+     Lista con ✓: publica en minutos, candidatos rankeados,
      dashboard de gestión, filtros, plan gratuito
    - Ambas: bg-white rounded-2xl p-8 border border-gray-100 shadow-sm
 
@@ -103,12 +106,13 @@ Secciones:
 ## Paso 3: Página de Login
 
 **Prompt para la IA:**
+
 ```
 Crea la página de login de PractiX.
 
 Ubicación: src/app/(auth)/login/page.tsx
 
-'use client'. Usa signIn de next-auth/react. 
+'use client'. Usa signIn de next-auth/react.
 Lee query param 'role' con useSearchParams (default 'student').
 
 Layout centrado verticalmente en pantalla, fondo gris claro.
@@ -124,7 +128,7 @@ Layout centrado verticalmente en pantalla, fondo gris claro.
      - Incluir SVG del logo de Google (4 colores)
      - onClick: signIn('google', { callbackUrl }) donde callbackUrl es:
        /dashboard/estudiante (si student) o /dashboard/empresa (si company)
-     - Estilo: w-full flex items-center justify-center gap-3 
+     - Estilo: w-full flex items-center justify-center gap-3
        bg-white border rounded-xl py-3 hover:bg-gray-50
    - Texto legal: "Al continuar aceptas términos y privacidad"
 
@@ -141,6 +145,7 @@ para evitar errores de Next.js con static rendering.
 ## Paso 4: Layout de Dashboard + Páginas placeholder
 
 **Prompt para la IA:**
+
 ```
 Crea un layout compartido para las páginas de dashboard.
 
@@ -172,13 +177,14 @@ Layout:
 También crear páginas placeholder para que los redirects post-login funcionen:
 
 **Prompt para la IA:**
+
 ```
 Crea dos páginas placeholder mínimas:
 
 src/app/(dashboard)/dashboard/estudiante/page.tsx
 → Server component que muestra "Dashboard Estudiante" y "Próximamente — Módulo 9"
 
-src/app/(dashboard)/dashboard/empresa/page.tsx  
+src/app/(dashboard)/dashboard/empresa/page.tsx
 → Server component que muestra "Dashboard Empresa" y "Próximamente — Módulo 10"
 
 Estas se reemplazan completamente en los módulos 9 y 10.
@@ -205,6 +211,7 @@ pnpm dev
 ## Checkpoint
 
 Al final del módulo tienes:
+
 - ✅ Root layout con Providers
 - ✅ Landing page completa (hero, cómo funciona, para quién, CTA, footer)
 - ✅ Página de login con Google OAuth

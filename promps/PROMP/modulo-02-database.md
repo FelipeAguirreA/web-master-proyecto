@@ -1,7 +1,10 @@
 # Módulo 2: Base de Datos con Prisma + Supabase
 
 ## Resultado Final
-5 modelos en PostgreSQL, Prisma Client listo, Supabase Storage configurado.
+
+5 modelos core en PostgreSQL (User, StudentProfile, CompanyProfile, Internship, Application), Prisma Client listo, Supabase Storage configurado.
+
+> Las extensiones del proyecto suman 6 modelos más en módulos posteriores: `Conversation`, `Message`, `Interview`, `Notification`, `PasswordResetToken`, `ATSConfig`. El total final son 11 modelos. Este módulo solo cubre el setup inicial con los 5 core; los demás se documentan en `CHAT_MODULE.md` (chat + interviews) y módulos siguientes.
 
 ---
 
@@ -22,6 +25,7 @@
 ## Paso 2: Definir Schema
 
 **Prompt para la IA:**
+
 ```
 Crea el schema de Prisma para PractiX.
 
@@ -47,7 +51,7 @@ Modelos:
    - providerId: String?
    - createdAt: DateTime @default(now())
    - updatedAt: DateTime @updatedAt
-   - Relaciones: studentProfile (1:1 opcional), companyProfile (1:1 opcional), 
+   - Relaciones: studentProfile (1:1 opcional), companyProfile (1:1 opcional),
      applications (1:N)
    - @@map("users")
 
@@ -121,12 +125,13 @@ pnpm db:studio      # Verificar en http://localhost:5555
 ## Paso 4: Prisma Client Singleton
 
 **Prompt para la IA:**
+
 ```
 Crea un singleton de Prisma Client optimizado para Next.js.
 
 Ubicación: src/server/lib/db.ts
 
-Patrón: usar globalThis para evitar múltiples conexiones 
+Patrón: usar globalThis para evitar múltiples conexiones
 durante hot-reload en desarrollo.
 
 En producción crea una instancia normal.
@@ -148,6 +153,7 @@ En el dashboard de Supabase:
 ```
 
 **Prompt para la IA:**
+
 ```
 Crea el cliente de Supabase Storage.
 
@@ -168,6 +174,7 @@ Exportar: supabase (cliente) y uploadFile (función)
 ## Paso 6: Schemas de Validación
 
 **Prompt para la IA:**
+
 ```
 Crea los schemas de validación con Zod para PractiX.
 
@@ -239,8 +246,9 @@ pnpm dev            # App arranca sin errores de importación
 ## Checkpoint
 
 Al final del módulo tienes:
+
 - ✅ Supabase project creado (free tier)
-- ✅ 5 modelos de Prisma con relaciones
+- ✅ 5 modelos core de Prisma con relaciones (las extensiones del proyecto sumarán 6 modelos más en módulos posteriores: Conversation, Message, Interview, Notification, PasswordResetToken, ATSConfig)
 - ✅ 4 enums: Role, Modality, ApplicationStatus
 - ✅ Tablas creadas en PostgreSQL
 - ✅ Prisma Client singleton
@@ -251,7 +259,9 @@ Al final del módulo tienes:
 ## ⚠️ Diferencias con Prisma 7
 
 ### 1. `schema.prisma` sin `url`
+
 Prisma 7 eliminó `url = env("DATABASE_URL")` del datasource. El schema queda:
+
 ```prisma
 datasource db {
   provider = "postgresql"
@@ -259,12 +269,14 @@ datasource db {
 ```
 
 ### 2. `prisma.config.ts` (archivo nuevo)
+
 La URL se mueve a un archivo nuevo en la raíz:
+
 ```ts
 import { defineConfig } from "prisma/config";
 import { config } from "dotenv";
 
-config({ path: ".env.local" });  // necesario para que CLI cargue el env
+config({ path: ".env.local" }); // necesario para que CLI cargue el env
 
 export default defineConfig({
   datasource: {
@@ -272,21 +284,28 @@ export default defineConfig({
   },
 });
 ```
+
 > Instalar `dotenv` como devDependency: `pnpm add -D dotenv`
 
 ### 3. `PrismaClient` sin argumentos
+
 En Prisma 7 el cliente toma la URL de `prisma.config.ts` automáticamente:
+
 ```ts
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 // Ya NO se pasa datasourceUrl en el constructor
 ```
 
 ### 4. Conexión en red IPv4
+
 El Direct connection (puerto 5432) puede estar bloqueado en redes IPv4. Usar el **Transaction Pooler** (puerto 6543) como `DATABASE_URL`. Agregar `?pgbouncer=true&sslmode=require` al final.
 
 ### 5. `pnpm db:studio`
+
 Puede fallar por los mismos problemas de conectividad. Usar el **Table Editor de Supabase** como alternativa equivalente.
 
 ### 6. RLS deshabilitado
+
 Las tablas aparecen como "unrestricted RLS disabled" en Supabase. Es correcto — la arquitectura usa Prisma server-side con `service_role`, no acceso directo desde el browser.
+
 - ✅ Schemas de validación Zod centralizados

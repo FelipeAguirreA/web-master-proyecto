@@ -14,13 +14,13 @@
 5. ¿Qué librería se usa para validación de inputs?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 1   | Unificado en Next.js 14 (App Router)                                  |
-| 2   | `src/server/services/` — lógica pura, no depende de Next.js           |
-| 3   | `src/app/api/` — route handlers de Next.js                            |
-| 4   | Sí, `src/server/` es independiente de Next.js                         |
-| 5   | Zod (schemas en `src/server/validators/`)                             |
+| #   | Respuesta Esperada                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Unificado en Next.js 16 (App Router) — middleware en `src/proxy.ts` con función `proxy()`, NO `middleware.ts` (convención de Next.js 16) |
+| 2   | `src/server/services/` — lógica pura, no depende de Next.js                                                                              |
+| 3   | `src/app/api/` — route handlers de Next.js                                                                                               |
+| 4   | Sí, `src/server/` es independiente de Next.js                                                                                            |
+| 5   | Zod (schemas en `src/server/validators/`)                                                                                                |
 
 ---
 
@@ -34,13 +34,13 @@
 10. ¿Dónde está el Prisma Client singleton?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 6   | 5: User, StudentProfile, CompanyProfile, Internship, Application      |
-| 7   | `@@unique([studentId, internshipId])` en Application                  |
-| 8   | Campo `embedding Float[]` en StudentProfile e Internship              |
-| 9   | Soft delete (cambiar `isActive` a false)                              |
-| 10  | `src/server/lib/db.ts` (patrón globalThis para dev)                   |
+| #   | Respuesta Esperada                                                                                                                                                                      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | 5 core: User, StudentProfile, CompanyProfile, Internship, Application — más 6 de extensiones: Conversation, Message, Interview, Notification, PasswordResetToken, ATSConfig (total: 11) |
+| 7   | `@@unique([studentId, internshipId])` en Application                                                                                                                                    |
+| 8   | Campo `embedding Float[]` en StudentProfile e Internship (384 dims)                                                                                                                     |
+| 9   | Soft delete (cambiar `isActive` a false)                                                                                                                                                |
+| 10  | `src/server/lib/db.ts` (patrón globalThis para dev)                                                                                                                                     |
 
 ---
 
@@ -53,12 +53,12 @@
 14. ¿Dónde se configura NextAuth?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 11  | NextAuth.js con Google OAuth                                          |
-| 12  | `requireAuth(role?)` en `src/server/lib/auth-guard.ts`                |
-| 13  | `session.user.id`, `session.user.role`, `session.user.email`          |
-| 14  | `src/lib/auth.ts` (authOptions)                                       |
+| #   | Respuesta Esperada                                                                               |
+| --- | ------------------------------------------------------------------------------------------------ |
+| 11  | NextAuth.js con Google OAuth (estudiantes) + credentials con bcrypt (empresas)                   |
+| 12  | `requireAuth(role?)` en `src/server/lib/auth-guard.ts`                                           |
+| 13  | `session.user.id`, `session.user.role` (`STUDENT` \| `COMPANY` \| `ADMIN`), `session.user.email` |
+| 14  | `src/server/lib/auth.ts` (authOptions) — movido en Fase 4 del refactor desde `src/lib/auth.ts`   |
 
 ---
 
@@ -73,14 +73,14 @@
 20. ¿En qué momento se genera el embedding de una práctica?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 15  | `sentence-transformers/all-MiniLM-L6-v2` (HuggingFace free tier)     |
-| 16  | 384 dimensiones                                                       |
-| 17  | Similitud de coseno (cosine similarity)                               |
-| 18  | 0 a 100 (normalizado)                                                 |
-| 19  | `pdf-parse` (PDF) y `mammoth` (Word/DOCX)                            |
-| 20  | Al crearla (en internships.service.ts → createInternship)              |
+| #   | Respuesta Esperada                                                                                                                                                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 15  | `BAAI/bge-small-en-v1.5` (HuggingFace free tier — la migración desde `sentence-transformers/all-MiniLM-L6-v2` está documentada en ADR 006: el viejo modelo quedó ruteado al SentenceSimilarityPipeline y no permite obtener embeddings individuales) |
+| 16  | 384 dimensiones                                                                                                                                                                                                                                      |
+| 17  | Similitud de coseno (cosine similarity)                                                                                                                                                                                                              |
+| 18  | 0 a 100 (normalizado)                                                                                                                                                                                                                                |
+| 19  | `pdf-parse` (PDF) y `mammoth` (Word/DOCX)                                                                                                                                                                                                            |
+| 20  | Al crearla (en internships.service.ts → createInternship)                                                                                                                                                                                            |
 
 ---
 
@@ -94,13 +94,13 @@
 25. ¿Qué componente se reutiliza en listado y recomendaciones?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 21  | 6: landing, login, listado, detalle, dashboard estudiante, dashboard empresa |
-| 22  | Layout `(dashboard)/layout.tsx` verifica sesión con useSession        |
-| 23  | Relativa: `fetch('/api/...')` — mismo servidor, sin CORS              |
-| 24  | `src/types/index.ts`                                                  |
-| 25  | `InternshipCard` (`src/components/ui/InternshipCard.tsx`)             |
+| #   | Respuesta Esperada                                                                                                                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 21  | Núcleo: landing, login, registro, forgot-password, reset-password, listado público, detalle práctica, dashboard estudiante, dashboard empresa. Extensiones: perfil unificado, inbox estudiante/empresa (chat), calendario empresa, ATS por jobId, candidatos por jobId, panel admin de aprobación de empresas |
+| 22  | Doble: el layout `(dashboard)/layout.tsx` chequea sesión con `useSession`, Y el middleware `src/proxy.ts` agrega `x-request-id` y CSP con nonces dinámicos por request                                                                                                                                        |
+| 23  | Relativa: `fetch('/api/...')` — mismo servidor, sin CORS                                                                                                                                                                                                                                                      |
+| 24  | `src/types/index.ts`                                                                                                                                                                                                                                                                                          |
+| 25  | `InternshipCard` (`src/components/ui/InternshipCard.tsx`)                                                                                                                                                                                                                                                     |
 
 ---
 
@@ -115,14 +115,14 @@
 31. ¿Cómo se genera el Prisma Client en Vercel?
 ```
 
-| #   | Respuesta Esperada                                                    |
-| --- | --------------------------------------------------------------------- |
-| 26  | 1 solo deploy                                                         |
-| 27  | Vercel (free tier)                                                    |
-| 28  | PostgreSQL en Supabase (free tier)                                    |
-| 29  | Supabase Storage, bucket "documents"                                  |
-| 30  | $0 — todo en free tier                                                |
-| 31  | Script `"postinstall": "prisma generate"` en package.json             |
+| #   | Respuesta Esperada                                        |
+| --- | --------------------------------------------------------- |
+| 26  | 1 solo deploy                                             |
+| 27  | Vercel (free tier)                                        |
+| 28  | PostgreSQL en Supabase (free tier)                        |
+| 29  | Supabase Storage, bucket "documents"                      |
+| 30  | $0 — todo en free tier                                    |
+| 31  | Script `"postinstall": "prisma generate"` en package.json |
 
 ---
 

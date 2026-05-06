@@ -1,6 +1,7 @@
 # Módulo 3: Autenticación con NextAuth
 
 ## Resultado Final
+
 Login con Google OAuth, sesión protegida, helper de auth para API routes.
 
 ---
@@ -36,6 +37,7 @@ Login con Google OAuth, sesión protegida, helper de auth para API routes.
 ### Variables de entorno opcionales
 
 **Prompt para la IA:**
+
 ```
 En src/lib/env.ts, marcá como opcionales las siguientes variables:
 HUGGINGFACE_API_KEY, BREVO_API_KEY y BREVO_SENDER_EMAIL.
@@ -45,6 +47,7 @@ No son necesarias hasta los módulos 11 y 12.
 ### Instalar Driver Adapter para Prisma 7
 
 Correr en terminal (dentro de practix/):
+
 ```bash
 pnpm add @prisma/adapter-pg pg
 pnpm add -D @types/pg
@@ -60,6 +63,7 @@ como `verify-full`, rechazando el certificado. Se resuelve quitando `sslmode` de
 URL programáticamente y pasando las opciones SSL al Pool directamente.
 
 **Prompt para la IA:**
+
 ```
 Actualizá src/server/lib/db.ts para Prisma 7 con las siguientes condiciones:
 
@@ -82,8 +86,15 @@ Mantener el patrón singleton con globalThis para desarrollo.
 ## Paso 2: Configurar NextAuth
 
 **Prompt para la IA:**
+
 ```
-Configura NextAuth.js para PractiX en src/lib/auth.ts.
+Configura NextAuth.js para PractiX en src/server/lib/auth.ts.
+
+NOTA: el archivo va en `src/server/lib/auth.ts`, NO en `src/lib/auth.ts`. Esto
+sigue la regla de Clean Architecture (auth depende de Prisma + bcrypt, ambos
+infra) y se alineó con la Fase 4 del refactor-plan que reorganizó `src/lib/`
+para que solo tuviera código realmente shared/client-side. Si tu IA insiste
+con `src/lib/auth.ts` está usando training data viejo del setup original.
 
 Provider: GoogleProvider con clientId y clientSecret desde env (importar desde @/lib/env).
 Importar prisma desde @/server/lib/db.
@@ -94,7 +105,15 @@ signIn({ user, account }):
   - Buscar usuario por email en DB con prisma
   - Si no existe: crear usuario con role STUDENT, email, name, image, provider, providerId
     y luego crear StudentProfile vacío asociado
-  - Retornar true si todo ok, false en el catch (loguear el error con console.error)
+  - Retornar true si todo ok, false en el catch
+    NOTA: para logging de errores, post-Fase 6.1 del refactor el proyecto
+    usa logger pino estructurado, NO console.error. En src/server/lib/logger.ts
+    está el helper createLogger({ module: "auth" }) que retorna un child logger
+    con bindings de contexto. Patrón:
+      const log = createLogger({ module: "auth", route: "signIn" });
+      log.error({ err, email: hashEmail(user.email) }, "signIn failed");
+    Email NUNCA en plaintext en logs — sha256 truncado a 8 chars (privacy by
+    default, decisión de Fase 3 paso 3.6).
 
 jwt({ token, user }):
   - Solo cuando user existe (primer login): buscar usuario en DB por email
@@ -119,6 +138,7 @@ export async function getAuthSession() {
 ## Paso 3: Tipos de NextAuth
 
 **Prompt para la IA:**
+
 ```
 Crea src/types/index.ts con:
 
@@ -137,6 +157,7 @@ Crea src/types/index.ts con:
 ## Paso 4: Route Handler de NextAuth
 
 **Prompt para la IA:**
+
 ```
 Crea el route handler de NextAuth para Next.js App Router.
 
@@ -152,6 +173,7 @@ Ubicación: src/app/api/auth/[...nextauth]/route.ts
 ## Paso 5: Session Provider
 
 **Prompt para la IA:**
+
 ```
 Crea src/components/providers.tsx:
 - 'use client'
@@ -168,6 +190,7 @@ Luego actualiza src/app/layout.tsx:
 ## Paso 6: Helper para Proteger API Routes
 
 **Prompt para la IA:**
+
 ```
 Crea src/server/lib/auth-guard.ts con la función requireAuth(requiredRole?: 'STUDENT' | 'COMPANY'):
 - Llama a getAuthSession()
@@ -210,19 +233,20 @@ pnpm db:studio
 
 ## Problemas conocidos
 
-| Problema | Causa | Solución |
-|---|---|---|
-| `PrismaClientInitializationError` al arrancar | Prisma 7 no acepta `new PrismaClient()` sin opciones | Instalar `@prisma/adapter-pg` y usar Driver Adapter (ver Paso 1) |
+| Problema                                      | Causa                                                             | Solución                                                                                               |
+| --------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `PrismaClientInitializationError` al arrancar | Prisma 7 no acepta `new PrismaClient()` sin opciones              | Instalar `@prisma/adapter-pg` y usar Driver Adapter (ver Paso 1)                                       |
 | `TlsConnectionError: self-signed certificate` | `pg-connection-string` trata `sslmode=require` como `verify-full` | Quitar `sslmode` de la URL en código y pasar `ssl: { rejectUnauthorized: false }` al Pool (ver Paso 1) |
-| `Access Denied` al hacer login | `signIn` callback retorna `false` | Verificar que Docker esté corriendo y que no haya errores de SSL |
-| 404 en `/login` | `pages: { signIn: '/login' }` apunta a ruta inexistente | Dejar comentado hasta el Módulo 7 |
-| Variables de entorno faltantes al arrancar | `env.ts` las requiere pero son de módulos futuros | Marcar como `.optional()` en env.ts (ver Paso 1) |
+| `Access Denied` al hacer login                | `signIn` callback retorna `false`                                 | Verificar que Docker esté corriendo y que no haya errores de SSL                                       |
+| 404 en `/login`                               | `pages: { signIn: '/login' }` apunta a ruta inexistente           | Dejar comentado hasta el Módulo 7                                                                      |
+| Variables de entorno faltantes al arrancar    | `env.ts` las requiere pero son de módulos futuros                 | Marcar como `.optional()` en env.ts (ver Paso 1)                                                       |
 
 ---
 
 ## Checkpoint
 
 Al final del módulo tenés:
+
 - ✅ Google OAuth configurado y funcionando
 - ✅ NextAuth crea usuarios automáticamente en DB al primer login
 - ✅ StudentProfile vacío creado junto al usuario

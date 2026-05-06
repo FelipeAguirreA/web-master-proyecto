@@ -91,7 +91,7 @@ Correr el SQL equivalente en Supabase si db:push no está disponible:
 
 Luego: pnpm db:generate
 
-JWT Y SESIÓN — actualizar src/lib/auth.ts:
+JWT Y SESIÓN — actualizar src/server/lib/auth.ts (path post-Fase 4 del refactor):
 Agregar registrationCompleted al token y a la sesión:
 - En el callback jwt: token.registrationCompleted = dbUser.role === "COMPANY" ? true : !!dbUser.rut
 - En el callback session: session.user.registrationCompleted = token.registrationCompleted

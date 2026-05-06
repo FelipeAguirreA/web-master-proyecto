@@ -1,6 +1,7 @@
 # Módulo 11: Matching con IA
 
 ## Resultado Final
+
 CV parsing + embeddings con HuggingFace + similitud de coseno + recomendaciones.
 
 ---
@@ -47,6 +48,7 @@ IMPORTANTE: En SUPABASE_SERVICE_KEY debe estar la service_role key
 ## Paso 0C: Especificación SDD — Matching
 
 **Prompt para la IA:**
+
 ```
 Crea la especificación SDD para el sistema de matching de PractiX.
 
@@ -82,6 +84,7 @@ No escribas código, solo la especificación en markdown.
 > `calculateMatchScore` es lógica matemática PURA — es el candidato ideal para TDD. Escribí los tests antes de tocar el código.
 
 **Prompt para la IA:**
+
 ```
 Crea los unit tests para el sistema de matching de PractiX siguiendo TDD.
 Basate en docs/specs/matching.spec.md.
@@ -120,6 +123,7 @@ pnpm test  # deben fallar — está bien
 ## Paso 1: Servicio de Embeddings
 
 **Prompt para la IA:**
+
 ```
 Crea el servicio de embeddings para el matching IA de PractiX.
 
@@ -140,8 +144,10 @@ Funciones:
 1. generateEmbedding(text: string): Promise<number[]>
    - Headers: Authorization Bearer HUGGINGFACE_API_KEY
    - Body JSON: { inputs: text (truncar a 512 chars) }
-   - Si no hay API key → console.warn y retornar []
-   - Si la API falla → console.error y retornar []
+   - Si no hay API key → log.warn (logger pino con module: "embeddings") y retornar []
+   - Si la API falla → log.error({ err }, "...") con logger pino y retornar []
+     (post Fase 6.1 del refactor: NO console.error directo. Usar
+     createLogger({ module: "embeddings" }) de src/server/lib/logger.ts)
    - La API retorna number[][] → tomar result[0]
    - Retornar el vector de floats
 
@@ -169,6 +175,7 @@ pnpm test  # calculateMatchScore debe estar en verde ahora
 ## Paso 2: Parser de CV
 
 **Prompt para la IA:**
+
 ```
 Crea el parser de CV para extraer texto de PDF y Word.
 
@@ -206,6 +213,7 @@ serverExternalPackages: ["pdf-parse", "mammoth"]
 ## Paso 3: Matching Service
 
 **Prompt para la IA:**
+
 ```
 Crea el servicio de matching que coordina la lógica de IA.
 
@@ -242,6 +250,7 @@ Funciones:
 ## Paso 4: API Route - POST /api/matching/upload-cv
 
 **Prompt para la IA:**
+
 ```
 Crea el route handler para subir y procesar un CV.
 
@@ -266,6 +275,7 @@ Errores:
 ## Paso 5: API Route - GET /api/matching/recommendations
 
 **Prompt para la IA:**
+
 ```
 Crea el route handler para obtener recomendaciones de prácticas.
 
@@ -283,6 +293,7 @@ GET /api/matching/recommendations:
 ## Paso 6: Conectar Embeddings en Creación de Prácticas
 
 **Prompt para la IA:**
+
 ```
 Actualiza internships.service.ts para generar embedding al crear una práctica.
 
@@ -300,6 +311,7 @@ Reemplazar el comentario TODO que dejamos antes.
 ## Paso 7: Conectar MatchScore en Postulaciones
 
 **Prompt para la IA:**
+
 ```
 Actualiza applications.service.ts para calcular matchScore al postularse.
 
@@ -318,6 +330,7 @@ Reemplazar el comentario TODO que dejamos antes.
 ## Paso 8: Regenerar Seed con Embeddings
 
 **Prompt para la IA:**
+
 ```
 Actualiza prisma/seed.ts para generar embeddings en las prácticas del seed.
 
@@ -370,6 +383,7 @@ pnpm db:studio
 ## Checkpoint
 
 Al final del módulo tienes:
+
 - ✅ Spec SDD del sistema de matching documentada
 - ✅ Unit tests de calculateMatchScore y getRecommendations en verde (11 tests)
 - ✅ Embeddings con HuggingFace (BAAI/bge-small-en-v1.5, 384 dims)
