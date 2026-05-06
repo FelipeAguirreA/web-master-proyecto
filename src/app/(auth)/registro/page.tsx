@@ -364,7 +364,11 @@ export default function RegistroPage() {
 
           {/* Rol + documento */}
           <div>
-            <label className={LABEL_CLS}>Tipo de documento</label>
+            {/* <span> en vez de <label>: este texto etiqueta una sección
+                con 2 <button> de toggle + 1 <input> debajo. No hay un único
+                form control al que apunte un htmlFor — el "label" es
+                conceptual sobre el grupo. */}
+            <span className={LABEL_CLS}>Tipo de documento</span>
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 type="button"
@@ -418,7 +422,9 @@ export default function RegistroPage() {
 
           {/* Teléfono */}
           <div>
-            <label className={LABEL_CLS}>Teléfono</label>
+            <label htmlFor="register-phone" className={LABEL_CLS}>
+              Teléfono
+            </label>
             <div
               className={`flex rounded-xl overflow-hidden border transition-all ${
                 errors.phone

@@ -366,7 +366,10 @@ export default function InterviewFormModal({
 
           {/* Duración */}
           <div>
-            <label className={labelClass}>Duración</label>
+            {/* <span> en vez de <label>: este texto etiqueta un grupo de
+                <button> de toggle, NO un form control único — sin htmlFor
+                a un input dispara el warning "label without form field". */}
+            <span className={labelClass}>Duración</span>
             <div className="flex gap-2">
               {DURATION_OPTIONS.map((mins) => {
                 const active = form.durationMins === mins;

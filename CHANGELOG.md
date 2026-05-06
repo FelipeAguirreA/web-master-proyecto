@@ -5,6 +5,27 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.34] - 2026-05-06
+
+### Fixed (a11y) — `<label>` huérfanos sin form field asociado
+
+- **Warning distinto al anterior**: Chrome panel Issues mostraba "No label associated with a form field — A `<label>` isn't associated with a form field". Causa: varios `<label>` en el proyecto NO tenían `htmlFor` ni envolvían un `<input>`/`<select>`/`<textarea>`. Estaban siendo usados como decoración semántica falsa sobre `<div>` de display, grupos de `<button>` toggle, o secciones que no tienen un control único al que apuntar.
+- **6 fixes**:
+  - **`src/app/(dashboard)/perfil/page.tsx`**: 3 `<label>` (Email / RUT / Empresa) que estaban sobre `<div>` de **solo lectura** → cambiados a `<span>` con la misma clase. Estos campos son display, no editables, no son form controls.
+  - **`src/app/(auth)/registro/page.tsx`**:
+    - "Tipo de documento" (L367) etiquetaba un grupo de `<button>` de toggle + un `<input>` debajo → `<span>` (label conceptual sobre grupo).
+    - "Teléfono" (L421) etiquetaba un `<select>` de país + `<input>` de número → `<label htmlFor="register-phone">` (apunta al input principal del grupo).
+  - **`src/components/ats/ModuleEditModal.tsx`**: el componente reutilizable `FieldLabel` (~6 usos en el modal) usaba `<label>` SIN `htmlFor`. Refactor: prop opcional `htmlFor` — si llega, usa `<label>` con la asociación; si no, cae a `<span>`. Cero breaking changes para los call sites existentes.
+  - **`src/components/chat/calendar/InterviewFormModal.tsx`**: "Duración" (L369) etiquetaba un grupo de `<button>` de presets de minutos → `<span>`.
+
+### Tests
+
+- 1098/1098 verde, TSC clean. Bump 1.10.33 → 1.10.34.
+
+### Notes
+
+- Patrón aprendido: usar `<label>` ÚNICAMENTE cuando hay un `<input>`/`<select>`/`<textarea>` específico al que apuntar (vía `htmlFor` o wrapping). Para etiquetas conceptuales de grupos de buttons, displays read-only, o secciones, usar `<span>` o `<p>`. Tailwind `block` permite usar `<span>` con styling de bloque sin problema.
+
 ## [1.10.33] - 2026-05-06
 
 ### Fixed (a11y) — Form fields que el sweep anterior dejó pasar

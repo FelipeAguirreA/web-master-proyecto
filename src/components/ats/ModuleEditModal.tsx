@@ -31,11 +31,25 @@ const ICON_BY_TYPE: Record<string, LucideIcon> = {
 
 const FONT = "var(--font-onest), system-ui, sans-serif";
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  htmlFor?: string;
+}) {
+  // Usa <label> solo si recibe htmlFor (asociación a un form control real).
+  // Sin htmlFor cae a <span> para evitar el warning "label without form
+  // field" de Chrome — varios usos de FieldLabel etiquetan grupos
+  // (TagInput, fieldsets) en vez de un control único.
+  const Tag = htmlFor ? "label" : "span";
   return (
-    <label className="text-[10px] font-bold text-[#6D6A63] uppercase tracking-wider">
+    <Tag
+      htmlFor={htmlFor}
+      className="block text-[10px] font-bold text-[#6D6A63] uppercase tracking-wider"
+    >
       {children}
-    </label>
+    </Tag>
   );
 }
 

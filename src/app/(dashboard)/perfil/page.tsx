@@ -342,18 +342,22 @@ export default function PerfilPage() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={LABEL_CLS}>Email</label>
+                {/* <span> en vez de <label>: estos son textos descriptivos
+                    sobre un <div> de solo lectura, NO etiquetas de form
+                    controls. Usar <label> sin asociación a un <input>
+                    dispara el warning "label without form field" de Chrome. */}
+                <span className={LABEL_CLS}>Email</span>
                 <div className={INPUT_READONLY}>{profile.email}</div>
               </div>
               {profile.rut && (
                 <div>
-                  <label className={LABEL_CLS}>RUT</label>
+                  <span className={LABEL_CLS}>RUT</span>
                   <div className={INPUT_READONLY}>{profile.rut}</div>
                 </div>
               )}
               {isCompany && profile.companyProfile?.companyName && (
                 <div>
-                  <label className={LABEL_CLS}>Empresa</label>
+                  <span className={LABEL_CLS}>Empresa</span>
                   <div className={INPUT_READONLY}>
                     {profile.companyProfile.companyName}
                   </div>
