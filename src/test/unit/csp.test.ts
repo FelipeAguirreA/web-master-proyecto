@@ -67,6 +67,13 @@ describe("buildCspHeader (modo prod, default)", () => {
     expect(getDirective("connect-src")).toContain("https://*.supabase.co");
   });
 
+  it("permite WebSocket de Supabase Realtime (wss://) en connect-src", () => {
+    // Supabase Realtime usa wss:// para chat. Para CSP, https:// y wss://
+    // son protocolos distintos, hay que listar wss:// explícitamente o el
+    // browser bloquea la conexión y rompe el chat.
+    expect(getDirective("connect-src")).toContain("wss://*.supabase.co");
+  });
+
   it("permite avatares de Google OAuth en img-src", () => {
     expect(getDirective("img-src")).toContain(
       "https://lh3.googleusercontent.com",

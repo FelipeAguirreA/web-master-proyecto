@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.27] - 2026-05-06
+
+### Fixed
+
+- **CSP bloqueaba el WebSocket de Supabase Realtime → chat sin tiempo real**. El `connect-src` listaba `https://*.supabase.co` pero NO `wss://*.supabase.co`. Para CSP, `https://` y `wss://` son protocolos **distintos**: hay que listar ambos explícitamente. Cuando el cliente del chat intentaba abrir el WebSocket a `wss://qjeukpislvsemtixxiov.supabase.co/realtime/v1/websocket?...`, el browser lo bloqueaba con violación de CSP — los mensajes nuevos no llegaban al usuario sin recargar la página.
+  - **`src/server/lib/csp.ts`**: agregado `wss://*.supabase.co` al `connect-src`. Bug surgió en producción tras los fixes de CSP del día (1.10.25 + 1.10.26): el CSP estricto en prod expuso el gap. En dev no se notaba porque la app local rara vez usa el realtime de prod.
+  - **`src/test/unit/csp.test.ts`**: agregado test "permite WebSocket de Supabase Realtime (wss://) en connect-src" para fijar regresión. Suite CSP: 22 → 23 tests, todos verde.
+
+### Notes
+
+- Detectado durante validación end-to-end del login OAuth con Google en producción. Login funciona, pero al entrar al inbox del chat aparecía el error CSP en consola y los mensajes en vivo no llegaban.
+- Siguiente potencial mejora identificada (no incluida en este bump): el drawer mobile del `PublicNav` tiene un `aria-hidden="true"` cuando está cerrado, pero un `<a>` adentro retiene focus → warning de accesibilidad de Chrome. Solución estándar es usar el atributo `inert` (HTML5) en vez de / además de `aria-hidden` cuando el drawer está cerrado. Bug de a11y, NO de funcionalidad. Queda pendiente para otro commit.
+
 ## [1.10.26] - 2026-05-06
 
 ### Fixed

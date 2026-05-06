@@ -22,7 +22,7 @@ export function buildCspHeader(nonce: string, isDev = false): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
-    "connect-src 'self' https://*.supabase.co https://*.sentry.io https://api-inference.huggingface.co https://api.brevo.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api-inference.huggingface.co https://api.brevo.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
