@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.25] - 2026-05-06
+
+### Fixed
+
+- **CSP rompía login con Google: nonce no se aplicaba a los inline scripts de Next.js**. El proxy seteaba el header `Content-Security-Policy` solo en el RESPONSE, pero Next.js extrae el nonce del header CSP del REQUEST para inyectarlo en sus inline scripts (hidratación, datos del SSR, payload de NextAuth). Sin nonce en esos scripts, el CSP `'nonce-X' 'strict-dynamic'` los bloqueaba — y el flow de Google OAuth se cortaba en el callback porque el inline script que dispara la redirección al dashboard no podía ejecutar.
+  - **`src/proxy.ts`**: agregado `requestHeaders.set("Content-Security-Policy", csp)` antes del `NextResponse.next({ request: { headers: requestHeaders } })`. Con esto Next.js detecta el nonce automáticamente y lo inyecta en sus inline scripts. Doc oficial: https://nextjs.org/docs/app/guides/content-security-policy.
+
+### Notes
+
+- Síntoma visible en producción: tras login con Google la sesión se creaba server-side pero el client-side quedaba en `/login` sin avanzar, con varios errores `Executing inline script violates the following Content Security Policy directive` en la consola del browser.
+- Por qué no se notó antes: el bug existía desde que se introdujo el CSP con nonces (Fase 3 paso 3.3, bump 1.10.0). Pero los tests E2E locales corren con `NODE_ENV=development`, donde el CSP agrega `'unsafe-eval'` y enmascara el problema. Sólo se ve en builds de producción con CSP estricto. Agregar un E2E que valide login con Google contra deploy de Vercel queda como deuda técnica para F6.5 (Performance percibida — la lista de mejoras de UX/QA).
+- 22 tests unit del CSP siguen verde: el fix es estructural (cómo se propaga el header), no afecta el contenido del CSP.
+
 ## [1.10.24] - 2026-05-06
 
 ### Chore

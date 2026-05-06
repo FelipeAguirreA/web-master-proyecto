@@ -10,6 +10,12 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  // Next.js extrae el nonce del header CSP del REQUEST y lo inyecta en sus
+  // inline scripts (hidratación, datos del SSR). Sin esta línea, los inline
+  // scripts no llevan nonce y el CSP los bloquea — rompe el login con Google
+  // (NextAuth dispara via inline script). Doc oficial:
+  // https://nextjs.org/docs/app/guides/content-security-policy
+  requestHeaders.set("Content-Security-Policy", csp);
 
   const withSecurity = (res: NextResponse) => {
     res.headers.set("x-request-id", crypto.randomUUID());
