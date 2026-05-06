@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Menu,
@@ -68,6 +68,7 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
   const { data: session } = useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
   const [open, setOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -81,6 +82,20 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", handleKey);
     };
+  }, [open]);
+
+  // Cuando el drawer pasa a cerrado, blureamos cualquier foco que haya quedado
+  // adentro. Sin esto, un <a> o <button> que recibió focus mientras el drawer
+  // estaba abierto (Tab navigation, click-then-close, etc.) retiene focus
+  // al cerrar — y Chrome tira el warning "aria-hidden con descendant focused"
+  // aunque el ancestor también tenga `inert`. `inert` previene FUTURO focus
+  // pero NO blureara el focus que ya estaba puesto.
+  useEffect(() => {
+    if (open) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && drawerRef.current?.contains(active)) {
+      active.blur();
+    }
   }, [open]);
 
   const isPracticasActive =
@@ -197,6 +212,7 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
             con `getByRole` ignoran este `<nav>` cuando el drawer no está
             abierto. */}
       <div
+        ref={drawerRef}
         className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-200 ${
           open
             ? "opacity-100 pointer-events-auto"

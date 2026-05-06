@@ -36,6 +36,7 @@ export default function DashboardLayout({
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     unreadCount: notifCount,
@@ -77,6 +78,21 @@ export default function DashboardLayout({
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", handleKey);
     };
+  }, [mobileMenuOpen]);
+
+  // Cuando el drawer mobile pasa a cerrado, blureamos cualquier foco que haya
+  // quedado adentro. `inert` previene FUTURO focus pero NO blureara el focus
+  // ya puesto — Chrome tira warning "aria-hidden con descendant focused" si
+  // un link/button del drawer mantiene focus al cerrar.
+  useEffect(() => {
+    if (mobileMenuOpen) return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      mobileDrawerRef.current?.contains(active)
+    ) {
+      active.blur();
+    }
   }, [mobileMenuOpen]);
 
   if (status === "loading") {
@@ -409,6 +425,7 @@ export default function DashboardLayout({
             con `getByRole` ignoran este `<nav>` cuando el drawer no está
             abierto. */}
       <div
+        ref={mobileDrawerRef}
         className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-200 ${
           mobileMenuOpen
             ? "opacity-100 pointer-events-auto"

@@ -5,6 +5,30 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.29] - 2026-05-06
+
+### Fixed (a11y)
+
+- **Drawer mobile: warning aria-hidden seguía apareciendo con `inert` aplicado**. El bump 1.10.28 agregó `inert` al drawer cerrado, lo cual cubre el patrón estándar de la spec WAI-ARIA. Pero Chrome seguía tirando el warning porque **`inert` previene FUTURO focus, NO blureara el focus que ya estaba puesto**. La secuencia que reproducía el bug:
+  1. Usuario abre el drawer
+  2. Tabula a un link → el link recibe focus
+  3. Usuario cierra el drawer (overlay click, ESC, click en link, etc.)
+  4. Drawer pasa a `inert + aria-hidden`
+  5. **El link mantiene su focus DOM** — browsers no lo blurean automáticamente
+  6. Chrome detecta ancestor con `aria-hidden` + descendant focused → warning persiste
+- Fix: nuevo `useEffect` en cada drawer que, cuando `open` pasa a `false`, llama `(activeElement).blur()` si está adentro del drawer. Aplicado en:
+  - **`src/components/layout/PublicNav.tsx`** — drawer del nav público
+  - **`src/app/(dashboard)/layout.tsx`** — drawer del nav dashboard
+- Triple defensa cuando el drawer está cerrado: `inert` (previene futuros focus) + `aria-hidden` (oculta del a11y tree) + `useEffect` con blur (saca el focus que pueda haber quedado pegado).
+
+### Tests
+
+- Suite total **1098 tests sigue verde**. Los 26 tests del `PublicNav.test.tsx` siguen pasando — el `useEffect` con blur no rompe los tests existentes porque jsdom maneja blur idénticamente al browser. No agregamos test específico de regresión (el comportamiento de focus DOM en jsdom puede divergir del browser real para casos edge — agregaría fragilidad sin garantía).
+
+### Notes
+
+- **Pendiente sobre este mismo bug** (no aplicado en este commit): para una experiencia a11y plena, además de blurear sería ideal **restaurar el focus al elemento que abrió el drawer** (el botón hamburguesa). Eso requiere guardar `previousActiveElement` cuando se abre el drawer. Si en algún momento del backlog F6.5 lo necesitamos, la implementación es simple: `useRef` que captura `document.activeElement` al abrir, y restaura con `.focus()` al cerrar.
+
 ## [1.10.28] - 2026-05-06
 
 ### Fixed (a11y)
