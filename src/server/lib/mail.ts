@@ -64,7 +64,7 @@ export function sendCompanyStatusEmail(
       <h2 style="color:#374151">Hola ${companyName}</h2>
       <p style="font-size:16px;color:#374151">
         Luego de revisar tu solicitud, tu empresa no pudo ser aprobada en esta
-        oportunidad. Si creés que es un error o querés más información, escribinos a
+        oportunidad. Si crees que es un error o quieres más información, escríbenos a
         <a href="mailto:soporte@practix.cl">soporte@practix.cl</a>.
       </p>
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
@@ -153,7 +153,7 @@ export function sendPasswordResetEmail(
         Recibimos una solicitud para restablecer la contraseña de tu cuenta empresa en PractiX.
       </p>
       <p style="font-size:14px;color:#374151;margin:16px 0">
-        Hacé clic en el siguiente botón para crear una nueva contraseña.
+        Haz clic en el siguiente botón para crear una nueva contraseña.
         El enlace es válido por <strong>1 hora</strong>.
       </p>
       <a href="${resetUrl}"
@@ -161,7 +161,7 @@ export function sendPasswordResetEmail(
         Restablecer contraseña
       </a>
       <p style="margin-top:24px;font-size:13px;color:#6b7280">
-        Si no solicitaste este cambio, podés ignorar este email.
+        Si no solicitaste este cambio, puedes ignorar este email.
         Tu contraseña no se modificará.
       </p>
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
@@ -172,6 +172,47 @@ export function sendPasswordResetEmail(
     subject,
     htmlContent,
   );
+}
+
+export function sendLoginBurstAlertEmail(
+  userEmail: string,
+  userName: string,
+): Promise<void> {
+  const subject = "Varios intentos de inicio de sesión en tu cuenta PractiX";
+  const resetUrl = `${env.NEXTAUTH_URL}/forgot-password`;
+  const htmlContent = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h2 style="color:#1d4ed8">Hola ${userName}</h2>
+      <p style="font-size:16px;color:#374151">
+        Detectamos varios intentos fallidos de inicio de sesión en tu cuenta.
+        Tu cuenta <strong>no fue bloqueada permanentemente</strong> — puedes
+        volver a intentar en unos minutos.
+      </p>
+      <div style="background:#f3f4f6;border-left:4px solid #1d4ed8;padding:14px 18px;margin:20px 0;border-radius:6px">
+        <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827">
+          Si fuiste tú
+        </p>
+        <p style="margin:0;font-size:14px;color:#374151;line-height:1.5">
+          Si olvidaste tu contraseña, puedes restablecerla en cualquier momento
+          haciendo clic en el botón de abajo.
+        </p>
+      </div>
+      <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:14px 18px;margin:20px 0;border-radius:6px">
+        <p style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#991b1b">
+          Si no fuiste tú
+        </p>
+        <p style="margin:0;font-size:14px;color:#374151;line-height:1.5">
+          Te recomendamos restablecer tu contraseña como medida de precaución.
+        </p>
+      </div>
+      <a href="${resetUrl}"
+         style="display:inline-block;margin-top:8px;padding:12px 24px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+        Restablecer contraseña
+      </a>
+      <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
+    </div>
+  `;
+  return sendEmail({ email: userEmail, name: userName }, subject, htmlContent);
 }
 
 export function sendRecommendationEmail(

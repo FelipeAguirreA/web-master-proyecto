@@ -5,6 +5,41 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.35] - 2026-05-06
+
+### Added
+
+- **Email automático cuando un usuario llega al rate limit de login**. Cuando un user supera 5 intentos fallidos en 5 min (rate limit existente desde Fase 3), ahora le llega un email avisándole que detectamos varios intentos y ofreciéndole el link de reset. Cubre 2 casos:
+  - **User legítimo que olvidó la contraseña** (caso real reportado hoy): recibe el email con link directo a `/forgot-password`. UX clara sin esperar al sitio.
+  - **Víctima de credential stuffing**: enterada por canal alternativo de que alguien estuvo intentando entrar a su cuenta.
+- **`src/server/lib/mail.ts`**: nuevo helper `sendLoginBurstAlertEmail(email, name)` con template HTML en español neutro/chileno. Tono balanceado para ambos casos (user legítimo + posible víctima) — no alarmista, presenta dos cajas de info: "si fuiste tú" / "si no fuiste tú".
+- **`src/server/lib/auth.ts`**: nueva función `notifyLoginBurst()` con 2 guards de seguridad:
+  - **Guard 1 — anti-enumeración inversa**: solo manda email si el user existe en la DB. Si un atacante prueba `random@example.com` 5 veces, NO se dispara email (sino le confirmaríamos al atacante qué emails tienen cuenta).
+  - **Guard 2 — anti-spam del propio email**: rate limit secundario de **1 email cada 1 hora por cuenta**. Si un atacante hace 100 intentos sostenidos durante 4 horas, la víctima recibe ~4 emails (1/hora), no 100.
+  - **Fire-and-forget**: el envío del email NO bloquea el response al cliente. Si Brevo falla, log a pino y seguir — nunca rompe el login.
+
+### Fixed (i18n)
+
+- **Emails de PractiX: voseo argentino → tuteo chileno**. Sweep en `mail.ts`:
+  - `"Hacé clic"` → `"Haz clic"`
+  - `"podés ignorar"` → `"puedes ignorar"`
+  - `"creés que es un error"` → `"crees que es un error"`
+  - `"querés más información"` → `"quieres más información"`
+  - `"escribinos"` → `"escríbenos"`
+- PractiX es un proyecto chileno; los emails ahora son consistentes con el público objetivo. Las respuestas internas del IDE/dev mantienen voseo rioplatense (no afecta).
+
+### Tests
+
+- 1100/1100 verde (1098 + **2 tests nuevos** del flow de email):
+  - "envía email de aviso cuando rate limit hit y la cuenta existe"
+  - "NO envía email cuando rate limit hit pero la cuenta NO existe (anti-enumeración inversa)"
+- Bump 1.10.34 → 1.10.35.
+
+### Notes
+
+- **Por qué no mostrar "cuenta bloqueada momentáneamente" en el response del login**: leakea info al atacante (le confirma que la cuenta existe + le da el cooldown exacto). El email fuera-de-banda mantiene el response del login genérico (anti-enumeration intacto) Y orienta a la víctima/user legítimo por canal alternativo. Patrón usado por Google, GitHub, etc.
+- Los rate limits están definidos como constantes al inicio de `auth.ts`: `LOGIN_RATE_LIMIT=5`, `LOGIN_RATE_WINDOW_MS=5min`, `LOGIN_BURST_EMAIL_LIMIT=1`, `LOGIN_BURST_EMAIL_WINDOW_MS=1h`. Ajustables sin tocar la lógica.
+
 ## [1.10.34] - 2026-05-06
 
 ### Fixed (a11y) — `<label>` huérfanos sin form field asociado

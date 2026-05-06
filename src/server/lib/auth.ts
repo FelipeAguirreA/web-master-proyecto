@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import { createHash } from "crypto";
 import { prisma } from "@/server/lib/db";
 import { rateLimit } from "@/server/lib/rate-limit";
+import { sendLoginBurstAlertEmail } from "@/server/lib/mail";
 import { issueRefreshToken } from "@/server/services/refresh-tokens.service";
 import {
   buildRefreshCookie,
@@ -20,6 +21,13 @@ const log = createLogger({ module: "auth" });
 
 const LOGIN_RATE_LIMIT = 5;
 const LOGIN_RATE_WINDOW_MS = 5 * 60 * 1000;
+
+// Cuando el rate limit hit, opcionalmente avisamos al user por email para que
+// pueda resetear o ignorar. El email tiene su propio rate limit (1 cada hora
+// por user) para evitar spam si hay un ataque sostenido — el atacante no
+// recibe el email pero la víctima sí lo ve, así no le explotamos el inbox.
+const LOGIN_BURST_EMAIL_LIMIT = 1;
+const LOGIN_BURST_EMAIL_WINDOW_MS = 60 * 60 * 1000; // 1 hora
 
 type FailedLoginReason =
   | "missing_credentials"
@@ -50,6 +58,31 @@ function reportFailedLogin(
       ip,
     },
   });
+}
+
+// Avisa por email a la víctima de un burst de intentos de login. Best-effort
+// — si la cuenta no existe o el email rate limit está hit, retorna sin hacer
+// nada. Diseñado para llamarse fire-and-forget desde el `authorize` de
+// NextAuth cuando el rate limit principal hit.
+async function notifyLoginBurst(email: string): Promise<void> {
+  // Guard 1: solo a cuentas que existen (anti enumeración inversa).
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { email: true, name: true },
+  });
+  if (!user) return;
+
+  // Guard 2: rate limit del envío del email — máximo 1 cada hora por cuenta.
+  // Si el ataque dura horas, la víctima NO recibe N emails — solo el primero
+  // y otro cada hora si el ataque continúa.
+  const emailRl = await rateLimit(
+    `login-burst-email:${user.email}`,
+    LOGIN_BURST_EMAIL_LIMIT,
+    LOGIN_BURST_EMAIL_WINDOW_MS,
+  );
+  if (!emailRl.success) return;
+
+  await sendLoginBurstAlertEmail(user.email, user.name ?? "");
 }
 
 // NextAuth pasa headers como objeto plain o Headers según versión/adapter.
@@ -108,6 +141,18 @@ export const authOptions: NextAuthOptions = {
             "login rate limit hit",
           );
           reportFailedLogin("rate_limited", credentials.email, ip);
+
+          // Aviso por email (best-effort, fire-and-forget). Solo si la cuenta
+          // existe — sino estaríamos haciendo enumeración inversa (probando
+          // emails para ver cuáles bouncean). Y con un segundo rate limit
+          // específico del email para no spammear si el ataque se sostiene.
+          notifyLoginBurst(credentials.email).catch((err) => {
+            log.error(
+              { err, emailHash: hashEmail(credentials.email) },
+              "login burst notification failed",
+            );
+          });
+
           return null;
         }
 

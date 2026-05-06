@@ -24,6 +24,7 @@ const {
   mockSentryCaptureMessage,
   mockSentryAddBreadcrumb,
   mockLog,
+  mockSendLoginBurst,
 } = vi.hoisted(() => ({
   mockRateLimit: vi.fn(),
   mockIssueRefresh: vi.fn(),
@@ -36,6 +37,7 @@ const {
     info: vi.fn(),
     debug: vi.fn(),
   },
+  mockSendLoginBurst: vi.fn(),
 }));
 
 vi.mock("@/server/lib/logger", () => ({
@@ -45,6 +47,10 @@ vi.mock("@/server/lib/logger", () => ({
 
 vi.mock("@/server/lib/rate-limit", () => ({
   rateLimit: mockRateLimit,
+}));
+
+vi.mock("@/server/lib/mail", () => ({
+  sendLoginBurstAlertEmail: mockSendLoginBurst,
 }));
 
 vi.mock("@/server/services/refresh-tokens.service", () => ({
@@ -222,13 +228,26 @@ describe("CredentialsProvider — authorize", () => {
 });
 
 describe("CredentialsProvider — rate limit en login", () => {
-  it("retorna null y NO llama a Prisma cuando se excede el límite", async () => {
+  it("retorna null cuando se excede el límite y NO compara passwords (Prisma sólo se consulta para el aviso por email)", async () => {
+    // Rate limit principal: hit. Email rate limit (segunda llamada a
+    // mockRateLimit dentro de notifyLoginBurst): también lo dejamos hit
+    // para verificar que NO se manda el email en este test específico.
     mockRateLimit.mockResolvedValueOnce({
       success: false,
       remaining: 0,
       resetAt: Date.now() + 60_000,
     });
+    mockRateLimit.mockResolvedValueOnce({
+      success: false,
+      remaining: 0,
+      resetAt: Date.now() + 3_600_000,
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      email: "victim@example.com",
+      name: "Victim",
+    });
     mockLog.warn.mockClear();
+    mockSendLoginBurst.mockClear();
     const authorize = getCredentialsAuthorize();
 
     const result = await authorize!(
@@ -237,11 +256,80 @@ describe("CredentialsProvider — rate limit en login", () => {
     );
 
     expect(result).toBeNull();
-    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    // Prisma se consulta UNA vez para chequear si la cuenta existe (notifyLoginBurst).
+    // NO se consulta para validar password — el flujo se cortó en el rate limit.
+    expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: { email: "victim@example.com" },
+      select: { email: true, name: true },
+    });
     expect(mockLog.warn).toHaveBeenCalledWith(
       expect.objectContaining({ ip: "1.2.3.4" }),
       "login rate limit hit",
     );
+    // Email NO se manda porque el email-rate-limit también está hit.
+    expect(mockSendLoginBurst).not.toHaveBeenCalled();
+  });
+
+  it("envía email de aviso cuando rate limit hit y la cuenta existe", async () => {
+    mockRateLimit.mockResolvedValueOnce({
+      success: false,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    });
+    // Email rate limit: success=true → se manda el email.
+    mockRateLimit.mockResolvedValueOnce({
+      success: true,
+      remaining: 0,
+      resetAt: Date.now() + 3_600_000,
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      email: "victim@example.com",
+      name: "Victim",
+    });
+    mockSendLoginBurst.mockClear();
+    mockSendLoginBurst.mockResolvedValueOnce(undefined);
+    const authorize = getCredentialsAuthorize();
+
+    const result = await authorize!(
+      { email: "victim@example.com", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "1.2.3.4" }) },
+    );
+
+    // El authorize retorna null inmediatamente. El email se manda
+    // fire-and-forget en background — esperamos un microtask para que se
+    // resuelva la promise.
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(result).toBeNull();
+    expect(mockSendLoginBurst).toHaveBeenCalledWith(
+      "victim@example.com",
+      "Victim",
+    );
+  });
+
+  it("NO envía email cuando rate limit hit pero la cuenta NO existe (anti-enumeración inversa)", async () => {
+    mockRateLimit.mockResolvedValueOnce({
+      success: false,
+      remaining: 0,
+      resetAt: Date.now() + 60_000,
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    mockSendLoginBurst.mockClear();
+    const authorize = getCredentialsAuthorize();
+
+    const result = await authorize!(
+      { email: "ghost@example.com", password: "Test1234!" },
+      { headers: new Headers({ "x-forwarded-for": "1.2.3.4" }) },
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(result).toBeNull();
+    // Prisma se consulta una sola vez para chequear existencia.
+    expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(1);
+    // Pero como retornó null → NO se manda email. Cero leak hacia atacante
+    // que prueba emails al azar para ver cuáles bouncean.
+    expect(mockSendLoginBurst).not.toHaveBeenCalled();
   });
 
   it("compone el identifier como `login:ip:email-lowercased` con Headers", async () => {
