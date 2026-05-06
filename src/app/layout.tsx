@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import {
   Outfit,
   Instrument_Serif,
@@ -46,11 +47,22 @@ export const metadata: Metadata = {
     "PractiX conecta estudiantes con prácticas laborales usando inteligencia artificial. Sube tu CV y recibí recomendaciones personalizadas.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Forzar dynamic rendering en TODA la app para que CSP con nonces funcione.
+  // Llamar a headers() es lo que oficialmente fuerza dynamic en App Router —
+  // sin esto, las pages son static-prerendered en build time, sin acceso al
+  // request, y los chunks + inline scripts del bundle quedan SIN nonce → CSP
+  // los bloquea en producción.
+  // Doc oficial: https://nextjs.org/docs/app/guides/content-security-policy
+  // Trade-off aceptado: ISR / Partial Prerendering deshabilitados; cada page
+  // se SSRea per request (~50-100ms extra). Compensado por la garantía de que
+  // el nonce-per-request se aplica a TODOS los scripts del framework.
+  await headers();
+
   return (
     <html
       lang="es"

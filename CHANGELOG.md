@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.26] - 2026-05-06
+
+### Fixed
+
+- **CSP rompía login con Google en producción: pages estáticas vs nonces dinámicos**. La fix anterior (1.10.25) propagó el header CSP al request, pero los chunks de `_next/static/*` y los inline scripts seguían siendo bloqueados en prod porque las páginas se prerenderizaban en build time como **static** (`○ Static` en los logs de Vercel). El nonce que el middleware genera por request **no existe** en el HTML estático prerenderizado. Resultado: CSP con `'nonce-X' 'strict-dynamic'` rechazaba TODOS los scripts del bundle.
+  - **Causa raíz** confirmada por la [doc oficial de Next.js 16.2.4](https://nextjs.org/docs/app/guides/content-security-policy) (last-updated 2026-05-06): _"Static pages are generated at build time, when no request or response headers exist—so no nonce can be injected. When you use nonces in your CSP, all pages must be dynamically rendered."_
+  - **`src/app/layout.tsx`**: RootLayout convertido a async + `await headers()` adentro. Esto fuerza dynamic rendering en TODA la app (el RootLayout es padre de todas las pages). Next.js entonces lee el header CSP del request en cada render y auto-inyecta el nonce a sus framework scripts, page bundles, e inline scripts (paso 3 documentado del flow oficial de nonce handling).
+
+### Trade-offs aceptados
+
+- **Static prerendering deshabilitado** en TODA la app. Cada page se SSRea per request (`ƒ Dynamic` en logs de build).
+- **Latencia inicial**: +50-100ms por request (compensado por que los assets `_next/static/*` siguen cacheados normalmente — solo el HTML cambia).
+- **ISR y Partial Prerendering deshabilitados** — son incompatibles con nonces por design (la doc oficial lo explica: PPR static shells no tienen acceso al nonce).
+- **No CDN caching del HTML** — el HTML es generado per request. Aceptable porque el tráfico de PractiX es mayormente authenticated dashboard, donde caching de HTML no aplicaría igual.
+
+### Notes
+
+- **Por qué se eligió este approach (vs alternativas)**:
+  - Mantenemos **`'nonce-X' 'strict-dynamic'`** en `script-src` — máxima protección contra XSS sin sacrificar el modelo de seguridad ganado en Fase 3 paso 3.3.
+  - Cero `'unsafe-inline'`, cero `'unsafe-eval'` (excepto en dev por React 19).
+  - Solución oficialmente documentada por Vercel — no es un hack ni un workaround.
+  - Compatible con Turbopack (el bundler default de Next.js 16).
+- **Alternativas descartadas**:
+  - Hashes SRI (`experimental.sri`) — la doc dice que es **webpack-only**, no funciona con Turbopack.
+  - Inline hashes específicos (`'sha256-...'`) — frágil, cambian con cada deploy.
+  - Volver a `'unsafe-inline'` — descartado a pedido del usuario (mantener seguridad).
+- 1097 tests siguen verde post-fix; TSC clean.
+
 ## [1.10.25] - 2026-05-06
 
 ### Fixed
