@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.31] - 2026-05-06
+
+### Fixed (a11y)
+
+- **Textarea del chat sin `id`/`name` → mismo warning de Chrome**. El `<textarea>` del componente `MessageInput` (donde el usuario escribe los mensajes del chat) no tenía ni `id` ni `name`. Mismo warning de Chrome del bump 1.10.30, ahora en el inbox.
+  - **`src/components/chat/MessageInput.tsx`**:
+    - Agregado `id="chat-message-input"`, `name="message"`, `aria-label="Escribir mensaje"`.
+    - Agregado `autoComplete="off"`: los mensajes de chat no deben mostrar sugerencias de autocompletado histórico del browser (sería ruido + leakeo potencial de mensajes anteriores en autofill).
+
+### Tests
+
+- 21/21 tests del `MessageInput.test.tsx` siguen verde. Suite total **1098/1098 verde**, TSC clean.
+
 ## [1.10.30] - 2026-05-06
 
 ### Fixed (a11y)

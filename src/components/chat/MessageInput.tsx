@@ -34,6 +34,8 @@ export default function MessageInput({
   return (
     <div className="flex items-end gap-3 px-4 md:px-6 py-4 border-t border-[#E8E5DD] bg-white/80 backdrop-blur-md">
       <textarea
+        id="chat-message-input"
+        name="message"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -42,6 +44,8 @@ export default function MessageInput({
         }
         disabled={disabled}
         rows={1}
+        aria-label="Escribir mensaje"
+        autoComplete="off"
         className="flex-1 resize-none rounded-2xl border border-[#E8E5DD] bg-[#FAFAF8] px-4 py-2.5 text-sm text-[#0A0909] placeholder:text-[#9B9891] focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 focus:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
         style={{ minHeight: "44px" }}
         onInput={(e) => {
