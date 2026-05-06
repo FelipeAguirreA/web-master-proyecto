@@ -399,7 +399,15 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer.
+          Doble defensa cuando está cerrado:
+          - `inert` (HTML5) bloquea focus/tab/click en TODO el subárbol →
+            previene que el warning "aria-hidden con descendant focused"
+            aparezca, porque ningún descendant puede tener focus.
+          - `aria-hidden` oculta el subárbol del accessibility tree →
+            screen readers no anuncian links del drawer cerrado, y tests
+            con `getByRole` ignoran este `<nav>` cuando el drawer no está
+            abierto. */}
       <div
         className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-200 ${
           mobileMenuOpen
@@ -407,6 +415,7 @@ export default function DashboardLayout({
             : "opacity-0 pointer-events-none"
         }`}
         aria-hidden={!mobileMenuOpen}
+        inert={!mobileMenuOpen}
       >
         <button
           type="button"

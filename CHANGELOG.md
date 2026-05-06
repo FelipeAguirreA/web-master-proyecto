@@ -5,6 +5,25 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.28] - 2026-05-06
+
+### Fixed (a11y)
+
+- **Drawer mobile: warning "aria-hidden con descendant focused"**. Cuando el drawer mobile (PublicNav y dashboard layout) estaba cerrado, tenía `aria-hidden="true"` pero los `<a>` adentro seguían siendo focusables vía Tab. El browser tira warning porque viola la spec WAI-ARIA (`https://w3c.github.io/aria/#aria-hidden`): un usuario con tab navigation podía mover el focus a un link "invisible" del drawer cerrado, perdiendo el contexto visual.
+  - **`src/components/layout/PublicNav.tsx`** y **`src/app/(dashboard)/layout.tsx`**: agregado el atributo HTML5 `inert={!open}` al div del drawer cerrado, manteniendo `aria-hidden={!open}` también. Doble defensa:
+    - `inert` (HTML5 estándar) bloquea focus/tab/click en TODO el subárbol → ningún descendant puede tener focus → el warning de Chrome desaparece.
+    - `aria-hidden` mantiene el subárbol oculto del accessibility tree (screen readers no anuncian los links del drawer cerrado, y `getByRole` en tests sigue ignorando esta navegación cuando está cerrada).
+  - **`pointer-events-none`** ya estaba en las clases (impide clicks). Con `inert` ahora también previene focus por teclado.
+
+### Tests
+
+- Suite total: **1098/1098 verde** (1097 anteriores + 1 nuevo de regresión CSP del bump 1.10.27). Los 26 tests del `PublicNav.test.tsx` siguen pasando — los `getByRole('navigation')` siguen encontrando solo 1 nav (el desktop) porque `aria-hidden` continúa ocultando el del drawer cerrado del accessibility tree.
+
+### Notes
+
+- React 19 ya soporta `inert` como prop boolean nativa (sin warnings de TypeScript ni React).
+- Aceptado del Chrome warning durante validación end-to-end del chat realtime en producción (post fix de CSP wss del bump 1.10.27).
+
 ## [1.10.27] - 2026-05-06
 
 ### Fixed
