@@ -282,8 +282,11 @@ export default function EmpresaCalendarPage() {
             strokeWidth={2.2}
           />
           <select
+            id="calendar-filter-internship"
+            name="internshipId"
             value={filterInternshipId}
             onChange={(e) => setFilterInternshipId(e.target.value)}
+            aria-label="Filtrar entrevistas por práctica"
             className="appearance-none rounded-xl border border-black/[0.08] bg-white pl-9 pr-9 py-2.5 text-[13px] font-medium text-[#0A0909] focus:outline-none focus:border-[#FF6A3D]/40 focus:ring-2 focus:ring-[#FF6A3D]/10 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all cursor-pointer"
           >
             <option value="">Todas las prácticas</option>

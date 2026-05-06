@@ -228,8 +228,12 @@ export default function InterviewFormModal({
         <div className="px-6 py-5 space-y-5">
           {/* Práctica */}
           <div>
-            <label className={labelClass}>Práctica *</label>
+            <label htmlFor="interview-internship" className={labelClass}>
+              Práctica *
+            </label>
             <select
+              id="interview-internship"
+              name="internshipId"
               value={form.internshipId}
               onChange={(e) => handleInternshipChange(e.target.value)}
               className={`${fieldClass} cursor-pointer appearance-none`}
@@ -252,8 +256,12 @@ export default function InterviewFormModal({
 
           {/* Candidato */}
           <div>
-            <label className={labelClass}>Candidato *</label>
+            <label htmlFor="interview-candidate" className={labelClass}>
+              Candidato *
+            </label>
             <select
+              id="interview-candidate"
+              name="applicationId"
               value={form.applicationId}
               onChange={(e) => handleCandidateChange(e.target.value)}
               disabled={!form.internshipId || loadingCandidates}
@@ -306,8 +314,12 @@ export default function InterviewFormModal({
 
           {/* Título */}
           <div>
-            <label className={labelClass}>Título *</label>
+            <label htmlFor="interview-title" className={labelClass}>
+              Título *
+            </label>
             <input
+              id="interview-title"
+              name="title"
               type="text"
               value={form.title}
               onChange={(e) =>
@@ -321,8 +333,12 @@ export default function InterviewFormModal({
           {/* Fecha y hora */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Fecha *</label>
+              <label htmlFor="interview-date" className={labelClass}>
+                Fecha *
+              </label>
               <input
+                id="interview-date"
+                name="date"
                 type="date"
                 value={form.date}
                 onChange={(e) =>
@@ -332,8 +348,12 @@ export default function InterviewFormModal({
               />
             </div>
             <div>
-              <label className={labelClass}>Hora *</label>
+              <label htmlFor="interview-time" className={labelClass}>
+                Hora *
+              </label>
               <input
+                id="interview-time"
+                name="time"
                 type="time"
                 value={form.time}
                 onChange={(e) =>
@@ -372,13 +392,15 @@ export default function InterviewFormModal({
 
           {/* Link */}
           <div>
-            <label className={labelClass}>
+            <label htmlFor="interview-meeting-link" className={labelClass}>
               Link de reunión{" "}
               <span className="font-medium text-[#9B9891] normal-case tracking-normal">
                 (opcional)
               </span>
             </label>
             <input
+              id="interview-meeting-link"
+              name="meetingLink"
               type="url"
               value={form.meetingLink}
               onChange={(e) =>
@@ -394,13 +416,15 @@ export default function InterviewFormModal({
 
           {/* Notas */}
           <div>
-            <label className={labelClass}>
+            <label htmlFor="interview-notes" className={labelClass}>
               Notas{" "}
               <span className="font-medium text-[#9B9891] normal-case tracking-normal">
                 (opcional)
               </span>
             </label>
             <textarea
+              id="interview-notes"
+              name="notes"
               value={form.notes}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, notes: e.target.value }))

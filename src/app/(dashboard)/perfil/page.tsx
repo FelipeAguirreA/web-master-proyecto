@@ -285,9 +285,14 @@ export default function PerfilPage() {
         <div className="px-5 sm:px-8 py-6 sm:py-7 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL_CLS}>Nombre</label>
+              <label htmlFor="profile-name" className={LABEL_CLS}>
+                Nombre
+              </label>
               <input
+                id="profile-name"
+                name="name"
                 type="text"
+                autoComplete="given-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={INPUT_CLS}
@@ -295,9 +300,14 @@ export default function PerfilPage() {
               />
             </div>
             <div>
-              <label className={LABEL_CLS}>Apellido</label>
+              <label htmlFor="profile-lastname" className={LABEL_CLS}>
+                Apellido
+              </label>
               <input
+                id="profile-lastname"
+                name="lastName"
                 type="text"
+                autoComplete="family-name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className={INPUT_CLS}
@@ -307,9 +317,14 @@ export default function PerfilPage() {
           </div>
 
           <div>
-            <label className={LABEL_CLS}>Teléfono</label>
+            <label htmlFor="profile-phone" className={LABEL_CLS}>
+              Teléfono
+            </label>
             <input
+              id="profile-phone"
+              name="phone"
               type="tel"
+              autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+56 9 1234 5678"

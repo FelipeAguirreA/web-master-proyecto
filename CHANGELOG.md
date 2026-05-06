@@ -5,6 +5,45 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.32] - 2026-05-06
+
+### Fixed (a11y) — Sweep masivo de form fields
+
+- **51 form fields sin `id`/`name` arreglados de raíz**. Tras detectar el patrón en 3 commits incrementales (1.10.30, 1.10.31), hicimos un audit completo de TODOS los `<input>`, `<select>`, `<textarea>` del proyecto. Todos los form fields del sitio ahora tienen `id`, `name`, y donde corresponde `aria-label` + `autoComplete` apropiado.
+- **Beneficios**:
+  - **Cero warnings** "A form field element should have an id or name attribute" en TODA la app.
+  - **Autofill del browser funciona correctamente** en flows críticos (login, registro estudiante, registro empresa, perfil) — los `autoComplete` apropiados (`email`, `current-password`, `new-password`, `given-name`, `family-name`, `tel`, `organization`, `url`) hacen que el browser sugiera/recuerde valores con la semántica correcta.
+  - **Screen readers** ahora leen cada campo con su propósito claro (vía `aria-label` o `<label htmlFor>`).
+  - **Form serialization**: si en algún momento se usa `<form>` con submit nativo, los campos van con `name` correcto.
+- **Archivos modificados**:
+  - `src/app/(auth)/login/page.tsx` — 12 fields (login + form completo de registro empresa)
+  - `src/app/(auth)/registro/page.tsx` — 5 fields (registro estudiante: nombre, apellido, documento, país, teléfono)
+  - `src/app/(auth)/forgot-password/page.tsx` — 1 field (correo)
+  - `src/app/(auth)/reset-password/page.tsx` — 2 fields (password + confirm)
+  - `src/components/chat/calendar/InterviewFormModal.tsx` — 7 fields (práctica, candidato, título, fecha, hora, link, notas)
+  - `src/app/(dashboard)/dashboard/empresa/page.tsx` — 8 fields (form de crear práctica completo)
+  - `src/app/(dashboard)/dashboard/empresa/calendar/page.tsx` — 1 field (filtro de prácticas)
+  - `src/app/(dashboard)/perfil/page.tsx` — 3 fields (nombre, apellido, teléfono)
+  - `src/components/ats/ModuleCard.tsx` — 2 fields (slider + número de peso, IDs únicos por tipo de módulo)
+  - `src/components/ats/ModuleEditModal.tsx` — 4 fields (TagInput con `useId()` + 3 campos numéricos en TextInput)
+- **Patrones aplicados**:
+  - `id` kebab-case con prefijo de página/contexto (ej: `login-email`, `register-empresa-rut`, `interview-title`).
+  - `name` camelCase matching la propiedad del state/payload (ej: `email`, `companyName`, `meetingLink`).
+  - `aria-label` SOLO si no hay `<label htmlFor>` asociado (regla DRY de a11y).
+  - `autoComplete` apropiado por tipo de campo según [WHATWG spec](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill).
+  - Para passwords nuevas: `autoComplete="new-password"`. Para login: `autoComplete="current-password"`.
+  - Para campos sensibles que NO queremos autofillear (RUT, document, tags ATS): `autoComplete="off"`.
+  - Componentes reutilizables (TagInput, TextInput): `useId()` de React 19 para IDs únicos cuando hay múltiples instancias.
+
+### Tests
+
+- **1098/1098 verde**, TSC clean. Los tests E2E de Playwright (login, registro, forgot, reset, listado prácticas) usan selectores por placeholder/role que siguen funcionando.
+
+### Notes
+
+- Auditoría hecha con un sub-agente Explore que escaneó 13 archivos con form fields en `src/`.
+- Bump semver patch (no hay breaking changes — todo es aditivo).
+
 ## [1.10.31] - 2026-05-06
 
 ### Fixed (a11y)

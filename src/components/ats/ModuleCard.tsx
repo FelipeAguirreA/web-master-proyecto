@@ -82,14 +82,19 @@ export default function ModuleCard({
 
       <div className="flex items-center gap-2 mt-3 sm:mt-2.5 sm:pl-[52px]">
         <input
+          id={`module-weight-range-${module.type}`}
+          name={`weight-${module.type}`}
           type="range"
           min={0}
           max={100}
           value={module.weight}
           onChange={(e) => onWeightChange(Number(e.target.value))}
+          aria-label={`Peso del módulo ${module.label}, slider`}
           className="flex-1 min-w-0 h-1.5 accent-[#FF6A3D]"
         />
         <input
+          id={`module-weight-number-${module.type}`}
+          name={`weight-number-${module.type}`}
           type="number"
           min={0}
           max={100}
@@ -98,6 +103,7 @@ export default function ModuleCard({
             const val = parseInt(e.target.value, 10);
             onWeightChange(isNaN(val) ? 0 : Math.min(100, Math.max(0, val)));
           }}
+          aria-label={`Peso del módulo ${module.label}, número`}
           className="w-12 sm:w-14 text-xs font-bold text-[#C2410C] text-right border border-[#E8E5DD] rounded-lg px-1.5 sm:px-2 py-0.5 focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/15 tabular-nums flex-shrink-0"
         />
         <span className="text-xs font-bold text-[#9B9891] flex-shrink-0">

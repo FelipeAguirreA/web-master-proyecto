@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   X,
   Plus,
@@ -82,6 +82,7 @@ function TagInput({
   placeholder?: string;
 }) {
   const [input, setInput] = useState("");
+  const inputId = useId();
 
   const add = () => {
     const val = input.trim();
@@ -116,11 +117,15 @@ function TagInput({
       )}
       <div className="flex gap-2 mt-2">
         <input
+          id={inputId}
+          name="tag-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
           placeholder={placeholder ?? "Escribí y presioná Enter"}
+          aria-label={label}
+          autoComplete="off"
           className="flex-1 text-[13px] text-[#0A0909] bg-white border border-[#E8E5DD] rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/15 transition-all placeholder:text-[#9B9891]"
         />
         <button
@@ -189,9 +194,12 @@ export default function ModuleEditModal({
               <FieldLabel>Años mínimos de experiencia</FieldLabel>
               <div className="mt-1.5">
                 <TextInput
+                  id="edit-min-years"
+                  name="minYears"
                   type="number"
                   min={0}
                   max={30}
+                  aria-label="Años mínimos de experiencia"
                   value={(params.minYears as number) ?? 0}
                   onChange={(e) => {
                     const raw = parseInt(e.target.value, 10);
@@ -221,10 +229,13 @@ export default function ModuleEditModal({
               <FieldLabel>Promedio mínimo (0 = sin requisito)</FieldLabel>
               <div className="mt-1.5">
                 <TextInput
+                  id="edit-min-gpa"
+                  name="minGPA"
                   type="number"
                   min={0}
                   max={7}
                   step={0.1}
+                  aria-label="Promedio mínimo (GPA)"
                   value={(params.minGPA as number) ?? 0}
                   onChange={(e) =>
                     updateParam("minGPA", parseFloat(e.target.value))
@@ -346,7 +357,10 @@ export default function ModuleEditModal({
               <FieldLabel>Nombre del módulo</FieldLabel>
               <div className="mt-1.5">
                 <TextInput
+                  id="edit-module-label"
+                  name="label"
                   type="text"
+                  aria-label="Nombre del módulo personalizado"
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                 />

@@ -319,14 +319,20 @@ export default function RegistroPage() {
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {/* Nombre + Apellido */}
           <div>
-            <label className={LABEL_CLS}>Nombre completo</label>
+            <label htmlFor="register-name" className={LABEL_CLS}>
+              Nombre completo
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <input
+                  id="register-name"
+                  name="name"
                   type="text"
+                  autoComplete="given-name"
                   value={form.name}
                   onChange={handleChange("name")}
                   placeholder="Alex"
+                  aria-label="Nombre"
                   className={inputCls(!!errors.name)}
                 />
                 {errors.name && (
@@ -337,10 +343,14 @@ export default function RegistroPage() {
               </div>
               <div>
                 <input
+                  id="register-lastname"
+                  name="lastName"
                   type="text"
+                  autoComplete="family-name"
                   value={form.lastName}
                   onChange={handleChange("lastName")}
                   placeholder="Martínez"
+                  aria-label="Apellido"
                   className={inputCls(!!errors.lastName)}
                 />
                 {errors.lastName && (
@@ -382,11 +392,15 @@ export default function RegistroPage() {
               </button>
             </div>
             <input
+              id="register-document"
+              name="document"
               type="text"
+              autoComplete="off"
               value={form.document}
               onChange={handleDocumentChange}
               placeholder={docType === "rut" ? "12.345.678-9" : "AB123456"}
               maxLength={docType === "rut" ? 12 : 20}
+              aria-label={docType === "rut" ? "RUT" : "Documento de identidad"}
               className={inputCls(!!errors.document)}
             />
             {errors.document ? (
@@ -413,8 +427,11 @@ export default function RegistroPage() {
               }`}
             >
               <select
+                id="register-country"
+                name="country"
                 value={country.code}
                 onChange={handleCountryChange}
+                aria-label="Código de país del teléfono"
                 className={`pl-3 pr-2 py-3 text-[13px] cursor-pointer focus:outline-none border-r transition-colors ${
                   errors.phone
                     ? "border-[#FF6A3D]/20 bg-transparent text-[#0A0909]"
@@ -428,10 +445,14 @@ export default function RegistroPage() {
                 ))}
               </select>
               <input
+                id="register-phone"
+                name="phone"
                 type="tel"
+                autoComplete="tel-national"
                 value={form.phone}
                 onChange={handleChange("phone")}
                 placeholder="912345678"
+                aria-label="Número de teléfono"
                 className="flex-1 px-4 py-3 text-[14px] bg-transparent focus:outline-none placeholder:text-[#9B9891] text-[#0A0909]"
               />
             </div>

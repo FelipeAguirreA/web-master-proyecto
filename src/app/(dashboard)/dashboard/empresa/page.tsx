@@ -726,8 +726,12 @@ export default function CompanyDashboard() {
               noValidate
             >
               <div>
-                <label className={LABEL_CLS}>Título *</label>
+                <label htmlFor="form-title" className={LABEL_CLS}>
+                  Título *
+                </label>
                 <input
+                  id="form-title"
+                  name="title"
                   type="text"
                   placeholder="Ej: Pasantía Frontend Developer"
                   className={INPUT_CLS(!!formErrors.title)}
@@ -740,8 +744,12 @@ export default function CompanyDashboard() {
                 )}
               </div>
               <div>
-                <label className={LABEL_CLS}>Descripción *</label>
+                <label htmlFor="form-description" className={LABEL_CLS}>
+                  Descripción *
+                </label>
                 <textarea
+                  id="form-description"
+                  name="description"
                   rows={4}
                   placeholder="Describí las tareas y el contexto del puesto"
                   className={INPUT_CLS(!!formErrors.description)}
@@ -755,8 +763,15 @@ export default function CompanyDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={LABEL_CLS}>Área</label>
-                  <select className={INPUT_CLS()} {...field("area")}>
+                  <label htmlFor="form-area" className={LABEL_CLS}>
+                    Área
+                  </label>
+                  <select
+                    id="form-area"
+                    name="area"
+                    className={INPUT_CLS()}
+                    {...field("area")}
+                  >
                     {AREAS.map((a) => (
                       <option key={a} value={a}>
                         {a}
@@ -765,8 +780,15 @@ export default function CompanyDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className={LABEL_CLS}>Modalidad</label>
-                  <select className={INPUT_CLS()} {...field("modality")}>
+                  <label htmlFor="form-modality" className={LABEL_CLS}>
+                    Modalidad
+                  </label>
+                  <select
+                    id="form-modality"
+                    name="modality"
+                    className={INPUT_CLS()}
+                    {...field("modality")}
+                  >
                     {MODALITIES.map((m) => (
                       <option key={m.value} value={m.value}>
                         {m.label}
@@ -777,8 +799,12 @@ export default function CompanyDashboard() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={LABEL_CLS}>Ubicación *</label>
+                  <label htmlFor="form-location" className={LABEL_CLS}>
+                    Ubicación *
+                  </label>
                   <input
+                    id="form-location"
+                    name="location"
                     type="text"
                     placeholder="Ej: Santiago"
                     className={INPUT_CLS(!!formErrors.location)}
@@ -791,8 +817,12 @@ export default function CompanyDashboard() {
                   )}
                 </div>
                 <div>
-                  <label className={LABEL_CLS}>Duración *</label>
+                  <label htmlFor="form-duration" className={LABEL_CLS}>
+                    Duración *
+                  </label>
                   <input
+                    id="form-duration"
+                    name="duration"
                     type="text"
                     placeholder="3 meses"
                     className={INPUT_CLS(!!formErrors.duration)}
@@ -806,8 +836,12 @@ export default function CompanyDashboard() {
                 </div>
               </div>
               <div>
-                <label className={LABEL_CLS}>Skills requeridas *</label>
+                <label htmlFor="form-skills" className={LABEL_CLS}>
+                  Skills requeridas *
+                </label>
                 <input
+                  id="form-skills"
+                  name="skills"
                   type="text"
                   placeholder="React, TypeScript, Node.js"
                   className={INPUT_CLS(!!formErrors.skills)}
@@ -823,8 +857,12 @@ export default function CompanyDashboard() {
                 )}
               </div>
               <div>
-                <label className={LABEL_CLS}>Requisitos *</label>
+                <label htmlFor="form-requirements" className={LABEL_CLS}>
+                  Requisitos *
+                </label>
                 <input
+                  id="form-requirements"
+                  name="requirements"
                   type="text"
                   placeholder="Estudiante Ing. Informática, 4to año+"
                   className={INPUT_CLS(!!formErrors.requirements)}

@@ -182,10 +182,15 @@ function ResetPasswordForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className={LABEL_CLS}>Nueva contraseña</label>
+          <label htmlFor="reset-password-new" className={LABEL_CLS}>
+            Nueva contraseña
+          </label>
           <div className="relative">
             <input
+              id="reset-password-new"
+              name="password"
               type={showPwd ? "text" : "password"}
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Mínimo 8 caracteres"
@@ -259,10 +264,15 @@ function ResetPasswordForm() {
         </div>
 
         <div>
-          <label className={LABEL_CLS}>Confirmar contraseña</label>
+          <label htmlFor="reset-password-confirm" className={LABEL_CLS}>
+            Confirmar contraseña
+          </label>
           <div className="relative">
             <input
+              id="reset-password-confirm"
+              name="confirmPassword"
               type={showConfirm ? "text" : "password"}
+              autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Repetí tu contraseña"

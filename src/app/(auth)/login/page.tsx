@@ -122,9 +122,14 @@ function EmpresaLogin() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
-        <label className={LABEL_CLS}>Correo electrónico</label>
+        <label htmlFor="login-email" className={LABEL_CLS}>
+          Correo electrónico
+        </label>
         <input
+          id="login-email"
+          name="email"
           type="email"
+          autoComplete="email"
           value={form.email}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           placeholder="nombre@empresa.cl"
@@ -134,10 +139,15 @@ function EmpresaLogin() {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Contraseña</label>
+        <label htmlFor="login-password" className={LABEL_CLS}>
+          Contraseña
+        </label>
         <div className="relative">
           <input
+            id="login-password"
+            name="password"
             type={showPass ? "text" : "password"}
+            autoComplete="current-password"
             value={form.password}
             onChange={(e) =>
               setForm((f) => ({ ...f, password: e.target.value }))
@@ -379,9 +389,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={LABEL_CLS}>Nombre *</label>
+          <label htmlFor="register-empresa-name" className={LABEL_CLS}>
+            Nombre *
+          </label>
           <input
+            id="register-empresa-name"
+            name="name"
             type="text"
+            autoComplete="given-name"
             value={form.name}
             onChange={setField("name")}
             placeholder="Juan"
@@ -392,9 +407,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           )}
         </div>
         <div>
-          <label className={LABEL_CLS}>Apellido *</label>
+          <label htmlFor="register-empresa-lastname" className={LABEL_CLS}>
+            Apellido *
+          </label>
           <input
+            id="register-empresa-lastname"
+            name="lastName"
             type="text"
+            autoComplete="family-name"
             value={form.lastName}
             onChange={setField("lastName")}
             placeholder="Pérez"
@@ -409,9 +429,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Nombre de la empresa *</label>
+        <label htmlFor="register-empresa-company" className={LABEL_CLS}>
+          Nombre de la empresa *
+        </label>
         <input
+          id="register-empresa-company"
+          name="companyName"
           type="text"
+          autoComplete="organization"
           value={form.companyName}
           onChange={setField("companyName")}
           placeholder="Empresa S.A."
@@ -425,7 +450,9 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>RUT / DNI de la empresa *</label>
+        <label htmlFor="register-empresa-rut" className={LABEL_CLS}>
+          RUT / DNI de la empresa *
+        </label>
         <div className="inline-flex rounded-xl bg-black/[0.03] p-1 mb-2.5">
           <button
             type="button"
@@ -457,7 +484,10 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           </button>
         </div>
         <input
+          id="register-empresa-rut"
+          name="empresaRut"
           type="text"
+          autoComplete="off"
           value={form.empresaRut}
           onChange={handleRutChange}
           placeholder={
@@ -475,9 +505,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={LABEL_CLS}>Industria</label>
+          <label htmlFor="register-empresa-industry" className={LABEL_CLS}>
+            Industria
+          </label>
           <input
+            id="register-empresa-industry"
+            name="industry"
             type="text"
+            autoComplete="off"
             value={form.industry}
             onChange={setField("industry")}
             placeholder="Tecnología…"
@@ -485,9 +520,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
         <div>
-          <label className={LABEL_CLS}>Sitio web</label>
+          <label htmlFor="register-empresa-website" className={LABEL_CLS}>
+            Sitio web
+          </label>
           <input
+            id="register-empresa-website"
+            name="website"
             type="url"
+            autoComplete="url"
             value={form.website}
             onChange={setField("website")}
             placeholder="https://empresa.cl"
@@ -497,9 +537,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Teléfono *</label>
+        <label htmlFor="register-empresa-phone" className={LABEL_CLS}>
+          Teléfono *
+        </label>
         <input
+          id="register-empresa-phone"
+          name="phone"
           type="tel"
+          autoComplete="tel"
           value={form.phone}
           onChange={setField("phone")}
           placeholder="+56 9 1234 5678"
@@ -511,9 +556,14 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Correo corporativo *</label>
+        <label htmlFor="register-empresa-email" className={LABEL_CLS}>
+          Correo corporativo *
+        </label>
         <input
+          id="register-empresa-email"
+          name="email"
           type="email"
+          autoComplete="email"
           value={form.email}
           onChange={setField("email")}
           placeholder="nombre@empresa.cl"
@@ -539,10 +589,15 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Contraseña *</label>
+        <label htmlFor="register-empresa-password" className={LABEL_CLS}>
+          Contraseña *
+        </label>
         <div className="relative">
           <input
+            id="register-empresa-password"
+            name="password"
             type={showPass ? "text" : "password"}
+            autoComplete="new-password"
             value={form.password}
             onChange={setField("password")}
             placeholder="••••••••"
@@ -588,10 +643,15 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
-        <label className={LABEL_CLS}>Confirmar contraseña *</label>
+        <label htmlFor="register-empresa-confirm" className={LABEL_CLS}>
+          Confirmar contraseña *
+        </label>
         <div className="relative">
           <input
+            id="register-empresa-confirm"
+            name="confirmPassword"
             type={showConfirm ? "text" : "password"}
+            autoComplete="new-password"
             value={form.confirmPassword}
             onChange={setField("confirmPassword")}
             placeholder="••••••••"

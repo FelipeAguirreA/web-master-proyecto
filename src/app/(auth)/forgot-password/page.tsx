@@ -146,11 +146,17 @@ export default function ForgotPasswordPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2">
+                    <label
+                      htmlFor="forgot-password-email"
+                      className="block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2"
+                    >
                       Correo corporativo
                     </label>
                     <input
+                      id="forgot-password-email"
+                      name="email"
                       type="email"
+                      autoComplete="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="empresa@correo.com"
