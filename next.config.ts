@@ -44,6 +44,15 @@ export default withSentryConfig(nextConfig, {
 
   project: "webmasterpracti",
 
+  // Liga issues + sourcemaps al commit exacto. Vercel expone VERCEL_GIT_COMMIT_SHA
+  // en build. Si no está (CI con placeholders, build local sin git context), el
+  // plugin cae a su auto-detect. Formato `<project>@<sha>` lo recomienda la doc.
+  release: {
+    name: process.env.VERCEL_GIT_COMMIT_SHA
+      ? `practix@${process.env.VERCEL_GIT_COMMIT_SHA}`
+      : undefined,
+  },
+
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 

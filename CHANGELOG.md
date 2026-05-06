@@ -5,6 +5,26 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.23] - 2026-05-06
+
+### Observability
+
+- **Fase 6 paso 3: Sentry releases ligados a commit**. Cierra el último ítem pendiente de F6.2 ("Releases ligados a commits") del refactor-plan. Cada issue capturado en Sentry queda etiquetado con el commit exacto, y los sourcemaps subidos quedan asociados a esa misma release — stack traces apuntan a la línea correcta del commit que disparó el error.
+  - **`next.config.ts`**: agregada opción `release.name` al `withSentryConfig`. En Vercel build usa `practix@${VERCEL_GIT_COMMIT_SHA}` (Vercel inyecta la env var automáticamente). Si no está disponible (CI con placeholders, build local sin git context), el plugin cae a su auto-detect — sin warnings.
+
+### Decisiones
+
+- **`tracesSampleRate` queda en 0.1 (10%) — no se baja a 0.05 como planteaba el plan original**. Razón: PractiX recién está en producción, el volumen de tráfico real es desconocido. Free tier permite 10k spans transactions/mes; con 0.1 capturás 1 de cada 10 requests. Sub-optimizar antes de tener data es premature optimization. Si la cuota se llena en 1-2 semanas, se baja entonces.
+- **2 alertas Sentry diferidas** (error rate >1% global, P95 >200ms): requieren Performance Monitoring con ~1 semana de data real Y/O salir del free tier (Issue Alerts no soporta métricas custom de performance). Documentadas en `docs/sentry-alerts.md` como diferidas, no descartadas.
+
+### Plan
+
+- **`context/refactor-plan.md` actualizado** para reflejar el estado real de Fase 6: 6.1 (logger), 6.2 (Sentry alerts + release + perf monitoring) y 6.3 (runbooks) cerradas. 6.4 (NFR <200ms con `k6`/`autocannon`) y 6.5 (skeletons + optimistic updates) quedan pendientes opcionales — no bloquean cierre de Fase 6.
+
+### Notes
+
+- **Pre-requisito operacional**: `SENTRY_AUTH_TOKEN` debe estar configurado en Vercel (project env vars) Y en GitHub Actions (repo secret) para que el plugin pueda subir sourcemaps a Sentry en build. Sin el token: warning en CI logs y los stack traces de prod quedan minificados (no rompe el build, solo degrada la experiencia de debugging).
+
 ## [1.10.22] - 2026-05-05
 
 ### Docs

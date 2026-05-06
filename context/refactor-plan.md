@@ -267,30 +267,36 @@ Estado al 2026-04-27:
 
 ## FASE 6 — Observabilidad y performance
 
-### 6.1 Logger estructurado
+> Estado al 2026-05-06: 6.1, 6.2 y 6.3 cerrados. 6.4 y 6.5 quedan opcionales.
 
-- [ ] Reemplazar `console.*` por logger (`pino`)
-- [ ] Correlation ID por request (propagar `x-request-id`)
+### 6.1 Logger estructurado ✅ CERRADA (bump 1.10.21, F6-L1)
 
-### 6.2 Sentry de verdad
+- [x] Reemplazar `console.*` por logger (`pino`) — `src/server/lib/logger.ts` con `pino@10`. Helper `createLogger(bindings)` para child loggers + `getRequestId(headers)` para extraer `x-request-id`.
+- [x] Correlation ID por request — el `x-request-id` ya estaba presente en `src/proxy.ts` desde Fase 0. F6-L1 sumó la propagación al logger en handlers que loguean.
 
-- [ ] Alertas: error rate >1%, P95 >200ms, failed logins >10/min
-- [ ] Performance monitoring activo
-- [ ] Releases ligados a commits
+### 6.2 Sentry de verdad ✅ CERRADA (bumps 1.10.22 + 1.10.23, F6-L2 + F6-L3)
 
-### 6.3 Runbooks
+- [x] **Alertas críticas configuradas en Sentry** (3 de las 5 originales, las otras 2 quedan documentadas como "post P95"):
+  - 🛑 **DB caída** (`tags.health: "db_down"`) — disparada desde `/api/health` con `Sentry.captureMessage` level `error`. Spec: `docs/sentry-alerts.md`.
+  - 🛑 **Reuse de refresh token** (`tags.auth: "refresh_reuse"`) — alta severidad, posible robo de token. Disparada desde el callback `jwt` de NextAuth.
+  - ⚠️ **Login burst** (>10 fallos en 5 min con `tags.auth: "login_failed"`) — anti brute-force. Cerrada en bump 1.10.4 (paso 3.6).
+  - 🔲 **Error rate >1% global** + 🔲 **P95 >200ms** — diferidas: requieren Performance Monitoring con datos reales (~1 semana de tráfico) y/o pasar a tier paga (Issue Alerts en free tier no soportan métricas custom de performance).
+- [x] **Performance monitoring activo** — `tracesSampleRate: 0.1` en los 3 configs (`sentry.{server,client,edge}.config.ts`) desde el setup inicial. Decisión 2026-05-06: dejar en 0.1 (no bajar a 0.05) hasta tener data real de uso. Free tier permite 10k spans/mes.
+- [x] **Releases ligados a commits** — F6-L3 (bump 1.10.23): `next.config.ts` pasa `release.name = practix@${VERCEL_GIT_COMMIT_SHA}` al `withSentryConfig`. Con esto: (a) cada issue en Sentry queda etiquetado con el commit exacto, (b) sourcemaps subidos quedan asociados a esa release. Requiere `SENTRY_AUTH_TOKEN` configurado en Vercel + GitHub para que el plugin pueda subir sourcemaps en build.
 
-- [ ] `docs/runbooks/incident-auth-down.md`
-- [ ] `docs/runbooks/incident-db-slow.md`
-- [ ] `docs/runbooks/incident-huggingface-down.md`
+### 6.3 Runbooks ✅ CERRADA (bump 1.10.22, F6-L2)
 
-### 6.4 NFR <200ms
+- [x] `docs/runbooks/incident-auth-down.md` — login + refresh tokens caídos (4 escenarios: NextAuth callbacks, Google OAuth provider, refresh reuse, brute-force).
+- [x] `docs/runbooks/incident-db-slow.md` — Postgres degradado (Vercel Postgres pool exhausted, queries N+1, indices missing).
+- [x] `docs/runbooks/incident-huggingface-down.md` — HF Inference API caído (degradación de matching, fallback documentado).
 
-- [ ] Medir P95 actual de endpoints críticos
+### 6.4 NFR <200ms (opcional, no urgente)
+
+- [ ] Medir P95 actual de endpoints críticos en Sentry Performance — necesita ~1 semana de tráfico real
 - [ ] Si no cumple: cache, índices, CDN
-- [ ] Validar con `k6` o `autocannon`
+- [ ] Validar con `k6` o `autocannon` contra deploy de producción
 
-### 6.5 Performance percibida
+### 6.5 Performance percibida (opcional, no urgente)
 
 - [ ] Skeletons en listing prácticas y ranking ATS
 - [ ] Optimistic updates en postular, aprobar/rechazar, marcar leída
