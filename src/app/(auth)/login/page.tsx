@@ -572,8 +572,13 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
         {errors.email && (
           <p className="text-[11.5px] text-[#C74A1E] mt-1">{errors.email}</p>
         )}
-        <label className="flex items-center gap-2 mt-2.5 cursor-pointer group">
+        <label
+          htmlFor="register-empresa-allow-generic"
+          className="flex items-center gap-2 mt-2.5 cursor-pointer group"
+        >
           <input
+            id="register-empresa-allow-generic"
+            name="allowGenericEmail"
             type="checkbox"
             checked={allowGeneric}
             onChange={(e) => {

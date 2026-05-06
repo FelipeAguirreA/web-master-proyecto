@@ -57,9 +57,15 @@ function CheckboxRow({
   onChange: (v: boolean) => void;
   children: React.ReactNode;
 }) {
+  const id = useId();
   return (
-    <label className="flex items-start gap-2.5 text-[12.5px] text-[#4A4843] cursor-pointer bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl px-3 py-2.5 hover:border-[#FFD4B5] transition-colors">
+    <label
+      htmlFor={id}
+      className="flex items-start gap-2.5 text-[12.5px] text-[#4A4843] cursor-pointer bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl px-3 py-2.5 hover:border-[#FFD4B5] transition-colors"
+    >
       <input
+        id={id}
+        name="hardFilter"
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}

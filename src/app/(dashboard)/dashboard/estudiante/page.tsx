@@ -437,9 +437,12 @@ export default function StudentDashboard() {
                   <Upload className="w-4 h-4" strokeWidth={2.3} />
                   {uploading ? "Procesando…" : "Subir CV (PDF o DOCX)"}
                   <input
+                    id="cv-upload"
+                    name="cv"
                     type="file"
                     accept=".pdf,.docx"
                     onChange={handleCVUpload}
+                    aria-label="Subir CV"
                     className="hidden"
                     disabled={uploading}
                   />
@@ -470,9 +473,12 @@ export default function StudentDashboard() {
               <label className="text-[#FF6A3D] hover:text-[#FF5A28] cursor-pointer transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF3EC]">
                 Actualizar CV
                 <input
+                  id="cv-upload-replace"
+                  name="cv"
                   type="file"
                   accept=".pdf,.docx"
                   onChange={handleCVUpload}
+                  aria-label="Actualizar CV"
                   className="hidden"
                   disabled={uploading || deleting}
                 />

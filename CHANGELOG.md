@@ -5,6 +5,26 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.33] - 2026-05-06
+
+### Fixed (a11y) — Form fields que el sweep anterior dejó pasar
+
+- **Sweep complementario al 1.10.32**. El sub-agente Explore del sweep anterior contó solo `<input type="text|email|password|tel|url|number|date|time|search">`, `<select>` y `<textarea>` con id/name faltante. Pero **omitió** form fields de tipos especiales (`type="file"`, `type="checkbox"`) y los wrapped en `<label>` que técnicamente tienen asociación implícita pero igual disparan el warning de Chrome. El usuario reportó que en `/perfil` (editar) y otras páginas seguía apareciendo "violating node" del Issues panel.
+- **Fields agregados en este bump (5 más)**:
+  - `src/app/(dashboard)/perfil/page.tsx`: `<input type="file">` para subir avatar — `id="profile-avatar-upload"`, `name="avatar"`, `aria-label="Subir foto de perfil"`.
+  - `src/app/(dashboard)/dashboard/estudiante/page.tsx`: 2 `<input type="file">` para subir/actualizar CV — `id="cv-upload"` y `id="cv-upload-replace"`, ambos `name="cv"` con aria-labels distintos.
+  - `src/app/(auth)/login/page.tsx`: checkbox "allowGeneric" del form de registro empresa — `id="register-empresa-allow-generic"`, `name="allowGenericEmail"`, conectado al `<label htmlFor>` también.
+  - `src/components/ats/ModuleEditModal.tsx`: `CheckboxRow` componente reutilizable usado en 4 módulos ATS — `useId()` de React 19 para IDs únicos por instancia, `name="hardFilter"`, `<label htmlFor>` agregado.
+
+### Tests
+
+- 1098/1098 verde, TSC clean. Bump 1.10.32 → 1.10.33.
+
+### Notes
+
+- **Lección honesta del sweep anterior**: la heurística del agente Explore para "form field con id/name faltante" filtraba por tipo del input. Los `type="file"` y los checkboxes wrapped en `<label>` se le escaparon. Este es el segundo sweep porque la deuda es de muchos meses y nunca había sido auditada — esperable que la primera pasada deje pulgares.
+- **Total form fields del proyecto auditados al cierre**: ~60 (51 del sweep 1.10.32 + 5 de este bump + 4 que ya estaban OK al inicio).
+
 ## [1.10.32] - 2026-05-06
 
 ### Fixed (a11y) — Sweep masivo de form fields

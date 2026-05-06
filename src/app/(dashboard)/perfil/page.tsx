@@ -236,9 +236,12 @@ export default function PerfilPage() {
             </div>
 
             <input
+              id="profile-avatar-upload"
+              name="avatar"
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              aria-label="Subir foto de perfil"
               className="hidden"
               onChange={handleAvatarChange}
             />
