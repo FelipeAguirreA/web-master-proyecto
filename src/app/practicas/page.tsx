@@ -208,10 +208,13 @@ export default function PracticasPage() {
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9B9891]" />
                 <input
-                  type="text"
+                  id="filter-search"
+                  name="search"
+                  type="search"
                   value={search}
                   onChange={(e) => handleFilter(setSearch)(e.target.value)}
                   placeholder="Buscar por rol, empresa o habilidad…"
+                  aria-label="Buscar prácticas"
                   className="w-full pl-11 pr-4 py-3 text-[14px] rounded-xl bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
                 />
               </div>
@@ -220,8 +223,11 @@ export default function PracticasPage() {
                 {/* Area */}
                 <div className="relative flex-1 sm:flex-none">
                   <select
+                    id="filter-area"
+                    name="area"
                     value={area}
                     onChange={(e) => handleFilter(setArea)(e.target.value)}
+                    aria-label="Filtrar por área"
                     className="appearance-none cursor-pointer w-full sm:w-auto pl-4 pr-10 py-3 text-[13.5px] font-medium rounded-xl bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white transition-all text-[#0A0909] md:min-w-[170px]"
                   >
                     <option value="">Todas las áreas</option>
@@ -245,8 +251,11 @@ export default function PracticasPage() {
                 {/* Modality */}
                 <div className="relative flex-1 sm:flex-none">
                   <select
+                    id="filter-modality"
+                    name="modality"
                     value={modality}
                     onChange={(e) => handleFilter(setModality)(e.target.value)}
+                    aria-label="Filtrar por modalidad"
                     className="appearance-none cursor-pointer w-full sm:w-auto pl-4 pr-10 py-3 text-[13.5px] font-medium rounded-xl bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white transition-all text-[#0A0909] md:min-w-[190px]"
                   >
                     {MODALITIES.map((m) => (

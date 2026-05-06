@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.30] - 2026-05-06
+
+### Fixed (a11y)
+
+- **Filtros de `/practicas` sin `id`/`name` → warning de Chrome + autofill roto**. Los 3 form controls de la barra de filtros (input search, select de área, select de modalidad) no tenían `id` ni `name`. Chrome levantaba el warning "A form field element should have an id or name attribute" en el panel Issues, y el autofill del browser no podía recordar valores del usuario.
+  - **`src/app/practicas/page.tsx`**:
+    - Input search: agregado `id="filter-search"`, `name="search"`, `type="search"` (mejor semántica que `text`), `aria-label="Buscar prácticas"`.
+    - Select área: agregado `id="filter-area"`, `name="area"`, `aria-label="Filtrar por área"`.
+    - Select modalidad: agregado `id="filter-modality"`, `name="modality"`, `aria-label="Filtrar por modalidad"`.
+  - **No agregamos `<label>` visible** porque el placeholder + el option default ("Todas las áreas", "Todas las modalidades") ya dan contexto visual; el `aria-label` cubre la accesibilidad para screen readers que es la regla WCAG aplicable.
+
+### Tests
+
+- 1098/1098 tests siguen verde, TSC clean. Los tests E2E del listado de prácticas (`internships.spec.ts`) usan los selectores por placeholder/role, que siguen funcionando con los nuevos atributos.
+
 ## [1.10.29] - 2026-05-06
 
 ### Fixed (a11y)
