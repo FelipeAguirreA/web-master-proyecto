@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.24] - 2026-05-06
+
+### Chore
+
+- **Aprobar postinstall scripts de packages nativos con `pnpm.onlyBuiltDependencies`**. pnpm 10+ bloquea por defecto los `postinstall` de packages instalados como medida de seguridad (un package malicioso puede meter código en su postinstall). Hasta este bump, cada `pnpm install` tiraba un warning listando 6 packages cuyos scripts NO se ejecutaban. En Vercel el deploy seguía funcionando porque Vercel maneja Prisma + sharp internamente, pero quedaba el riesgo de romper en CI o fresh clones.
+  - **Nuevo array `pnpm.onlyBuiltDependencies` en `package.json`** con los 6 packages aprobados explícitamente: `@prisma/engines` (binarios nativos de Prisma), `@sentry/cli` (CLI para subir sourcemaps), `esbuild` (binario nativo, usado por Vitest/Playwright), `prisma` (engines del CLI), `sharp` (image optimization de Next.js), `unrs-resolver` (resolver nativo de ESLint).
+  - **No se desactivó** el bloqueo de pnpm globalmente (eso sí sería inseguro). Cualquier dependencia NUEVA que intente correr postinstall va a seguir tirando warning hasta agregarla explícitamente al allowlist — exactamente la feature de seguridad que queremos mantener.
+
+### Notes
+
+- El cambio surgió post incident response: tras el data leak de Vercel del 2026-05-06, rotamos todas las claves del proyecto (NEXTAUTH_SECRET, SUPABASE_SERVICE_KEY, DATABASE_URL/DIRECT_URL, GOOGLE_CLIENT_SECRET, UPSTASH_REDIS_REST_TOKEN, BREVO_API_KEY, HUGGINGFACE_API_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY) y al hacer redeploy el warning de pnpm quedó visible en los logs de build. Aprovechamos para silenciarlo correctamente con allowlist explícita.
+
 ## [1.10.23] - 2026-05-06
 
 ### Observability

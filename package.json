@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.10.23",
+  "version": "1.10.24",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -56,7 +56,15 @@
       "hono": ">=4.12.14",
       "postcss": ">=8.5.10",
       "uuid": "^14.0.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "@sentry/cli",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
