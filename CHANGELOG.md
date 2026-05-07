@@ -5,6 +5,35 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.36] - 2026-05-07
+
+### Performance (F6.4 — preventivo)
+
+- **6 índices agregados al schema Prisma** para queries hot path identificadas en auditoría de F6.4:
+  - `Internship`: `[isActive, createdAt(desc)]` (listado público paginado) y `[companyId]` (dashboard empresa lista sus prácticas).
+  - `Application`: `[internshipId]` — **fix crítico**: el `@@unique([studentId, internshipId])` NO se podía usar para filtrar por `internshipId` solo (Postgres no usa un compuesto si la 1ra col falta). Hoy era full table scan en `getApplicantsByInternship`, `listPendingInterviewsByInternship`, y `/api/ats/score/job/[jobId]`.
+  - `Message`: `[conversationId, createdAt]` compuesto — **reemplaza** los 2 índices separados que existían (`[conversationId]` + `[createdAt]`). Más eficiente para "últimos N mensajes de chat X" (patrón clásico que Postgres no resuelve bien con índices separados).
+  - `Notification`: `[userId, createdAt(desc)]` **agregado** al `[userId, read]` existente. El bell carga top 20 con orderBy createdAt en cada navegación; el `[userId, read]` se conserva para `markAllAsRead`.
+  - `ATSModule`: `[atsConfigId]` — Prisma genera `WHERE atsConfigId IN (...)` en la query secundaria de `include: { modules }`. Sin índice = full scan.
+
+### Notes
+
+- **Carácter preventivo**: con volúmenes actuales (decenas de internships, cientos de applications), ningún índice cambia P95 visible. Las queries hoy son rápidas porque las tablas son chicas. Con tráfico real (a partir de la próxima semana, según plan F6.4), las queries siguen siendo O(log n) en lugar de O(n) — preparación para crecimiento sin tocar código.
+- **Aplicación a producción**: `pnpm db:push` se ejecutó accidentalmente contra Supabase prod en esta sesión (mi error: `prisma.config.ts` resuelve `DIRECT_URL` antes que `DATABASE_URL`, y `.env.local` tiene `DIRECT_URL` apuntando a Supabase). Cambio NO destructivo: 6 `CREATE INDEX` + 2 `DROP INDEX` en `messages`, ~9.45s sin downtime, cero filas tocadas. Después se aplicó también a Docker local. Prevención de este problema → próximo commit (migrations workflow).
+- **Próximo commit (paralelo, en sesión)**: introducir `prisma/migrations/` versionadas + CI con `prisma migrate deploy` para que esto NUNCA más pase sin trace en git.
+
+### Discarded (con evidencia de no-uso)
+
+- `CompanyProfile.companyStatus`: descartado tras audit del endpoint admin. `app/api/admin/empresas` lista TODAS las empresas sin filtro de status.
+- `Interview.studentId` / `Interview.internshipId`: descartados. No hay caller con esos filtros standalone — siempre se usan en compuesto con `companyId` (que ya tiene índice).
+
+### Tests
+
+- Suite vitest unit/component: 1100/1100 verde.
+- Integration tests (`db-cascades`): 6/6 verde contra Docker local con schema actualizado.
+- TSC `--noEmit`: clean.
+- Bump 1.10.35 → **1.10.36**.
+
 ## [1.10.35] - 2026-05-06
 
 ### Added

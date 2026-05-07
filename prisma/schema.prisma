@@ -169,6 +169,8 @@ model Internship {
   atsConfig    ATSConfig?
   interviews   Interview[]
 
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([companyId])
   @@map("internships")
 }
 
@@ -193,6 +195,7 @@ model Application {
   interview    Interview?
 
   @@unique([studentId, internshipId])
+  @@index([internshipId])
   @@map("applications")
 }
 
@@ -221,6 +224,7 @@ model ATSModule {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  @@index([atsConfigId])
   @@map("ats_modules")
 }
 
@@ -254,8 +258,7 @@ model Message {
   isRead         Boolean      @default(false)
   createdAt      DateTime     @default(now())
 
-  @@index([conversationId])
-  @@index([createdAt])
+  @@index([conversationId, createdAt])
   @@map("messages")
 }
 
@@ -299,5 +302,6 @@ model Notification {
   createdAt DateTime         @default(now())
 
   @@index([userId, read])
+  @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
 }

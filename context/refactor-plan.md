@@ -290,10 +290,18 @@ Estado al 2026-04-27:
 - [x] `docs/runbooks/incident-db-slow.md` — Postgres degradado (Vercel Postgres pool exhausted, queries N+1, indices missing).
 - [x] `docs/runbooks/incident-huggingface-down.md` — HF Inference API caído (degradación de matching, fallback documentado).
 
-### 6.4 NFR <200ms (opcional, no urgente)
+### 6.4 NFR <200ms (parcial — preventivo cerrado, NFR final blocked por tráfico real)
 
-- [ ] Medir P95 actual de endpoints críticos en Sentry Performance — necesita ~1 semana de tráfico real
-- [ ] Si no cumple: cache, índices, CDN
+- [x] **Pre-optimización: índices preventivos en hot paths** — cerrado en bump 1.10.36 (2026-05-07). Audit de queries en services + api routes identificó 6 índices faltantes con evidencia de uso real:
+  - `Internship[isActive, createdAt(desc)]` + `Internship[companyId]` (listado público + dashboard empresa)
+  - `Application[internshipId]` (fix crítico — full scan en `getApplicantsByInternship`, scoring masivo, pending interviews)
+  - `Message[conversationId, createdAt]` (compuesto reemplaza los 2 separados)
+  - `Notification[userId, createdAt(desc)]` (bell — agregado al `[userId, read]` existente)
+  - `ATSModule[atsConfigId]` (include de modules en scoring)
+  - Descartados con evidencia: `CompanyProfile.companyStatus`, `Interview.studentId`, `Interview.internshipId`.
+  - Hallazgo de deuda no atacable acá: `getRecommendations` carga TODAS las internships activas + embeddings sin paginación (~3KB c/u). No es índice — necesita pgvector o paginación. Documentado para futuro.
+- [ ] Medir P95 actual de endpoints críticos en Sentry Performance — necesita ~1 semana de tráfico real (esperar)
+- [ ] Si no cumple: cache adicional, CDN (los índices ya están)
 - [ ] Validar con `k6` o `autocannon` contra deploy de producción
 
 ### 6.5 Performance percibida (opcional, no urgente)
