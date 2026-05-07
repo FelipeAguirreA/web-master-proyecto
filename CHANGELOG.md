@@ -5,6 +5,30 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.10] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-3.1: runbook breach response)
+
+- **`docs/runbooks/incident-data-breach.md`**: runbook análogo a los 3 existentes (`incident-auth-down`, `incident-db-slow`, `incident-huggingface-down`). Cubre:
+  - **Por qué existe**: ventana legal de 72h para notificar a la APDP. Sin runbook, perdemos tiempo improvisando.
+  - **Definición**: qué cuenta como breach (acceso no autorizado, exposición pública por config, credenciales filtradas, exfiltración, borrado masivo, secret en git) y qué NO (errores que no leakean, intentos fallidos de login, acceso del propio user a sus datos).
+  - **Síntomas / triggers**: Sentry spikes, Vercel logs anómalos, Supabase logs sospechosos, GitHub secret scanning, reporte externo, `/api/health` con data inesperada.
+  - **Acción inmediata 30min**: containment según vector (rotar `SUPABASE_SERVICE_KEY` / `NEXTAUTH_SECRET` / `SENTRY_AUTH_TOKEN`, suspender admin, cambiar bucket a privado, bloquear IP en Vercel Firewall, revertir commit). Snapshot del estado para evidencia (git, logs, Sentry, Supabase). Confirmar alcance.
+  - **Notificación 72h a APDP**: información obligatoria a incluir (naturaleza, categorías y volúmenes, consecuencias probables, medidas adoptadas, contacto DPO).
+  - **Notificación a afectados**: template de email para casos de alto riesgo.
+  - **Investigación post-containment**: reconstruir timeline, causa raíz, gaps, documentar en `docs/incidents/<fecha>-<short-name>.md`.
+  - **Post-mortem**: reunión blameless 1 semana después con action items.
+  - **Contactos clave**: tabla con owner técnico, asesor legal, DPO, APDP, soportes de Supabase / Vercel / Sentry / Brevo.
+  - **Pre-incidente checklist**: lo que deberíamos tener listo antes de que pase un breach (mucho viene de F-Legal-4).
+  - **Histórico de incidentes**: vacío al 2026-05-07.
+
+### Notes
+
+- **Pendientes referenciados**: el canal exacto de notificación a la APDP se publicará cerca de 2026-12-01. Asesor legal y DPO están como pendientes hasta F-Legal-4 (externo).
+- El runbook explícitamente recomienda NO comunicar públicamente sobre el incidente hasta coordinar con asesoría legal — la forma del anuncio público tiene implicancias legales.
+- **Próximo**: F-Legal-3.2 (retention policy + cron de purga).
+- Bump 1.11.9 → **1.11.10**.
+
 ## [1.11.9] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-2.4: UI Mis derechos)
