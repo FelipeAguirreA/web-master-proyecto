@@ -1010,9 +1010,18 @@ export default async function Home() {
                 Legal
               </p>
               <ul className="space-y-2.5 text-[13.5px]">
-                {["Privacidad", "Términos", "Contacto"].map((l) => (
-                  <li key={l}>
-                    <span className="text-[#4A4843]">{l}</span>
+                {[
+                  { label: "Privacidad", href: "/privacidad" },
+                  { label: "Términos", href: "/terminos" },
+                  { label: "Contacto", href: "mailto:soporte@practix.cl" },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <Link
+                      href={l.href}
+                      className="text-[#4A4843] hover:text-[#0A0909] transition-colors"
+                    >
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

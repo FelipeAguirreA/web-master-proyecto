@@ -944,17 +944,26 @@ function LoginContent() {
       {/* Footer */}
       <div className="relative z-10 mt-8 text-[11.5px] text-[#6D6A63] text-center">
         © {new Date().getFullYear()} PractiX ·{" "}
-        <Link href="#" className="hover:text-[#0A0909] transition-colors">
+        <Link
+          href="/privacidad"
+          className="hover:text-[#0A0909] transition-colors"
+        >
           Privacidad
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:text-[#0A0909] transition-colors">
+        <Link
+          href="/terminos"
+          className="hover:text-[#0A0909] transition-colors"
+        >
           Términos
         </Link>{" "}
         ·{" "}
-        <Link href="#" className="hover:text-[#0A0909] transition-colors">
+        <a
+          href="mailto:soporte@practix.cl"
+          className="hover:text-[#0A0909] transition-colors"
+        >
           Ayuda
-        </Link>
+        </a>
       </div>
     </div>
   );

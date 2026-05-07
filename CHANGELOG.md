@@ -5,6 +5,43 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.2] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-1.2)
+
+- **Página `/privacidad`** (`src/app/privacidad/page.tsx`): política de privacidad estructurada en 13 secciones cubriendo Art. 9 de la Ley 21.719 (derecho a información del titular):
+  - Quiénes somos y contacto.
+  - **Inventario explícito de datos personales** que captamos (separado por estudiantes / empresas / interacciones), reflejando el schema real de Prisma.
+  - **Finalidades** del tratamiento (operar plataforma, matching, comunicación, seguridad, cumplimiento legal).
+  - **Base legal**: consentimiento + ejecución del contrato + interés legítimo en seguridad.
+  - **Lista nominal de proveedores** que reciben datos: Supabase (USA), Vercel (USA), HuggingFace (USA), Brevo (Francia), Sentry (USA, sin PII tras 1.11.1), Google (auth).
+  - **Transferencias internacionales** identificadas con compromiso de documentar DPA / SCC.
+  - Plazos de conservación (cuenta activa, eliminación, postulaciones).
+  - **Derechos ARCO+** (acceso, rectificación, cancelación, oposición, portabilidad) y cómo ejercerlos.
+  - Medidas de seguridad reales (HTTPS, bcrypt, JWT 15min, CSP estricta, rate limit, audit logging).
+  - Cookies estrictamente necesarias.
+  - Política para menores de edad.
+  - Procedimiento de cambios y reclamos a la APDP.
+- **Página `/terminos`** (`src/app/terminos/page.tsx`): términos de uso en 11 secciones cubriendo aceptación, descripción del servicio, registro, conducta del usuario, contenido del usuario, propiedad intelectual, disponibilidad, limitación de responsabilidad, suspensión, **ley aplicable chilena** y contacto.
+- **Disclaimer "documento en revisión legal"** en ambas páginas: callout amber visible al inicio. Honestidad sobre el estado del documento (borrador técnico que refleja la realidad del proyecto) hasta que asesoría legal lo formalice antes del 2026-12-01.
+- **Fecha de última actualización** visible en ambas páginas (`7 de mayo de 2026`).
+
+### Fixed (footers con `href="#"` → links reales)
+
+- **`src/app/page.tsx`**: footer "Legal" tenía 3 items como `<span>` sin link. Reemplazado por `<Link>` a `/privacidad`, `/terminos` y `mailto:soporte@practix.cl` (Contacto).
+- **`src/app/(auth)/login/page.tsx`**: footer con 3 `Link href="#"` → `/privacidad`, `/terminos`, `mailto:soporte@practix.cl` (Ayuda).
+- **`src/app/(auth)/registro/page.tsx`**: footer con 3 `Link href="#"` → `/privacidad`, `/terminos`, `mailto:soporte@practix.cl` (Contacto).
+
+### Notes
+
+- **Sigue siendo borrador**: la copia legal acá descrita refleja el funcionamiento técnico real, pero NO sustituye revisión por abogado especializado en protección de datos. Asesoría legal validará la versión final antes de la entrada en vigencia de la Ley 21.719.
+- **Próximo de F-Legal-1**: checkboxes de consentimiento required en registro estudiante y empresa (1.3), banner de cookies con control por categoría (1.4).
+
+### Tests
+
+- 1117/1117 unit + component verde. TSC clean. Suite no testea routing — verificación manual recomendada abriendo las URLs en dev.
+- Bump 1.11.1 → **1.11.2**.
+
 ## [1.11.1] - 2026-05-07
 
 ### Fixed (privacy / Ley 21.719 — F-Legal-1.1)
