@@ -19,7 +19,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
+        # corepack lee la versión del field "packageManager" de package.json.
+        # NO usar `pnpm@latest`: rompe sin aviso cuando pnpm publica major
+        # incompatible con la versión de Node del runner (caso real:
+        # pnpm 11 + Node 20 → ERR_UNKNOWN_BUILTIN_MODULE node:sqlite).
+        run: corepack enable
 
       - name: Setup Node ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -68,7 +72,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        run: corepack enable && corepack prepare pnpm@latest --activate
+        # corepack lee la versión del field "packageManager" de package.json.
+        # NO usar `pnpm@latest`: rompe sin aviso cuando pnpm publica major
+        # incompatible con la versión de Node del runner (caso real:
+        # pnpm 11 + Node 20 → ERR_UNKNOWN_BUILTIN_MODULE node:sqlite).
+        run: corepack enable
 
       - name: Setup Node
         uses: actions/setup-node@v4

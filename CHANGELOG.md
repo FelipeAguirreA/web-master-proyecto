@@ -5,6 +5,18 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.38] - 2026-05-07
+
+### Fixed (CI)
+
+- **`packageManager` field en `package.json`** (`pnpm@10.33.0`) + simplificación de workflow CI: ambos jobs (`ci` y `security`) ahora usan solo `corepack enable` en lugar de `corepack enable && corepack prepare pnpm@latest --activate`.
+- **Por qué**: hoy `pnpm@latest` resolvió a 11.0.8, que requiere Node 22.13+ (usa el built-in `node:sqlite`). El CI usa Node 20 → `ERR_UNKNOWN_BUILTIN_MODULE` en el step "Setup pnpm". Cero relación con los commits 1.10.36/1.10.37 — bomba de tiempo pre-existente del workflow que pnpm detonó con su release 11.
+- Con `packageManager` en `package.json`, corepack lee la versión exacta — fuente de verdad versionada en git, idiomática moderna, respetada por corepack/Vercel/CI por igual. Pinear `pnpm@latest` en workflows era exactamente la trampa que acabamos de pisar.
+
+### Notes
+
+- Bump 1.10.37 → **1.10.38**.
+
 ## [1.10.37] - 2026-05-07
 
 ### Infra (workflow de migrations versionadas)
