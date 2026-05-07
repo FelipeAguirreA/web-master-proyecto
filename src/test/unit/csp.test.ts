@@ -86,6 +86,18 @@ describe("buildCspHeader (modo prod, default)", () => {
     expect(connect).toContain("https://api.brevo.com");
   });
 
+  it("permite Vercel Analytics + Speed Insights (script-src y connect-src)", () => {
+    // Beacons de @vercel/analytics y @vercel/speed-insights pueden pegar a
+    // va.vercel-scripts.com. Sin esto, los eventos se silenciosamente
+    // bloquean por CSP y no llega data al dashboard de Vercel.
+    expect(getDirective("script-src")).toContain(
+      "https://va.vercel-scripts.com",
+    );
+    expect(getDirective("connect-src")).toContain(
+      "https://va.vercel-scripts.com",
+    );
+  });
+
   it("incluye frame-ancestors 'none' (anti-clickjacking)", () => {
     expect(getDirective("frame-ancestors")).toBe("frame-ancestors 'none'");
   });

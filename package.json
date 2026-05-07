@@ -1,6 +1,6 @@
 {
   "name": "practix",
-  "version": "1.10.38",
+  "version": "1.11.0",
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
@@ -30,6 +30,8 @@
     "@types/pdf-parse": "^1.1.5",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^1.8.0",
     "mammoth": "^1.12.0",

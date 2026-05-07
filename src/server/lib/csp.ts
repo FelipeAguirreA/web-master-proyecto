@@ -11,6 +11,11 @@ export function buildCspHeader(nonce: string, isDev = false): string {
     `'nonce-${nonce}'`,
     "'strict-dynamic'",
     "https://*.sentry.io",
+    // Vercel Analytics + Speed Insights: los scripts cargan vía mismo origin
+    // (`/_vercel/insights/script.js`), pero algunos beacons + variantes
+    // pueden pegar a va.vercel-scripts.com. Listado explícito para evitar
+    // bloqueos silenciosos cuando 'strict-dynamic' no propaga.
+    "https://va.vercel-scripts.com",
     isDev ? "'unsafe-eval'" : null,
   ]
     .filter(Boolean)
@@ -22,7 +27,7 @@ export function buildCspHeader(nonce: string, isDev = false): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api-inference.huggingface.co https://api.brevo.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api-inference.huggingface.co https://api.brevo.com https://va.vercel-scripts.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

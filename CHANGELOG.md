@@ -5,6 +5,28 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-05-07
+
+### Added (Vercel observability)
+
+- **`@vercel/analytics@2.0.1`**: web analytics — page views, top pages, referrers, devices, países. Componente `<Analytics />` montado en `src/app/layout.tsx` después de `<Providers>`.
+- **`@vercel/speed-insights@2.0.0`**: Core Web Vitals reales del usuario (LCP, FID, CLS, INP, TTFB) — **lo que F6.4 estaba esperando para tener data real de P95**. Componente `<SpeedInsights />` montado al lado de `<Analytics />`.
+- **CSP ajustado**: `https://va.vercel-scripts.com` agregado a `script-src` y `connect-src` en `src/server/lib/csp.ts`. Sin esto, los beacons de Analytics y Speed Insights se silenciosamente bloquean por CSP y no llega data al dashboard de Vercel.
+- **Test nuevo en `csp.test.ts`**: verifica que `va.vercel-scripts.com` está en ambas directivas. Si alguien lo saca por error, los tests rompen visiblemente.
+
+### Notes
+
+- **Por qué bump minor (1.11.0) y no patch**: feature nueva — sumás capacidad de observabilidad que antes no existía. Patch sería para fixes; minor para features backward-compatible nuevas.
+- **Free tier de Vercel**: 2,500 events/mes en Hobby. Si pasás, hay que upgradear o muestrear.
+- **Relación con F6.4**: Speed Insights es exactamente la pieza que estaba blocked por "esperar 1 semana de tráfico real". A partir de este deploy, el dashboard de Vercel empieza a poblarse con data de Web Vitals reales por user → cuando vuelvas a F6.4, ya tenés con qué medir.
+- **Patrón aprendido**: `pnpm@latest` en CI fue la trampa anterior; `<Analytics />` sin ajustar CSP es la trampa equivalente — funciona en dev (CSP desactivado o laxo), explota silenciosamente en prod (beacons bloqueados, dashboard vacío). El test del CSP previene la regresión.
+
+### Tests
+
+- 1101/1101 unit + component verde (sumamos 1 test de CSP).
+- TSC `--noEmit`: clean.
+- Bump 1.10.38 → **1.11.0**.
+
 ## [1.10.38] - 2026-05-07
 
 ### Fixed (CI)
