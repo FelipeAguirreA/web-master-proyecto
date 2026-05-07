@@ -5,6 +5,42 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.8] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-2.3: derecho de cancelación)
+
+- **`DELETE /api/users/me`**: endpoint que elimina la cuenta del user autenticado y todos sus datos personales (derecho ARCO+ de cancelación / al olvido).
+  - Auth required.
+  - **Confirmación obligatoria** vía header `X-Confirm-Delete: yes`. Sin ella → 400 con `code: CONFIRMATION_REQUIRED`. Defense in depth contra clicks accidentales y CSRF mal armados (aunque ya tenemos SameSite=Lax).
+  - Rate limit: **3 deletes por hora por user** (margen para retries en caso de error de red, sin permitir abuso).
+  - **Borrado completo**:
+    - `prisma.user.delete` con `onDelete: Cascade` configurado en schema → borra en una sola query: `User`, `StudentProfile`/`CompanyProfile`, `Application`, `Conversation` + `Message`, `Interview`, `Notification`, `RefreshToken`. `ATSConfig` + `ATSModule` cascadean vía `Internship`.
+    - **Borrado real del CV en Supabase Storage** vía nuevo helper `removeFile(bucket, path)`. Path se extrae del `cvUrl` con `pathFromPublicUrl(url, "documents")`.
+  - **Clear cookies**: response setea `Expires: 1970-01-01` en `__Secure-next-auth.session-token` y `__Host-practix.refresh-token`. La cuenta no existe más, no hay nada para autenticar.
+  - **Sentry**: breadcrumb `info` "account deleted (ARCO+)" con `userId` para trazabilidad. Errores capturados con `tags.route`.
+- **`src/server/services/delete-account.service.ts`**: `deleteAccount(userId)` con la lógica:
+  1. Recupera `cvUrl` ANTES de borrar (después no existe).
+  2. Borra el `User` (cascade via Prisma).
+  3. `removeFile` para el CV — si falla, va a Sentry pero NO bloquea (el user igual quedó borrado de DB; limpieza de huérfanos es F-Legal-3 retention policy).
+- **`src/server/lib/storage.ts`**: agregadas 2 funciones públicas:
+  - `removeFile(bucket, path)`: idempotente, propaga error si Supabase falla real.
+  - `pathFromPublicUrl(url, bucket)`: extrae path interno del bucket desde URL pública. Retorna `null` si la URL no matchea (defensa contra URLs maliciosas en `cvUrl` ajenas al bucket esperado).
+
+### Tests
+
+- **`src/test/unit/delete-account.service.test.ts`** con 7 tests:
+  - Happy paths: estudiante sin CV (no llama removeFile), estudiante con CV (llama removeFile con path correcto), empresa (sin studentProfile).
+  - Errors: throws cuando user no existe (no llama delete), `pathFromPublicUrl` retorna null → no llama removeFile.
+  - Resilience: `removeFile` rechaza → Sentry capture pero deleteAccount resuelve OK.
+  - **Orden de operaciones**: DB delete ANTES de Storage. Si Storage falla, el user igual quedó borrado.
+
+### Notes
+
+- **Trade-off documentado**: si Storage falla y queda un blob huérfano del CV, no rompemos el flow de eliminación (el user no debería quedar con cuenta viva por un fallo de Storage). Limpieza queda para F-Legal-3 retention cron.
+- **No hay endpoint UI todavía**: F-Legal-2.4 (próximo) agregará el botón en `/perfil` con modal de confirmación y la llamada al endpoint con el header.
+- **Próximo**: F-Legal-2.4 (UI Mis derechos en `/perfil`).
+- Bump 1.11.7 → **1.11.8**.
+
 ## [1.11.7] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-2.2: derecho de portabilidad)
