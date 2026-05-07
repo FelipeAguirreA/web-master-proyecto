@@ -5,6 +5,33 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-05-07
+
+### Fixed (privacy / Ley 21.719 — F-Legal-1.1)
+
+- **`sendDefaultPii: false` en los 4 configs Sentry** (`sentry.server.config.ts`, `sentry.client.config.ts`, `sentry.edge.config.ts`, `src/instrumentation-client.ts`). Antes estaba en `true` → enviaba email, IP, headers, cookies a Sentry (USA) sin base legal documentada ni consentimiento del titular.
+- **`beforeSend` hook en los 4 configs** apuntando a `sanitizeSentryEvent` (nuevo, en `src/lib/sentry-sanitize.ts`): defensa en profundidad. Aunque el SDK leakee algo:
+  - Strippa `user.email`, `user.username`, `user.ip_address` (conserva `user.id` que es UUID interno, no PII directa).
+  - Redacta headers sensibles: `cookie`, `set-cookie`, `authorization`, `x-api-key`, `x-auth-token` → `[Filtered]` (case-insensitive).
+  - Strippa `request.cookies` por completo.
+  - Redacta query strings sensibles en URLs: `token`, `access_token`, `refresh_token`, `reset_token`, `password`, `email`. URLs malformadas no rompen — pasan intactas.
+- **Session Replay desactivado** en `sentry.client.config.ts` (`Sentry.replayIntegration()` removido + `replaysOnErrorSampleRate` + `replaysSessionSampleRate` eliminados). Replays grababan interacciones + DOM changes que pueden incluir PII visible (formularios con email/RUT, CV uploaded, datos de postulaciones). Reactivar solo con `maskAllText: true` + `blockAllMedia: true` y consentimiento explícito.
+
+### Added (tests)
+
+- **`src/test/unit/sentry-sanitize.test.ts`** con 16 tests cubriendo: stripping de PII de user, redact de headers sensibles (varias capitalizaciones), redact de query strings, URLs malformadas, return contract, preservación de campos no-sensibles.
+
+### Notes
+
+- **Por qué patch (1.11.1) y no minor**: privacy fix sin breaking changes funcionales. La observabilidad sigue funcionando, solo deja de mandar PII.
+- **Trade-off aceptado**: sin `user.email` en payloads, debugging de errores específicos de un user puntual requiere correlacionar `user.id` (UUID) ↔ users.email manualmente. Compliance > comodidad.
+- **Próximo de F-Legal-1**: páginas `/privacidad` y `/terminos` + footer linkeado (1.2), checkboxes consentimiento en registros (1.3), banner cookies (1.4).
+
+### Tests
+
+- 1117/1117 unit + component verde (1101 antes + 16 nuevos del sanitizer). TSC clean.
+- Bump 1.11.0 → **1.11.1**.
+
 ## [1.11.0] - 2026-05-07
 
 ### Added (Vercel observability)
