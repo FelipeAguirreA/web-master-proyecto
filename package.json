@@ -1,11 +1,12 @@
 {
   "name": "practix",
-  "version": "1.10.36",
+  "version": "1.10.37",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "knip": "knip",

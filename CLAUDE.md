@@ -14,16 +14,18 @@ Full-stack unificado en **Next.js 16 (App Router)** + React 19 — un solo deplo
 ## Commands
 
 ```bash
-pnpm dev                  # Dev server → http://localhost:3000
-pnpm lint                 # ESLint
-pnpm test                 # Vitest unit tests (watch mode)
-pnpm test:coverage        # Coverage con umbral: 80% funciones, 70% líneas/branches
-pnpm test:e2e             # Playwright E2E
-pnpm db:push              # Sincronizar schema.prisma con la DB
-pnpm db:generate          # Regenerar Prisma Client
-pnpm db:studio            # GUI para inspeccionar datos
-pnpm db:seed              # Seed de datos de ejemplo (tsx prisma/seed.ts)
-docker compose up         # PostgreSQL local para desarrollo
+pnpm dev                                    # Dev server → http://localhost:3000
+pnpm lint                                   # ESLint
+pnpm test                                   # Vitest unit tests (watch mode)
+pnpm test:coverage                          # Coverage con umbral: 80% funciones, 70% líneas/branches
+pnpm test:e2e                               # Playwright E2E
+pnpm prisma migrate dev --name <descripcion> # Cambio de schema: genera migration SQL versionada + la aplica local
+pnpm prisma migrate status                  # Ver migrations pendientes/aplicadas en la DB activa
+pnpm db:generate                            # Regenerar Prisma Client (no toca DB)
+pnpm db:studio                              # GUI para inspeccionar datos
+pnpm db:seed                                # Seed de datos de ejemplo (tsx prisma/seed.ts)
+pnpm db:push                                # ⚠ EMERGENCIA SOLO: sync schema sin migration. NO usar para cambios reales — pasa por encima del histórico de migrations y aplica directo a DATABASE_URL/DIRECT_URL (puede tocar prod)
+docker compose up                           # PostgreSQL local para desarrollo (puerto 5433)
 ```
 
 Para correr un test específico:
@@ -61,6 +63,14 @@ Las llamadas fetch del frontend siempre usan URL relativa (`fetch('/api/...')`) 
 - Prácticas usan **soft delete** (campo `isActive: Boolean`)
 - Embeddings almacenados como `Float[]` en `StudentProfile` e `Internship` (384 dimensiones, modelo `BAAI/bge-small-en-v1.5`). Decisión y migración desde `sentence-transformers/all-MiniLM-L6-v2` documentadas en ADR 006.
 - Prisma Client singleton en `src/server/lib/db.ts` (patrón `globalThis` para dev)
+
+### Schema migrations workflow (desde 1.10.37)
+
+- Cambios de schema viven en `prisma/migrations/<timestamp>_<nombre>/migration.sql` (versionados en git).
+- Local: `pnpm prisma migrate dev --name <descripcion>` genera el archivo + aplica a la DB local + regenera el client.
+- Producción: Vercel ejecuta `prisma migrate deploy` automáticamente en el build (ver `vercel-build` script en `package.json`). Cero acción manual.
+- Baseline `20260507100000_init` captura el estado pre-workflow + los 6 índices de F6.4.
+- `pnpm db:push` queda **deprecado** para cambios reales — pasa por encima del histórico de migrations y aplica directo a la DB del `DIRECT_URL`/`DATABASE_URL` activo (puede impactar prod sin trace en git).
 
 ---
 
@@ -104,7 +114,7 @@ Variables de entorno accedidas **siempre** via `src/lib/env.ts` (validado con Zo
 Nunca acceder `process.env` directamente en el código de la aplicación.
 
 Ver `.env.example` para la lista completa.  
-Para desarrollo local con Docker: `DATABASE_URL="postgresql://practix:practix@localhost:5432/practix"`
+Para desarrollo local con Docker: `DATABASE_URL="postgresql://practix:practix@localhost:5433/practix"` (puerto 5433 — el contenedor `db` mapea `5433:5432` para no chocar con un Postgres del SO host)
 
 ---
 

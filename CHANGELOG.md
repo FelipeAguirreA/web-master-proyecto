@@ -5,6 +5,27 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.37] - 2026-05-07
+
+### Infra (workflow de migrations versionadas)
+
+- **`prisma/migrations/` introducido con baseline `20260507100000_init`** (357 líneas de SQL): captura el estado COMPLETO actual del schema — todos los models, enums, índices (incluidos los 6 nuevos de 1.10.36) y FKs. Generada con `prisma migrate diff --from-empty --to-schema` y marcada como aplicada en local Docker y Supabase prod con `migrate resolve --applied` (sin re-ejecutar SQL — la DB ya tenía ese estado).
+- **`prisma/migrations/migration_lock.toml`**: declara `provider = "postgresql"` (estándar Prisma).
+- **`vercel-build` script en `package.json`**: Vercel detecta automáticamente este script y lo prefiere sobre `build`. Ahora el deploy corre `prisma migrate deploy && next build` — cualquier migration nueva se aplica al deploy de prod sin acción manual.
+- **`build` script local sigue siendo `next build`**: el CI usa placeholders de DB (no DB real) y no necesita `migrate deploy`.
+- **`CLAUDE.md` actualizado**: el flow para cambios de schema es ahora `pnpm prisma migrate dev --name <descripcion>`. `db:push` queda deprecado para cambios reales (con ⚠ warning explícito) — solo uso de emergencia.
+
+### Notes
+
+- **Por qué baseline desde el schema actual y no desde vacío**: la DB ya tiene datos vivos en prod. Ejecutar el SQL `from-empty` rompería todo. El approach baseline genera el SQL completo y lo MARCA como ya aplicado, sin re-ejecutarlo. Desde ahí, futuras migrations se acumulan normalmente.
+- **`migrate status` verde en ambas DBs** post-baseline: "Database schema is up to date!"
+- **Esto cierra el gap de transparencia detectado en 1.10.36**: aquel commit aplicó `db:push` accidentalmente a Supabase prod (porque `prisma.config.ts` resuelve `DIRECT_URL` antes que `DATABASE_URL`). Con el nuevo workflow, ningún cambio de schema llega a prod sin pasar por (a) un archivo SQL versionado en git, (b) un PR review, (c) `prisma migrate deploy` en el build de Vercel.
+
+### Tests
+
+- 1100/1100 unit + 6/6 integration verde post-cambios. TSC clean.
+- Bump 1.10.36 → **1.10.37**.
+
 ## [1.10.36] - 2026-05-07
 
 ### Performance (F6.4 — preventivo)
