@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.11] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-3.2: retention policy doc)
+
+- **`docs/data-retention-policy.md`**: política de retención versionada con:
+  - **Principios** (necesidad, proporcionalidad, eliminación efectiva, trazabilidad).
+  - **Tabla de plazos por categoría** de dato:
+    - Cuenta activa: indefinido.
+    - **Cuenta inactiva: 24 meses** sin login → purga automática con notificación previa.
+    - CV: junto con cuenta o a solicitud (ya implementado en `deleteAccount`).
+    - Refresh tokens: 7 días (auto-cleanup vía `expiresAt`).
+    - Reset password tokens: 1 hora.
+    - Sentry events: 30-90 días (sin PII desde 1.11.1).
+    - Vercel logs / Supabase backups: según retention del provider.
+    - Audit logs (cuando F-Legal-3.4 esté): 24 meses.
+  - **Excepciones**: obligación legal, litigio activo, prevención de fraude.
+  - **Proceso de purga**: detección → notificación al user (30 días grace) → purga efectiva → auditoría mensual.
+  - **Solicitudes manuales** del user (UI o email a soporte@practix.cl).
+  - **Cómo demostrar cumplimiento** ante auditoría APDP.
+  - **Pendientes operacionales** documentados honestamente: campo `lastLoginAt`, update en NextAuth signIn callback, service `retention.service.ts`, endpoint cron, `vercel.json` cron config, tests, email template.
+
+### Notes
+
+- **Por qué solo doc en este commit**: la política importa más que la automatización mientras hay 0 users con cuentas viejas. Implementar el cron + service + migration es trabajo significativo y queda en backlog operacional. Hoy con la política escrita podemos defender cumplimiento ante una auditoría temprana de la APDP.
+- **Acción manual mientras no haya cron**: si el equipo detecta una cuenta inactiva >24m, se notifica + se procede con el flow descrito (mismo `deleteAccount` que ya existe).
+- **Próximo**: F-Legal-3.3 (validación edad mínima — campo o checkbox + Zod + form).
+- Bump 1.11.10 → **1.11.11**.
+
 ## [1.11.10] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-3.1: runbook breach response)
