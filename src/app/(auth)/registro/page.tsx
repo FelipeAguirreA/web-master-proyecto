@@ -26,7 +26,13 @@ const COUNTRIES = [
 ];
 
 type DocType = "rut" | "passport";
-type FormFields = "name" | "lastName" | "document" | "phone" | "acceptedTerms";
+type FormFields =
+  | "name"
+  | "lastName"
+  | "document"
+  | "phone"
+  | "acceptedTerms"
+  | "isAdult";
 
 // ── Validaciones ─────────────────────────────────────────────────────────────
 function validarRUT(rut: string): boolean {
@@ -86,6 +92,7 @@ export default function RegistroPage() {
     document: "",
     phone: "",
     acceptedTerms: false,
+    isAdult: false,
   });
   const [docType, setDocType] = useState<DocType>("rut");
   const [country, setCountry] = useState(COUNTRIES[0]);
@@ -128,6 +135,10 @@ export default function RegistroPage() {
     if (!form.acceptedTerms) {
       errs.acceptedTerms =
         "Debés aceptar la Política de Privacidad y los Términos para continuar";
+    }
+    if (!form.isAdult) {
+      errs.isAdult =
+        "Para registrarte declarás tener 18 años o más. Si sos menor, contactá a soporte@practix.cl con tu tutor.";
     }
     return errs;
   };
@@ -185,6 +196,7 @@ export default function RegistroPage() {
           documentType: docType,
           phone: `${country.dialCode}${form.phone}`,
           acceptedTerms: form.acceptedTerms,
+          isAdult: form.isAdult,
         }),
       });
 
@@ -475,7 +487,28 @@ export default function RegistroPage() {
             )}
           </div>
 
-          <div className="pt-1">
+          <div className="pt-1 space-y-2.5">
+            <label className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                id="register-is-adult"
+                checked={form.isAdult}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, isAdult: e.target.checked }));
+                  clearError("isAdult");
+                }}
+                className="mt-0.5 w-4 h-4 rounded border-[#E5E1D8] text-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 cursor-pointer"
+              />
+              <span className="text-[12.5px] text-[#4A4843] leading-[1.5]">
+                Declaro que tengo 18 años o más.
+              </span>
+            </label>
+            {errors.isAdult && (
+              <p className="text-[11.5px] text-[#C74A1E] -mt-1 ml-6">
+                {errors.isAdult}
+              </p>
+            )}
+
             <label className="flex items-start gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
@@ -513,7 +546,7 @@ export default function RegistroPage() {
               </span>
             </label>
             {errors.acceptedTerms && (
-              <p className="text-[11.5px] text-[#C74A1E] mt-1.5 ml-6">
+              <p className="text-[11.5px] text-[#C74A1E] -mt-1 ml-6">
                 {errors.acceptedTerms}
               </p>
             )}

@@ -57,6 +57,10 @@ export const registrationSchema = z
       message:
         "Debés aceptar la Política de Privacidad y los Términos para continuar",
     }),
+    isAdult: z.literal(true, {
+      message:
+        "Para registrarte declarás tener 18 años o más. Si sos menor, contactá a soporte@practix.cl con tu tutor.",
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.documentType === "rut" && !validarRUT(data.rut)) {

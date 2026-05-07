@@ -49,7 +49,28 @@ describe("registrationSchema", () => {
     documentType: "rut" as const,
     phone: TEL_VALIDO,
     acceptedTerms: true as const,
+    isAdult: true as const,
   };
+
+  it("rechaza registro sin isAdult marcado", () => {
+    const result = registrationSchema.safeParse({
+      ...baseValid,
+      isAdult: false,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path[0] === "isAdult")).toBe(
+        true,
+      );
+    }
+  });
+
+  it("rechaza registro sin el campo isAdult", () => {
+    const { isAdult, ...withoutAdult } = baseValid;
+    void isAdult;
+    const result = registrationSchema.safeParse(withoutAdult);
+    expect(result.success).toBe(false);
+  });
 
   it("acepta un registro válido con RUT", () => {
     expect(registrationSchema.safeParse(baseValid).success).toBe(true);

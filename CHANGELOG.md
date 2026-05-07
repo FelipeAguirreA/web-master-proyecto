@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.12] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-3.3: validación edad mínima)
+
+- **Checkbox "Declaro que tengo 18 años o más" required en registro estudiante** (`src/app/(auth)/registro/page.tsx`):
+  - Campo `isAdult: false` en el state inicial.
+  - `FormFields` extendido con `"isAdult"`.
+  - `validate()` bloquea el submit si no está marcado, con mensaje que apunta al flow de menores (`soporte@practix.cl con tu tutor`).
+  - Renderizado ENCIMA del checkbox de "Acepto Política y Términos" — el orden importa UX: primero declarás capacidad, después aceptás reglas.
+- **Schema Zod `registrationSchema`** (`src/server/validators/index.ts`): agregado `isAdult: z.literal(true)` con mensaje informativo. Si el cliente envía `false` o omite el campo, 400.
+- **Forms client**: el body del POST a `/api/users/registro` ahora incluye `isAdult: form.isAdult`.
+
+### Notes
+
+- **Approach minimalista**: NO almacenamos `birthDate`. El user firma la declaración bajo responsabilidad propia. Principio Ley 21.719 = data necesaria, no más. La auto-declaración bajo responsabilidad es práctica estándar (Spotify, Reddit, GitHub, etc.).
+- **Por qué solo en estudiante y no en empresa**: para empresa asumimos que el representante que registra tiene facultades legales (mayoría de edad implícita en capacidad de representar persona jurídica). Si en el futuro queremos sumar checkbox equivalente "soy mayor de edad y tengo facultades para representar la empresa", está la base.
+- **Flow para menores** (PractiX está dirigida a estudiantes universitarios, algunos pueden ser menores en Chile que ingresan adelantados): pendiente. Hoy quedan fuera del registro automático y deben contactar `soporte@practix.cl` con autorización del tutor. Documentar en F-Legal-3 follow-up cuando haya volumen real que lo justifique.
+
+### Tests
+
+- **`src/test/unit/validators.test.ts`** actualizado: `baseValid` ahora incluye `isAdult: true as const` + 2 tests nuevos:
+  - rechaza registro con `isAdult: false`
+  - rechaza registro sin el campo `isAdult`
+- **Suite total**: 1152/1152 unit + component verde (1150 antes + 2 nuevos). TSC clean.
+- Bump 1.11.11 → **1.11.12**.
+
 ## [1.11.11] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-3.2: retention policy doc)
