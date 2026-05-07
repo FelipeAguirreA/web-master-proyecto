@@ -5,6 +5,37 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.7] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-2.2: derecho de portabilidad)
+
+- **`GET /api/users/me/export-data`**: endpoint que descarga un ZIP con TODOS los datos personales del user autenticado (derecho ARCO+ de portabilidad).
+  - Auth required vía `requireAuth()`.
+  - Rate limit estricto: **1 export por hora por user** (generar el ZIP es costoso — lectura masiva + fetch del CV + compresión; evita abuso).
+  - Response: `Content-Type: application/zip`, `Content-Disposition: attachment` con filename `practix-mis-datos-{userId}-{YYYY-MM-DD}.zip`, `Cache-Control: no-store`.
+  - Errores: 401 (sin auth), 429 (rate limit), 500 con `code: EXPORT_ERROR` + Sentry capture (sin leakeo de mensaje).
+- **`src/server/services/data-export.service.ts`**: `exportUserData(userId)` retorna `{ zip, filename, byteLength }`. Junta data de 7 modelos relacionados al user (User, StudentProfile/CompanyProfile, Application, Conversation+Message, Interview, Notification) en un solo `prisma.user.findUnique` con `include` profundo. Sanitiza el User: NO incluye `passwordHash`, `resetToken`, `resetTokenExp` ni `provider`/`providerId` en el JSON exportado.
+  - **CV embebido**: si el estudiante tiene `cvUrl`, fetch al archivo público (Supabase Storage) y agrega `cv.<ext>` al ZIP. Extensión derivada de la URL — whitelist `pdf`/`doc`/`docx`, default `pdf`. Si fetch falla, sigue sin el CV (no rompe el export).
+  - **`README.md` del ZIP**: documenta cada archivo, qué NO está incluido (passwordHash, tokens), tu derecho ARCO+ y cómo ejercer eliminación. Timestamp de generación.
+- **Dependencias nuevas**: `adm-zip@0.5.17` (runtime, ~30KB) + `@types/adm-zip@0.5.8` (devDep).
+
+### Tests
+
+- **`src/test/unit/data-export.service.test.ts`** con 14 tests:
+  - Happy path estudiante: filename + byteLength, presencia de los 7 archivos esperados, sanitización (NO `passwordHash` ni `resetToken`), consent fields presentes, contenido de profile/applications/conversations parseable, README con timestamp y mención APDP.
+  - CV embebido: incluido cuando fetch OK con `cv.pdf`; NO rompe si fetch falla; extensión correcta para `.docx`; default `pdf` para extensiones desconocidas.
+  - Error: throws `User not found` cuando no existe.
+  - Empresa: usa `companyProfile` en lugar de `studentProfile`.
+- **Test gotchas documentados en código**:
+  - `// @vitest-environment node` al tope: jsdom corrompe la serialización ZIP (Buffers nativos no se manejan igual).
+  - Para mockear fetch del CV con `arrayBuffer()`, hay que aislar el `ArrayBuffer` con `.slice()` para evitar compartir el pool de Buffer de Node — sino CRC32 corrupto al releer el ZIP.
+
+### Notes
+
+- **Pre-requisito para producción**: el bucket `documents` de Supabase debe ser público (ya lo es para que el dashboard de empresa muestre los CVs). Si en el futuro se restringe, el CV embebido debería bajarse vía Supabase client autenticado en lugar de fetch público.
+- **Próximo**: F-Legal-2.3 (endpoint delete account + borrado real del CV en Storage).
+- Bump 1.11.6 → **1.11.7**.
+
 ## [1.11.6] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-2.1: persistir consent en DB)
