@@ -112,7 +112,7 @@ describe("updateStudentProfile", () => {
 });
 
 describe("completeStudentRegistration", () => {
-  it("actualiza el user con name, lastName, rut y phone", async () => {
+  it("actualiza el user con name, lastName, rut, phone + persiste consent", async () => {
     const updated = {
       id: "user-1",
       email: "estudiante@example.com",
@@ -120,6 +120,7 @@ describe("completeStudentRegistration", () => {
       lastName: "Pérez",
       rut: "12345678-9",
       phone: "+56912345678",
+      consentVersion: "2026-05-07",
     };
     prismaMock.user.update.mockResolvedValue(updated);
 
@@ -128,18 +129,47 @@ describe("completeStudentRegistration", () => {
       lastName: "Pérez",
       rut: "12345678-9",
       phone: "+56912345678",
+      consentVersion: "2026-05-07",
     });
 
     expect(result).toEqual(updated);
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      data: {
-        name: "Juan",
-        lastName: "Pérez",
-        rut: "12345678-9",
-        phone: "+56912345678",
-      },
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "user-1" },
+        data: expect.objectContaining({
+          name: "Juan",
+          lastName: "Pérez",
+          rut: "12345678-9",
+          phone: "+56912345678",
+          consentVersion: "2026-05-07",
+        }),
+      }),
+    );
+    // consentAcceptedAt default: now() — solo verificamos que esté presente
+    const callArg = prismaMock.user.update.mock.calls[0][0] as {
+      data: { consentAcceptedAt: Date };
+    };
+    expect(callArg.data.consentAcceptedAt).toBeInstanceOf(Date);
+  });
+
+  it("respeta consentAcceptedAt explícito si lo pasa el caller", async () => {
+    prismaMock.user.update.mockResolvedValue({ id: "user-2" });
+    const fixedDate = new Date("2026-01-15T10:00:00Z");
+
+    await completeStudentRegistration("user-2", {
+      name: "A",
+      lastName: "B",
+      rut: "1-9",
+      phone: "+1",
+      consentVersion: "2026-05-07",
+      consentAcceptedAt: fixedDate,
     });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ consentAcceptedAt: fixedDate }),
+      }),
+    );
   });
 
   it("solo actualiza el user del id provisto", async () => {
@@ -150,6 +180,7 @@ describe("completeStudentRegistration", () => {
       lastName: "B",
       rut: "1-9",
       phone: "+1",
+      consentVersion: "2026-05-07",
     });
 
     expect(prismaMock.user.update).toHaveBeenCalledWith(

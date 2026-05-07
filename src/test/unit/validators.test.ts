@@ -48,6 +48,7 @@ describe("registrationSchema", () => {
     rut: RUT_VALIDO,
     documentType: "rut" as const,
     phone: TEL_VALIDO,
+    acceptedTerms: true as const,
   };
 
   it("acepta un registro válido con RUT", () => {
@@ -395,6 +396,7 @@ describe("companyRegisterSchema", () => {
     password: "Aa1!aaaa",
     confirmPassword: "Aa1!aaaa",
     allowGenericEmail: false,
+    acceptedTerms: true as const,
   };
 
   it("acepta registro corporativo válido", () => {

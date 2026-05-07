@@ -1,15 +1,18 @@
 import { useSyncExternalStore } from "react";
 
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy-policy-version";
+
 /**
  * Cookie consent: storage + types compartidos entre el banner y el gate.
  * Persistencia en localStorage por simplicidad — el server no necesita
  * leer el consent (Analytics y Speed Insights corren solo client-side).
  *
- * Si cambia la política de privacidad, bumpear CONSENT_VERSION invalida
- * los consents anteriores y vuelve a mostrar el banner a todos los users.
+ * La versión se importa de `privacy-policy-version` para que sea ÚNICA
+ * fuente de verdad alineada con el `consentVersion` que se persiste en
+ * `User` al registrarse. Bumpearla invalida consents anteriores.
  */
 
-export const CONSENT_VERSION = "2026-05-07";
+export const CONSENT_VERSION = PRIVACY_POLICY_VERSION;
 export const CONSENT_STORAGE_KEY = "practix-cookie-consent";
 export const CONSENT_CHANGE_EVENT = "practix:consent-change";
 

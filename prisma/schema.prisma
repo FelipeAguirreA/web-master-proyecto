@@ -77,6 +77,8 @@ model User {
   passwordHash  String?
   resetToken    String?   @unique
   resetTokenExp DateTime?
+  consentAcceptedAt DateTime?
+  consentVersion    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

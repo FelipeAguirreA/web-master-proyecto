@@ -5,6 +5,7 @@ import { prisma } from "@/server/lib/db";
 import { companyRegisterSchema } from "@/server/validators";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 import { createLogger, getRequestId } from "@/server/lib/logger";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy-policy-version";
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest) {
         phone: data.phone,
         role: "COMPANY",
         passwordHash,
+        consentAcceptedAt: new Date(),
+        consentVersion: PRIVACY_POLICY_VERSION,
         companyProfile: {
           create: {
             companyName: data.companyName,

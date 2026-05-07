@@ -53,6 +53,10 @@ export const registrationSchema = z
     rut: z.string().min(1, "El documento es obligatorio"),
     documentType: z.enum(["rut", "passport"]).default("rut"),
     phone: z.string().min(1, "El teléfono es obligatorio"),
+    acceptedTerms: z.literal(true, {
+      message:
+        "Debés aceptar la Política de Privacidad y los Términos para continuar",
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.documentType === "rut" && !validarRUT(data.rut)) {
@@ -160,6 +164,10 @@ export const companyRegisterSchema = z
       .regex(/[^A-Za-z0-9]/, "Debe incluir al menos un símbolo"),
     confirmPassword: z.string(),
     allowGenericEmail: z.boolean().optional().default(false),
+    acceptedTerms: z.literal(true, {
+      message:
+        "Debés aceptar la Política de Privacidad y los Términos para continuar",
+    }),
   })
   .superRefine((data, ctx) => {
     if (data.documentType === "rut" && !validarRUT(data.empresaRut)) {

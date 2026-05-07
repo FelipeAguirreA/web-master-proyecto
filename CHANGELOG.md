@@ -5,6 +5,42 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.6] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-2.1: persistir consent en DB)
+
+- **Migration `20260507150000_add_user_consent_fields`**: agrega `consentAcceptedAt: DateTime?` y `consentVersion: String?` al model `User`. Ambos nullable — usuarios pre-existentes a esta migration NO tienen valor (no aceptaron esta versión específica).
+- **`src/lib/privacy-policy-version.ts`**: nueva constante `PRIVACY_POLICY_VERSION = "2026-05-07"` como única fuente de verdad. La importan tanto el cookie consent banner (`src/lib/cookie-consent.ts`, antes hardcoded) como los endpoints de registro server-side. Bumpear esta versión invalida consents previos.
+- **Schemas Zod**: `registrationSchema` (estudiante) y `companyRegisterSchema` (empresa) ahora requieren `acceptedTerms: z.literal(true)`. Si el cliente no manda el campo o manda `false`, el endpoint responde 400 con mensaje claro.
+- **Endpoints de registro**:
+  - `POST /api/users/registro`: persiste `consentAcceptedAt = now()` + `consentVersion = PRIVACY_POLICY_VERSION` al completar registro estudiante (vía `completeStudentRegistration` actualizada).
+  - `POST /api/auth/empresa/register`: persiste los mismos campos al crear el `User` empresa con `prisma.user.create`.
+- **Forms**: el form estudiante ahora pasa explícitamente `acceptedTerms: form.acceptedTerms` en el body POST (el form empresa ya lo enviaba vía `...form` spread).
+- **Service `completeStudentRegistration`**: signature extendida con `consentVersion: string` (required) y `consentAcceptedAt?: Date` (opcional, default `now()` para tests con clock fijo).
+
+### Fixed (migration baseline)
+
+- **`prisma/migrations/20260507100000_init/migration.sql`**: tenía 2 líneas de output de dotenv (`◇ injected env...` y `Loaded Prisma config...`) capturadas accidentalmente al stdout cuando se generó el SQL en 1.10.37 con `prisma migrate diff > migration.sql`. El archivo nunca se ejecutó realmente (solo se marcó como `applied` con `migrate resolve`), por lo que el bug pasó desapercibido — pero al correr `prisma migrate dev` por primera vez para crear una migration nueva, el shadow database falló con `syntax error at or near "◇"`.
+- Las líneas se re-introducen tal como estaban (mantener checksum coincidente con lo registrado en `_prisma_migrations` de local y prod) — el archivo es histórico, nunca se ejecuta.
+- **Workaround para futuras migrations**: como `migrate dev` no puede aplicar la baseline al shadow DB, las nuevas migrations se generan y aplican manualmente:
+  1. `docker exec ... psql -c "ALTER TABLE ..."` para aplicar a Docker local.
+  2. Crear directorio `prisma/migrations/<timestamp>_<name>/migration.sql` con el SQL.
+  3. `pnpm prisma migrate resolve --applied <name>` para registrar.
+  4. Push → Vercel build ejecuta `prisma migrate deploy` que solo aplica las nuevas (no toca la baseline ya marcada).
+
+### Tests
+
+- **`src/test/unit/users.service.test.ts`** actualizado: 2 tests existentes ajustados para incluir `consentVersion`, +1 test nuevo que verifica `consentAcceptedAt` explícito vs default (3 tests en total, antes eran 2).
+- **`src/test/unit/validators.test.ts`** actualizado: `baseValid` de ambos schemas (registration + companyRegister) ahora incluye `acceptedTerms: true as const`. 14 tests que pasaban bodies sin el campo se arreglan automáticamente vía la base compartida.
+
+### Notes
+
+- **DB local sincronizada**: `ALTER TABLE` aplicado vía `docker exec psql` + `migrate resolve --applied` registrado.
+- **DB prod**: la migration se aplicará automáticamente en el próximo deploy via `vercel-build` script (`prisma migrate deploy && next build`).
+- **Tests passan**: 1129/1129 unit + component verde (1128 antes - 14 falladas + 14 arregladas + 3 nuevas - 2 ajustadas). TSC clean.
+- **Próximo**: F-Legal-2.2 (endpoint export data — derecho de portabilidad ARCO+).
+- Bump 1.11.5 → **1.11.6**.
+
 ## [1.11.5] - 2026-05-07
 
 ### Added (docs)

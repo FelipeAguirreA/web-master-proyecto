@@ -184,6 +184,7 @@ export default function RegistroPage() {
           rut: form.document,
           documentType: docType,
           phone: `${country.dialCode}${form.phone}`,
+          acceptedTerms: form.acceptedTerms,
         }),
       });
 

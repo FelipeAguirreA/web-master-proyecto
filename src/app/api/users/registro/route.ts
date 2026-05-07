@@ -4,6 +4,7 @@ import { requireAuth } from "@/server/lib/auth-guard";
 import { completeStudentRegistration } from "@/server/services/users.service";
 import { registrationSchema, normalizarRUT } from "@/server/validators";
 import { prisma } from "@/server/lib/db";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy-policy-version";
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       lastName: data.lastName,
       rut: rutNormalizado,
       phone: data.phone,
+      consentVersion: PRIVACY_POLICY_VERSION,
     });
 
     return NextResponse.json({ success: true });

@@ -10,11 +10,22 @@ type CompanyProfileInput = z.infer<typeof companyProfileSchema>;
 
 export async function completeStudentRegistration(
   userId: string,
-  data: { name: string; lastName: string; rut: string; phone: string },
+  data: {
+    name: string;
+    lastName: string;
+    rut: string;
+    phone: string;
+    consentVersion: string;
+    consentAcceptedAt?: Date;
+  },
 ) {
+  const { consentAcceptedAt, ...rest } = data;
   return prisma.user.update({
     where: { id: userId },
-    data,
+    data: {
+      ...rest,
+      consentAcceptedAt: consentAcceptedAt ?? new Date(),
+    },
   });
 }
 
