@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
+import MyRightsCard from "@/components/MyRightsCard";
 
 type ProfileData = {
   id: string;
@@ -406,6 +407,10 @@ export default function PerfilPage() {
               )}
             </button>
           </div>
+        </div>
+
+        <div className="px-5 sm:px-8 pb-8">
+          <MyRightsCard />
         </div>
       </div>
     </div>

@@ -5,6 +5,29 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.9] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-2.4: UI Mis derechos)
+
+- **`src/components/MyRightsCard.tsx`**: card que se monta en `/perfil` con:
+  - **Botón "Descargar mis datos"** → `window.location.assign("/api/users/me/export-data")`. El browser descarga el ZIP con el `Content-Disposition: attachment` que devuelve el endpoint.
+  - **Botón "Eliminar mi cuenta"** → abre modal de confirmación con:
+    - Texto explícito: "acción irreversible" + qué se elimina (perfil, postulaciones, mensajes, entrevistas, CV).
+    - Input que requiere escribir literalmente `ELIMINAR` para habilitar el botón. Defensa contra clicks accidentales.
+    - Click en confirmar → fetch `DELETE /api/users/me` con header `X-Confirm-Delete: yes`. Si OK, `signOut({ callbackUrl: "/?account_deleted=1" })` para limpiar la sesión NextAuth + redirect.
+    - Si error, mensaje inline en el modal sin cerrar.
+    - Click fuera del modal o "Cancelar" → cierra (deshabilitado mientras `deleting`).
+  - Link a `/privacidad` (`target="_blank"`) y a `mailto:soporte@practix.cl` para reclamos ARCO+.
+- **`src/app/(dashboard)/perfil/page.tsx`**: imports + render del `<MyRightsCard />` debajo del card principal del perfil.
+
+### Notes
+
+- **F-Legal-2 cerrada completa**: 4 sub-tasks (persistencia consent, export data, delete account, UI). El user ahora tiene control total sobre sus datos desde la app sin necesidad de email a soporte.
+- **`/?account_deleted=1`** es solo un hint para que la home pueda mostrar mensaje de despedida si quiere — no implementado en la home todavía. Es opcional / nice-to-have, NO requisito legal.
+- **No agregamos test del componente UI**: el flow se cubre con los tests del service (`delete-account.service.test.ts`) y del helper (cookies). Un test de Testing Library sumaría poco valor — el modal es trivial y el comportamiento crítico está en el endpoint.
+- **Próximo**: F-Legal-3 (operacional — runbook breach 72h, retention policy + cron, validación edad, audit log forense).
+- Bump 1.11.8 → **1.11.9**.
+
 ## [1.11.8] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-2.3: derecho de cancelación)

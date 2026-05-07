@@ -173,10 +173,12 @@ Cubrir los gaps #5, #6, #13 + persistencia formal del consent (gap implícito de
 
 ### Estado
 
-- [ ] F-Legal-2.1 (consent persistence)
-- [ ] F-Legal-2.2 (export data)
-- [ ] F-Legal-2.3 (delete account)
-- [ ] F-Legal-2.4 (UI mis derechos)
+- [x] F-Legal-2.1 (consent persistence) — commit `7cab169`, bump 1.11.6
+- [x] F-Legal-2.2 (export data) — commit `c823659`, bump 1.11.7
+- [x] F-Legal-2.3 (delete account) — commit `4307888`, bump 1.11.8
+- [x] F-Legal-2.4 (UI mis derechos) — bump 1.11.9
+
+**F-Legal-2 cerrada completa** (2026-05-07).
 
 ---
 
