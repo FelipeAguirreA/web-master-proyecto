@@ -5,6 +5,34 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.4] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-1.4)
+
+- **`<CookieConsent />` banner** (`src/components/CookieConsent.tsx`): aparece la primera vez que entra el user (cuando no hay decisión previa). 3 acciones:
+  - **Aceptar todas**: marca `analytics=true`.
+  - **Solo esenciales**: marca `analytics=false` (cookies de sesión siguen activas, son necesarias para el servicio).
+  - **Personalizar**: expande detalle con toggle por categoría — "Estrictamente necesarias" siempre on (no negociable, son las cookies de sesión y CSRF), "Analítica anónima" toggleable.
+- **`<AnalyticsGate />` componente** (`src/components/AnalyticsGate.tsx`): wraps Vercel Analytics + Speed Insights. Solo monta los componentes si `consent.analytics === true`. Reacciona en tiempo real a cambios de consent vía `CustomEvent`. Si el user revoca, los componentes se desmontan y Vercel deja de capturar nuevos eventos.
+- **`src/lib/cookie-consent.ts`**: helpers compartidos (`readConsent`, `writeConsent`, types). Persistencia en `localStorage` (key `practix-cookie-consent`). Constante `CONSENT_VERSION = "2026-05-07"` — cuando cambie la política, bumpear la versión invalida los consents anteriores y vuelve a mostrar el banner. Custom event `practix:consent-change` para comunicación same-tab entre el banner y el gate.
+- **`src/app/layout.tsx`**: reemplaza `<Analytics />` y `<SpeedInsights />` directos por `<AnalyticsGate />` + `<CookieConsent />`. Los componentes Vercel ya NO cargan automáticamente — esperan consent explícito.
+
+### Tests
+
+- `src/test/unit/cookie-consent.test.ts` con 11 tests: read/write happy paths, expiración por versión, JSON corrupto, dispatch de CustomEvent, sobreescritura, SSR safety (cuando `window` es undefined).
+
+### Notes
+
+- **Por qué localStorage y no cookie HTTP**: el server NO necesita leer el consent (Analytics y Speed Insights corren solo client-side). localStorage evita el overhead de mandar la cookie en cada request.
+- **Por qué `target="_blank"` en links del banner y de los checkboxes de registro**: para que el user pueda leer la política sin perder el state del form/banner. UX critica para que NO desalentemos la lectura.
+- **Cierre de F-Legal-1**: con este commit, los 4 sub-tasks de F-Legal-1 quedan cerrados. Próximo: F-Legal-2 (derechos ARCO+ con endpoints `GET /api/users/me/export-data` y `DELETE /api/users/me`), F-Legal-3 (operacional: runbook breach 72h, retention policy, validación edad), F-Legal-4 (legal puro: DPAs + abogado).
+- **Consent histórico (consentAcceptedAt + version por usuario)**: queda para F-Legal-2 cuando agreguemos migration al schema. Hoy el consent vive solo en el browser del user, no en DB.
+
+### Tests
+
+- 1128/1128 unit + component verde (1117 antes + 11 nuevos del cookie-consent helper). TSC clean.
+- Bump 1.11.3 → **1.11.4**.
+
 ## [1.11.3] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-1.3)
