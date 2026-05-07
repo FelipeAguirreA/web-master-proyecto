@@ -5,6 +5,31 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.5] - 2026-05-07
+
+### Added (docs)
+
+- **`context/legal-21719-plan.md`**: plan de cumplimiento Ley 21.719 análogo a `context/refactor-plan.md`. Documenta:
+  - Contexto regulatorio (vigencia, sanciones, autoridad APDP, obligaciones).
+  - Auditoría inicial con los 14 gaps identificados, severidad, y fase atacante.
+  - Inventario de datos personales del schema Prisma (sensibles, identificadores internos, derivados de uso).
+  - Lista de procesadores externos con ubicación geográfica y estado de DPA.
+  - F-Legal-1 cerrada con tabla de los 4 sub-commits + lecciones.
+  - F-Legal-2 (ARCO+) detallada: persistencia consent, export data, delete account, UI mis derechos.
+  - F-Legal-3 (operacional) detallada: runbook breach 72h, retention policy + purga, validación edad, audit log forense.
+  - F-Legal-4 (externalizado a abogado) con tabla de items NO-código (DPAs, texto legal final, DPO, registro APDP).
+  - NFRs de cierre con checklist de qué cumple hoy y qué falta.
+
+### Notes
+
+- **Por qué documento separado y no parte del CHANGELOG**: CHANGELOG es histórico (qué se hizo). El plan es de futuro (qué falta). Se actualiza vivo a medida que avanzan las fases. Mismo patrón que `context/refactor-plan.md`.
+- **Trazabilidad legal**: el día que un abogado o la APDP pregunte "demuestren qué hicieron y cuándo", este doc + los commits + el CHANGELOG forman la cadena de evidencia.
+
+### Tests
+
+- Sin cambios funcionales — solo documentación. Suite y TSC sin re-validar (1128/1128 vigente).
+- Bump 1.11.4 → **1.11.5**.
+
 ## [1.11.4] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-1.4)
