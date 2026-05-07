@@ -5,6 +5,31 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-1.3)
+
+- **Checkbox de consentimiento required en registro estudiante** (`src/app/(auth)/registro/page.tsx`):
+  - Campo `acceptedTerms: false` agregado al state inicial del form.
+  - `FormFields` type extendido con `"acceptedTerms"`.
+  - `validate()` bloquea el submit si el checkbox no está marcado: error visible al usuario.
+  - Checkbox renderiza después del campo teléfono y antes del botón submit, con links a `/privacidad` y `/terminos` (`target="_blank" rel="noopener noreferrer"` para no salir del flow de registro).
+- **Checkbox de consentimiento required en registro empresa** (`src/app/(auth)/login/page.tsx`, componente `EmpresaRegister`):
+  - Mismo patrón. Texto adaptado a contexto B2B: "Acepto … en nombre de la empresa que represento".
+  - `RegErrors` type extendido con `"acceptedTerms"`.
+  - State `form.acceptedTerms: false`.
+  - `validate()` agrega `errs.acceptedTerms` cuando no está marcado.
+
+### Notes
+
+- **Sin migration de DB** en este commit. Persistir `consentAcceptedAt` y `consentVersion` por usuario es trabajo de F-Legal-2 o mejora futura. Hoy lo importante es bloquear el registro sin consentimiento explícito; la fecha y versión aceptadas se persistirán cuando agreguemos la migration.
+- **Validación solo client-side** por la misma razón: el servidor confía en que el form fue submiteado correctamente (el checkbox es UX legal — no hay un campo en el body request que represente la aceptación). En F-Legal-2 se podría sumar validación server-side al schema Zod junto con la persistencia.
+
+### Tests
+
+- 1117/1117 unit + component verde. TSC clean.
+- Bump 1.11.2 → **1.11.3**.
+
 ## [1.11.2] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-1.2)

@@ -218,7 +218,8 @@ type RegErrors = Partial<
     | "website"
     | "email"
     | "password"
-    | "confirmPassword",
+    | "confirmPassword"
+    | "acceptedTerms",
     string
   >
 >;
@@ -243,6 +244,7 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
     email: "",
     password: "",
     confirmPassword: "",
+    acceptedTerms: false,
   });
 
   const setField =
@@ -308,6 +310,10 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
       errs.confirmPassword = "Confirmá tu contraseña";
     } else if (form.password !== form.confirmPassword) {
       errs.confirmPassword = "Las contraseñas no coinciden";
+    }
+    if (!form.acceptedTerms) {
+      errs.acceptedTerms =
+        "Debés aceptar la Política de Privacidad y los Términos para continuar";
     }
     return errs;
   };
@@ -677,6 +683,47 @@ function EmpresaRegister({ onSuccess }: { onSuccess: () => void }) {
         {errors.confirmPassword && (
           <p className="text-[11.5px] text-[#C74A1E] mt-1">
             {errors.confirmPassword}
+          </p>
+        )}
+      </div>
+
+      <div className="pt-1">
+        <label className="flex items-start gap-2.5 cursor-pointer group">
+          <input
+            type="checkbox"
+            id="register-empresa-accept-terms"
+            checked={form.acceptedTerms}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, acceptedTerms: e.target.checked }));
+              setErrors((errs) => ({ ...errs, acceptedTerms: undefined }));
+            }}
+            className="mt-0.5 w-4 h-4 rounded border-[#E5E1D8] text-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 cursor-pointer"
+          />
+          <span className="text-[12.5px] text-[#4A4843] leading-[1.5]">
+            Acepto la{" "}
+            <Link
+              href="/privacidad"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#FF6A3D] hover:underline font-medium"
+            >
+              Política de Privacidad
+            </Link>{" "}
+            y los{" "}
+            <Link
+              href="/terminos"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#FF6A3D] hover:underline font-medium"
+            >
+              Términos de Uso
+            </Link>{" "}
+            de PractiX en nombre de la empresa que represento.
+          </span>
+        </label>
+        {errors.acceptedTerms && (
+          <p className="text-[11.5px] text-[#C74A1E] mt-1.5 ml-6">
+            {errors.acceptedTerms}
           </p>
         )}
       </div>

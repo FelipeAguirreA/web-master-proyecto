@@ -26,7 +26,7 @@ const COUNTRIES = [
 ];
 
 type DocType = "rut" | "passport";
-type FormFields = "name" | "lastName" | "document" | "phone";
+type FormFields = "name" | "lastName" | "document" | "phone" | "acceptedTerms";
 
 // ── Validaciones ─────────────────────────────────────────────────────────────
 function validarRUT(rut: string): boolean {
@@ -85,6 +85,7 @@ export default function RegistroPage() {
     lastName: "",
     document: "",
     phone: "",
+    acceptedTerms: false,
   });
   const [docType, setDocType] = useState<DocType>("rut");
   const [country, setCountry] = useState(COUNTRIES[0]);
@@ -123,6 +124,10 @@ export default function RegistroPage() {
       errs.phone = "El teléfono es obligatorio";
     } else if (!validarTelefono(form.phone)) {
       errs.phone = "Ingresá solo dígitos (7–15 caracteres)";
+    }
+    if (!form.acceptedTerms) {
+      errs.acceptedTerms =
+        "Debés aceptar la Política de Privacidad y los Términos para continuar";
     }
     return errs;
   };
@@ -465,6 +470,50 @@ export default function RegistroPage() {
             {errors.phone && (
               <p className="text-[11.5px] text-[#C74A1E] mt-1">
                 {errors.phone}
+              </p>
+            )}
+          </div>
+
+          <div className="pt-1">
+            <label className="flex items-start gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                id="register-accept-terms"
+                checked={form.acceptedTerms}
+                onChange={(e) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    acceptedTerms: e.target.checked,
+                  }));
+                  clearError("acceptedTerms");
+                }}
+                className="mt-0.5 w-4 h-4 rounded border-[#E5E1D8] text-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 cursor-pointer"
+              />
+              <span className="text-[12.5px] text-[#4A4843] leading-[1.5]">
+                Acepto la{" "}
+                <Link
+                  href="/privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF6A3D] hover:underline font-medium"
+                >
+                  Política de Privacidad
+                </Link>{" "}
+                y los{" "}
+                <Link
+                  href="/terminos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FF6A3D] hover:underline font-medium"
+                >
+                  Términos de Uso
+                </Link>{" "}
+                de PractiX.
+              </span>
+            </label>
+            {errors.acceptedTerms && (
+              <p className="text-[11.5px] text-[#C74A1E] mt-1.5 ml-6">
+                {errors.acceptedTerms}
               </p>
             )}
           </div>
