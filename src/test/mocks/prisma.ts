@@ -27,6 +27,7 @@ const baseMock = {
   refreshToken: createModelMock(),
   aTSConfig: createModelMock(),
   aTSModule: createModelMock(),
+  auditLog: createModelMock(),
 };
 
 export const prismaMock = baseMock as typeof baseMock & {

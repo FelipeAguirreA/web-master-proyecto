@@ -93,6 +93,7 @@ model User {
   studentInterviews    Interview[]    @relation("StudentInterviews")
   notifications        Notification[]
   refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
 
   @@map("users")
 }
@@ -306,4 +307,25 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// F-Legal-3.4: trazabilidad de eventos sensibles (creación/eliminación de
+// cuenta, export de datos, decisiones admin). NO debe contener PII directa
+// — `userId` queda nullable y `onDelete: SetNull` para que un borrado
+// ARCO+ no haga desaparecer el evento de auditoría. `metadata` es Json
+// para datos no-PII como `requestId`, IPs hasheadas, contexto técnico.
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String?
+  targetId   String?
+  requestId  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("audit_logs")
 }

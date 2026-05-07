@@ -5,6 +5,41 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.13] - 2026-05-07
+
+### Added (privacy / Ley 21.719 — F-Legal-3.4: audit log forense — cierra F-Legal-3)
+
+- **Modelo Prisma `AuditLog`** (`prisma/schema.prisma`):
+  - `userId: String?` con `onDelete: SetNull`. Si el user se elimina vía ARCO+, el log SOBREVIVE pero queda desvinculado del titular — preservamos el hecho histórico sin retener PII directa.
+  - `action: String` (string-enum lazy: `ACCOUNT_DELETED`, `DATA_EXPORTED`, `COMPANY_APPROVED`, `COMPANY_REJECTED`).
+  - `targetType` + `targetId` para identificar el objeto afectado.
+  - `requestId` para correlacionar con logs Pino.
+  - `metadata: Json?` para contexto técnico no-PII (ej. `byteLength` de un export, `hadCv: boolean`).
+  - 2 índices: `[userId, createdAt(desc)]` (historial por user) + `[action, createdAt(desc)]` (audits por tipo de evento).
+- **Migration `20260507180000_add_audit_log/migration.sql`**: `CREATE TABLE` + 2 índices + FK con `ON DELETE SET NULL`. Aplicada manualmente en Docker local con `docker exec psql` + `migrate resolve --applied`. En prod se aplica vía `prisma migrate deploy` en el próximo Vercel build.
+- **`src/server/services/audit-log.service.ts`**:
+  - Constante `AuditAction` con los valores válidos (string-enum derivado de `as const`).
+  - `logEvent({ userId, action, targetType?, targetId?, requestId?, metadata? })`: persiste en `audit_logs`. **No bloquea el caller**: si el insert falla (DB caída, schema desync), captura a Sentry con tags `audit: log_failed` y resuelve OK. El evento operacional ya pasó — no rompemos UX por un fail de auditoría.
+- **Integraciones agregadas**:
+  - `src/server/services/delete-account.service.ts`: tras `prisma.user.delete`, log `ACCOUNT_DELETED` con `userId: null`, `targetId: <userId borrado>`, `metadata: { hadCv: boolean }`. Insertar DESPUÉS del delete (con userId null) evita FK violation.
+  - `src/app/api/users/me/export-data/route.ts`: tras generar el ZIP, log `DATA_EXPORTED` con `userId: <auth.user.id>`, `requestId`, `metadata: { byteLength }`.
+- **`src/test/mocks/prisma.ts`**: agregado `auditLog: createModelMock()` para que los tests existentes sigan funcionando (los services que ahora llaman a `logEvent` resuelven OK con el mock default).
+
+### Tests
+
+- **`src/test/unit/audit-log.service.test.ts`** con 5 tests:
+  - Happy paths: persiste con userId, persiste con metadata, permite userId=null para eventos del sistema.
+  - Resilience: NO bloquea el flujo si `auditLog.create` falla, captura a Sentry con tags + extra.
+- **Tests existentes** (`delete-account.service.test.ts`, `data-export.service.test.ts`) NO requieren ajuste — el mock default de `auditLog.create` retorna `undefined` y `await` resuelve OK sin afectar las assertions.
+- **Suite total**: 1157/1157 unit + component verde (1152 antes + 5 nuevos). TSC clean.
+
+### Notes
+
+- **Eventos NO registrados en este commit (por design)**: logins (ya cubiertos por Sentry breadcrumbs), lecturas comunes (ruido), perfil personal (mutaciones triviales sobre data del propio user). Agregar a medida que surjan necesidades de auditoría.
+- **TODO documentado para futuro**: integrar `logEvent` en `app/api/admin/empresas/[id]/route.ts` para `COMPANY_APPROVED` / `COMPANY_REJECTED`. La constante ya existe en `AuditAction`, solo falta el call. Bajo prioridad — no hay un panel admin que use estos eventos todavía.
+- **F-Legal-3 cierra completa** con este commit. Próximo: F-Legal-4 (legal puro — DPAs, texto formal por abogado, evaluación de DPO). NO es código.
+- Bump 1.11.12 → **1.11.13**.
+
 ## [1.11.12] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-3.3: validación edad mínima)

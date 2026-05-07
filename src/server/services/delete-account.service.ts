@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 
 import { prisma } from "@/server/lib/db";
 import { removeFile, pathFromPublicUrl } from "@/server/lib/storage";
+import { logEvent, AuditAction } from "@/server/services/audit-log.service";
 
 /**
  * F-Legal-2.3 (Ley 21.719): derecho de cancelación / supresión.
@@ -33,6 +34,16 @@ export async function deleteAccount(userId: string): Promise<void> {
   const cvUrl = user.studentProfile?.cvUrl ?? null;
 
   await prisma.user.delete({ where: { id: userId } });
+
+  // F-Legal-3.4: audit log forense. userId queda null (el user ya no existe);
+  // el ID borrado se persiste en targetId para trazabilidad sin PII directa.
+  await logEvent({
+    userId: null,
+    action: AuditAction.ACCOUNT_DELETED,
+    targetType: "User",
+    targetId: userId,
+    metadata: { hadCv: cvUrl !== null },
+  });
 
   if (cvUrl) {
     const path = pathFromPublicUrl(cvUrl, "documents");

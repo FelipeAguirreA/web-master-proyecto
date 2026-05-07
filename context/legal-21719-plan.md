@@ -182,7 +182,14 @@ Cubrir los gaps #5, #6, #13 + persistencia formal del consent (gap implícito de
 
 ---
 
-## FASE 3 — Operacional (futuro)
+## FASE 3 — Operacional ✅ CERRADA (2026-05-07)
+
+| Sub | Commit        | Bump    | Resultado                                                                                                                                    |
+| --- | ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3.1 | `28513a2`     | 1.11.10 | `docs/runbooks/incident-data-breach.md` con flujo 72h APDP, containment por vector, plantilla email a afectados, contactos clave             |
+| 3.2 | `0f30647`     | 1.11.11 | `docs/data-retention-policy.md` con plazos por categoría, excepciones, proceso de purga, pendientes operacionales                            |
+| 3.3 | `7eacb22`     | 1.11.12 | Checkbox "Declaro tener 18+" required en registro estudiante (`isAdult: z.literal(true)`). Approach minimalista — no almacenamos `birthDate` |
+| 3.4 | (este commit) | 1.11.13 | Modelo `AuditLog` + service `logEvent` + integración en `deleteAccount` y `/api/users/me/export-data`                                        |
 
 ### F-Legal-3.1 — Runbook breach response
 

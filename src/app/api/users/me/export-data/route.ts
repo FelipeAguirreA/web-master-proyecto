@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/server/lib/auth-guard";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 import { exportUserData } from "@/server/services/data-export.service";
+import { logEvent, AuditAction } from "@/server/services/audit-log.service";
 import { createLogger, getRequestId } from "@/server/lib/logger";
 
 // 1 export por hora por user. Generar un ZIP es costoso (lectura masiva +
@@ -22,6 +23,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await exportUserData(auth.user.id);
+
+    await logEvent({
+      userId: auth.user.id,
+      action: AuditAction.DATA_EXPORTED,
+      requestId: getRequestId(request.headers),
+      metadata: { byteLength: result.byteLength },
+    });
 
     return new NextResponse(new Uint8Array(result.zip), {
       status: 200,
