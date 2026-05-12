@@ -28,6 +28,7 @@ enum PipelineStatus {
   PENDING
   REVIEWING
   INTERVIEW
+  ACCEPTED
   REJECTED
 }
 
@@ -161,6 +162,7 @@ model Internship {
   location     String
   modality     Modality
   duration     String
+  responsibilities String[] @default([])
   requirements String[]
   skills       String[]
   embedding    Float[]
@@ -232,17 +234,21 @@ model ATSModule {
 }
 
 model Conversation {
-  id             String       @id @default(cuid())
-  companyId      String
-  studentId      String
-  applicationId  String       @unique
-  company        User         @relation("CompanyConversations", fields: [companyId], references: [id], onDelete: Cascade)
-  student        User         @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
-  application    Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  messages       Message[]
-  interviews     Interview[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  companyId            String
+  studentId            String
+  applicationId        String       @unique
+  company              User         @relation("CompanyConversations", fields: [companyId], references: [id], onDelete: Cascade)
+  student              User         @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
+  application          Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  messages             Message[]
+  interviews           Interview[]
+  companyPinned        Boolean      @default(false)
+  studentPinned        Boolean      @default(false)
+  companyMarkedUnread  Boolean      @default(false)
+  studentMarkedUnread  Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@index([companyId])
   @@index([studentId])

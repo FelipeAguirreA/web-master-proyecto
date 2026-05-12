@@ -47,7 +47,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("@/components/chat/MessageBubble", () => ({
+vi.mock("@/components/chat/_legacy/MessageBubble", () => ({
   default: ({
     content,
     isMine,
@@ -68,6 +68,8 @@ vi.mock("@/components/chat/MessageBubble", () => ({
 }));
 
 vi.mock("@/components/chat/InterviewMessageCard", () => ({
+  // InterviewMessageCard NO se movió a _legacy/ — sigue en src/components/chat/
+  // y el ChatWindow legacy ahora lo importa via ../InterviewMessageCard.
   default: ({ content, isMine }: { content: string; isMine: boolean }) => (
     <div data-testid="interview-card" data-is-mine={isMine}>
       {content}
@@ -75,7 +77,7 @@ vi.mock("@/components/chat/InterviewMessageCard", () => ({
   ),
 }));
 
-vi.mock("@/components/chat/MessageInput", () => ({
+vi.mock("@/components/chat/_legacy/MessageInput", () => ({
   default: ({
     onSend,
     disabled,
@@ -97,7 +99,7 @@ vi.mock("@/components/chat/MessageInput", () => ({
   ),
 }));
 
-import ChatWindow from "@/components/chat/ChatWindow";
+import ChatWindow from "@/components/chat/_legacy/ChatWindow";
 
 const buildMeta = (overrides: Record<string, unknown> = {}) => ({
   id: "conv-1",

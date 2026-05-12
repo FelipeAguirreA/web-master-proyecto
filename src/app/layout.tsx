@@ -5,7 +5,7 @@ import {
   Instrument_Serif,
   Inter_Tight,
   JetBrains_Mono,
-  Onest,
+  Plus_Jakarta_Sans,
 } from "next/font/google";
 import AnalyticsGate from "@/components/AnalyticsGate";
 import CookieConsent from "@/components/CookieConsent";
@@ -37,7 +37,7 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
-const onest = Onest({
+const onest = Plus_Jakarta_Sans({
   variable: "--font-onest",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],

@@ -43,3 +43,142 @@ body {
     cursor: not-allowed;
   }
 }
+
+/* ═══ Landing animations (mock parity) ═══ */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes orbFloat1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.06);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.96);
+  }
+}
+@keyframes orbFloat2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  40% {
+    transform: translate(-50px, 25px) scale(1.08);
+  }
+  80% {
+    transform: translate(30px, -15px) scale(0.95);
+  }
+}
+@keyframes orbFloat3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, 40px);
+  }
+}
+
+/* Scroll reveal classes used by the landing sections */
+.rv {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rv-l {
+  opacity: 0;
+  transform: translateX(-36px);
+  transition:
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rv-r {
+  opacity: 0;
+  transform: translateX(36px);
+  transition:
+    opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rv-s {
+  opacity: 0;
+  transform: scale(0.93);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.rv.in,
+.rv-l.in,
+.rv-r.in,
+.rv-s.in {
+  opacity: 1;
+  transform: none;
+}
+.d1 {
+  transition-delay: 0.07s;
+}
+.d2 {
+  transition-delay: 0.14s;
+}
+.d3 {
+  transition-delay: 0.21s;
+}
+.d4 {
+  transition-delay: 0.28s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv,
+  .rv-l,
+  .rv-r,
+  .rv-s {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

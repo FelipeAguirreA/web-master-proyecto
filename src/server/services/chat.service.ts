@@ -80,6 +80,8 @@ export async function getConversationsByUser(
       },
       application: {
         select: {
+          id: true,
+          pipelineStatus: true,
           internship: { select: { id: true, title: true } },
         },
       },
@@ -132,12 +134,79 @@ export async function getConversationsByUser(
       image: c.student.image,
     },
     internship: c.application.internship,
+    applicationId: c.application.id,
+    pipelineStatus: c.application.pipelineStatus,
+    isPinned: role === "COMPANY" ? c.companyPinned : c.studentPinned,
+    markedUnread:
+      role === "COMPANY" ? c.companyMarkedUnread : c.studentMarkedUnread,
     lastMessage: c.messages[0] ?? null,
     unreadCount: c._count.messages,
     hasPendingInterview: c.interviews.length > 0 && !c.interviews[0].sentToChat,
     updatedAt: c.updatedAt,
     createdAt: c.createdAt,
   }));
+}
+
+// ─── Pin / Marked-as-unread ─────────────────────────────────────────────────
+// Cada lado (empresa, estudiante) anclla y marca-no-leído independientemente.
+// 4 columnas planas en Conversation porque la cardinalidad es 1:1 y son flags
+// visuales — ver migration 20260512100000_add_conversation_pin_unread.
+
+async function getConversationRoleOrThrow(
+  conversationId: string,
+  userId: string,
+): Promise<"COMPANY" | "STUDENT"> {
+  const conv = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { companyId: true, studentId: true },
+  });
+  if (!conv) throw chatError("NOT_FOUND", "Conversation not found");
+  if (conv.companyId === userId) return "COMPANY";
+  if (conv.studentId === userId) return "STUDENT";
+  throw chatError("FORBIDDEN", "Not authorized");
+}
+
+export async function toggleConversationPin(
+  conversationId: string,
+  userId: string,
+) {
+  const role = await getConversationRoleOrThrow(conversationId, userId);
+  const field = role === "COMPANY" ? "companyPinned" : "studentPinned";
+
+  // Read-modify-write: la otra opción (raw SQL con NOT) ahorra una query pero
+  // pierde el contrato Prisma. El uso es de baja frecuencia (click manual).
+  const current = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { [field]: true } as Record<string, true>,
+  });
+  const next = !(current as Record<string, boolean>)[field];
+
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { [field]: next },
+  });
+  return { isPinned: next };
+}
+
+export async function toggleConversationMarkedUnread(
+  conversationId: string,
+  userId: string,
+) {
+  const role = await getConversationRoleOrThrow(conversationId, userId);
+  const field =
+    role === "COMPANY" ? "companyMarkedUnread" : "studentMarkedUnread";
+
+  const current = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { [field]: true } as Record<string, true>,
+  });
+  const next = !(current as Record<string, boolean>)[field];
+
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { [field]: next },
+  });
+  return { markedUnread: next };
 }
 
 export async function getConversationById(
@@ -161,6 +230,7 @@ export async function getConversationById(
       },
       application: {
         select: {
+          pipelineStatus: true,
           internship: {
             select: {
               id: true,
@@ -216,15 +286,22 @@ export async function getMessages(
     throw chatError("FORBIDDEN", "Not authorized");
   }
 
-  const messages = await prisma.message.findMany({
+  // Traer los ÚLTIMOS N mensajes (los más nuevos) en orden cronológico
+  // ascendente como espera el cliente. Antes traía los PRIMEROS N — bug
+  // crítico para conversaciones con >limit mensajes: los recién enviados
+  // nunca volvían del polling y desaparecían visualmente del chat.
+  //
+  // Paginación hacia atrás (cargar mensajes más viejos): cursor=createdAt
+  // del más viejo conocido por el cliente, server filtra createdAt < cursor.
+  const rows = await prisma.message.findMany({
     where: {
       conversationId,
-      ...(cursor ? { createdAt: { gt: new Date(cursor) } } : {}),
+      ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
     },
     include: {
       sender: { select: { id: true, name: true, image: true, role: true } },
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 
@@ -238,9 +315,10 @@ export async function getMessages(
     data: { isRead: true },
   });
 
+  const messages = rows.slice().reverse();
   const nextCursor =
-    messages.length === limit
-      ? messages[messages.length - 1].createdAt.toISOString()
+    rows.length === limit && messages.length > 0
+      ? messages[0].createdAt.toISOString()
       : null;
 
   return { messages, nextCursor };
@@ -308,12 +386,21 @@ export async function markConversationRead(
     throw chatError("FORBIDDEN", "Not authorized");
   }
 
-  await prisma.message.updateMany({
-    where: {
-      conversationId,
-      isRead: false,
-      senderId: { not: userId },
-    },
-    data: { isRead: true },
-  });
+  const unreadField =
+    conv.companyId === userId ? "companyMarkedUnread" : "studentMarkedUnread";
+
+  await prisma.$transaction([
+    prisma.message.updateMany({
+      where: {
+        conversationId,
+        isRead: false,
+        senderId: { not: userId },
+      },
+      data: { isRead: true },
+    }),
+    prisma.conversation.update({
+      where: { id: conversationId },
+      data: { [unreadField]: false },
+    }),
+  ]);
 }

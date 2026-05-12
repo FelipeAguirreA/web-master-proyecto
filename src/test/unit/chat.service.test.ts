@@ -7,6 +7,8 @@ import {
   getMessages,
   sendMessage,
   markConversationRead,
+  toggleConversationPin,
+  toggleConversationMarkedUnread,
 } from "@/server/services/chat.service";
 
 beforeEach(() => {
@@ -34,6 +36,10 @@ const mockConversationRow = {
   companyId: COMPANY_USER_ID,
   studentId: STUDENT_USER_ID,
   applicationId: APPLICATION_ID,
+  companyPinned: false,
+  studentPinned: false,
+  companyMarkedUnread: false,
+  studentMarkedUnread: false,
   createdAt: new Date("2026-04-23T10:00:00Z"),
   updatedAt: new Date("2026-04-23T10:00:00Z"),
 };
@@ -54,6 +60,8 @@ const mockConversationListItemRaw = {
     image: "maria.png",
   },
   application: {
+    id: APPLICATION_ID,
+    pipelineStatus: "INTERVIEW",
     internship: { id: "int-1", title: "Practicante Frontend" },
   },
   messages: [
@@ -415,13 +423,15 @@ describe("getMessages", () => {
     expect(result.messages).toHaveLength(3);
   });
 
-  it("retorna nextCursor con el createdAt del último mensaje cuando llega al limit", async () => {
+  it("retorna nextCursor del más viejo del batch cuando llega al limit (paginación hacia atrás)", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       companyId: COMPANY_USER_ID,
       studentId: STUDENT_USER_ID,
     });
-    const messages = mockMessages(5);
-    prismaMock.message.findMany.mockResolvedValue(messages);
+    // El service pide orderBy desc, así que el mock devuelve desc (más nuevo
+    // primero). Después el service hace .reverse() para devolver asc al cliente.
+    const desc = mockMessages(5).slice().reverse();
+    prismaMock.message.findMany.mockResolvedValue(desc);
 
     const result = await getMessages(
       CONVERSATION_ID,
@@ -430,10 +440,18 @@ describe("getMessages", () => {
       5,
     );
 
-    expect(result.nextCursor).toBe(messages[4].createdAt.toISOString());
+    // El nextCursor debe ser el createdAt del MÁS VIEJO de los devueltos —
+    // para cargar mensajes más antiguos en la próxima página.
+    expect(result.nextCursor).toBe(result.messages[0].createdAt.toISOString());
+    // Messages quedan en orden ascendente (cronológico) para el cliente.
+    for (let i = 1; i < result.messages.length; i++) {
+      expect(
+        result.messages[i].createdAt >= result.messages[i - 1].createdAt,
+      ).toBe(true);
+    }
   });
 
-  it("aplica el cursor con createdAt > cursor cuando se provee", async () => {
+  it("aplica el cursor con createdAt < cursor cuando se provee (paginación hacia atrás)", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       companyId: COMPANY_USER_ID,
       studentId: STUDENT_USER_ID,
@@ -447,8 +465,24 @@ describe("getMessages", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           conversationId: CONVERSATION_ID,
-          createdAt: { gt: new Date(cursor) },
+          createdAt: { lt: new Date(cursor) },
         }),
+      }),
+    );
+  });
+
+  it("ordena descendente al consultar (para traer los ÚLTIMOS N, no los primeros)", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      companyId: COMPANY_USER_ID,
+      studentId: STUDENT_USER_ID,
+    });
+    prismaMock.message.findMany.mockResolvedValue([]);
+
+    await getMessages(CONVERSATION_ID, STUDENT_USER_ID);
+
+    expect(prismaMock.message.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { createdAt: "desc" },
       }),
     );
   });
@@ -623,5 +657,180 @@ describe("markConversationRead", () => {
       },
       data: { isRead: true },
     });
+  });
+
+  it("limpia el markedUnread del rol que abre (estudiante)", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      companyId: COMPANY_USER_ID,
+      studentId: STUDENT_USER_ID,
+    });
+
+    await markConversationRead(CONVERSATION_ID, STUDENT_USER_ID);
+
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { studentMarkedUnread: false },
+    });
+  });
+
+  it("limpia el markedUnread del rol que abre (empresa)", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      companyId: COMPANY_USER_ID,
+      studentId: STUDENT_USER_ID,
+    });
+
+    await markConversationRead(CONVERSATION_ID, COMPANY_USER_ID);
+
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { companyMarkedUnread: false },
+    });
+  });
+});
+
+// ─── toggleConversationPin ──────────────────────────────────────────────────
+
+describe("toggleConversationPin", () => {
+  it("lanza NOT_FOUND si la conversación no existe", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue(null);
+
+    await expect(
+      toggleConversationPin(CONVERSATION_ID, COMPANY_USER_ID),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("lanza FORBIDDEN si el userId no pertenece a la conversación", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      companyId: COMPANY_USER_ID,
+      studentId: STUDENT_USER_ID,
+    });
+
+    await expect(
+      toggleConversationPin(CONVERSATION_ID, "intruder-user"),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("alterna companyPinned cuando el caller es la empresa", async () => {
+    prismaMock.conversation.findUnique
+      .mockResolvedValueOnce({
+        companyId: COMPANY_USER_ID,
+        studentId: STUDENT_USER_ID,
+      })
+      .mockResolvedValueOnce({ companyPinned: false });
+
+    const result = await toggleConversationPin(
+      CONVERSATION_ID,
+      COMPANY_USER_ID,
+    );
+
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { companyPinned: true },
+    });
+    expect(result.isPinned).toBe(true);
+  });
+
+  it("alterna studentPinned cuando el caller es el estudiante", async () => {
+    prismaMock.conversation.findUnique
+      .mockResolvedValueOnce({
+        companyId: COMPANY_USER_ID,
+        studentId: STUDENT_USER_ID,
+      })
+      .mockResolvedValueOnce({ studentPinned: true });
+
+    const result = await toggleConversationPin(
+      CONVERSATION_ID,
+      STUDENT_USER_ID,
+    );
+
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { studentPinned: false },
+    });
+    expect(result.isPinned).toBe(false);
+  });
+});
+
+// ─── toggleConversationMarkedUnread ─────────────────────────────────────────
+
+describe("toggleConversationMarkedUnread", () => {
+  it("lanza FORBIDDEN si el userId no pertenece a la conversación", async () => {
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      companyId: COMPANY_USER_ID,
+      studentId: STUDENT_USER_ID,
+    });
+
+    await expect(
+      toggleConversationMarkedUnread(CONVERSATION_ID, "intruder-user"),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("alterna companyMarkedUnread cuando el caller es la empresa", async () => {
+    prismaMock.conversation.findUnique
+      .mockResolvedValueOnce({
+        companyId: COMPANY_USER_ID,
+        studentId: STUDENT_USER_ID,
+      })
+      .mockResolvedValueOnce({ companyMarkedUnread: false });
+
+    const result = await toggleConversationMarkedUnread(
+      CONVERSATION_ID,
+      COMPANY_USER_ID,
+    );
+
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { companyMarkedUnread: true },
+    });
+    expect(result.markedUnread).toBe(true);
+  });
+});
+
+// ─── getConversationsByUser — campos nuevos ─────────────────────────────────
+
+describe("getConversationsByUser — pin / unread / pipelineStatus", () => {
+  it("expone isPinned/markedUnread según el rol COMPANY", async () => {
+    prismaMock.conversation.findMany.mockResolvedValue([
+      {
+        ...mockConversationListItemRaw,
+        companyPinned: true,
+        studentPinned: false,
+        companyMarkedUnread: true,
+        studentMarkedUnread: false,
+      },
+    ]);
+
+    const [conv] = await getConversationsByUser(COMPANY_USER_ID, "COMPANY");
+
+    expect(conv.isPinned).toBe(true);
+    expect(conv.markedUnread).toBe(true);
+  });
+
+  it("expone isPinned/markedUnread según el rol STUDENT (no se cruzan)", async () => {
+    prismaMock.conversation.findMany.mockResolvedValue([
+      {
+        ...mockConversationListItemRaw,
+        companyPinned: true,
+        studentPinned: false,
+        companyMarkedUnread: true,
+        studentMarkedUnread: false,
+      },
+    ]);
+
+    const [conv] = await getConversationsByUser(STUDENT_USER_ID, "STUDENT");
+
+    expect(conv.isPinned).toBe(false);
+    expect(conv.markedUnread).toBe(false);
+  });
+
+  it("expone pipelineStatus y applicationId del application", async () => {
+    prismaMock.conversation.findMany.mockResolvedValue([
+      mockConversationListItemRaw,
+    ]);
+
+    const [conv] = await getConversationsByUser(COMPANY_USER_ID, "COMPANY");
+
+    expect(conv.pipelineStatus).toBe("INTERVIEW");
+    expect(conv.applicationId).toBe(APPLICATION_ID);
   });
 });

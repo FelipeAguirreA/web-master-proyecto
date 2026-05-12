@@ -23,8 +23,10 @@ type PublicNavProps = {
 
 const PUBLIC_LINKS = [
   { label: "Prácticas", href: "/practicas" },
+  { label: "Cómo funciona", href: "/#como-funciona" },
   { label: "Producto", href: "/#producto" },
-  { label: "Para empresas", href: "/#empresas" },
+  { label: "Para empresas", href: "/#para-quien" },
+  { label: "FAQ", href: "/#faq" },
 ];
 
 type DashboardLink = {

@@ -1,6 +1,6 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ConversationList from "@/components/chat/ConversationList";
+import ConversationList from "@/components/chat/_legacy/ConversationList";
 
 const mockUseSession = vi.fn();
 

@@ -1,768 +1,1880 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Plus,
-  Save,
-  RefreshCw,
-  Sparkles,
-  Users,
-  AlertCircle,
-  Zap,
-  Briefcase,
-  GraduationCap,
-  Globe,
-  Folder,
-  Star,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import ModuleCard, { type ATSModuleState } from "@/components/ats/ModuleCard";
-import ModuleEditModal from "@/components/ats/ModuleEditModal";
-import { PRESET_MODULES } from "@/server/lib/ats/preset-modules";
-import type { CandidateData } from "@/components/ats/CandidateCard";
-import ScoreBreakdownModal from "@/components/ats/ScoreBreakdownModal";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
+import { E } from "@/components/dashboard/palettes";
+import { Icon } from "@/components/dashboard/Icon";
+import { Avatar } from "@/components/dashboard/atoms/Avatar";
+import { ScoreVis } from "@/components/dashboard/atoms/ScoreVis";
 
-const MODULE_ICONS: Record<string, string> = {
-  SKILLS: "⚡",
-  EXPERIENCE: "💼",
-  EDUCATION: "🎓",
-  LANGUAGES: "🌐",
-  PORTFOLIO: "🗂️",
-  CUSTOM: "⭐",
+type PipelineStatus =
+  | "PENDING"
+  | "REVIEWING"
+  | "INTERVIEW"
+  | "ACCEPTED"
+  | "REJECTED";
+
+type StudentProfile = {
+  university?: string;
+  career?: string;
+  cvUrl?: string | null;
 };
 
-const PRESET_LUCIDE: Record<string, LucideIcon> = {
-  SKILLS: Zap,
-  EXPERIENCE: Briefcase,
-  EDUCATION: GraduationCap,
-  LANGUAGES: Globe,
-  PORTFOLIO: Folder,
-  CUSTOM: Star,
+type Candidate = {
+  id: string;
+  matchScore: number;
+  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
+  pipelineStatus?: PipelineStatus | null;
+  createdAt: string;
+  student: {
+    name: string;
+    email: string;
+    image?: string | null;
+    studentProfile?: StudentProfile | null;
+  };
 };
 
-const PIPELINE_STYLES: Record<string, { label: string; className: string }> = {
-  PENDING: {
-    label: "Pendiente",
-    className: "bg-[#F5F4F1] text-[#6D6A63] border-[#E8E5DD]",
-  },
-  REVIEWING: {
-    label: "En revisión",
-    className: "bg-[#EFF6FF] text-[#1D4ED8] border-[#DBEAFE]",
-  },
-  INTERVIEW: {
-    label: "Entrevista",
-    className: "bg-[#ECFDF3] text-[#047857] border-[#D1FAE5]",
-  },
-  REJECTED: {
-    label: "Rechazado",
-    className: "bg-[#FEF2F2] text-[#B91C1C] border-[#FEE2E2]",
-  },
+type Internship = {
+  id: string;
+  title: string;
+  area: string;
+  skills: string[];
 };
 
-function avatarGradient(name: string): string {
-  const gradients = [
-    "from-[#FF6A3D] to-[#C2410C]",
-    "from-[#F59E0B] to-[#B45309]",
-    "from-[#10B981] to-[#047857]",
-    "from-[#3B82F6] to-[#1D4ED8]",
-    "from-[#8B5CF6] to-[#6D28D9]",
-    "from-[#EC4899] to-[#BE185D]",
-    "from-[#0A0909] to-[#2a2722]",
-    "from-[#F97316] to-[#9A3412]",
+type StageDef = {
+  key: PipelineStatus;
+  label: string;
+  color: string;
+  bg: string;
+};
+
+const STAGES: StageDef[] = [
+  {
+    key: "PENDING",
+    label: "Nuevos",
+    color: E.subtle,
+    bg: "rgba(15,23,42,.05)",
+  },
+  { key: "REVIEWING", label: "Revisión", color: E.blue, bg: E.blueBg },
+  { key: "INTERVIEW", label: "Entrevista", color: E.purple, bg: E.purpleBg },
+  { key: "ACCEPTED", label: "Aprobado", color: E.green, bg: E.greenBg },
+];
+
+const REJECTED_STAGE: StageDef = {
+  key: "REJECTED",
+  label: "Rechazados",
+  color: E.rose,
+  bg: E.roseBg,
+};
+
+function avatarColors(name: string): [string, string] {
+  const palette: Array<[string, string]> = [
+    ["#FFD4B8", "#FF9B6A"],
+    ["#B8E6D4", "#3DBE85"],
+    ["#D8C4FF", "#7C3AED"],
+    ["#B8C9FF", "#2C5CFA"],
+    ["#FFE6A8", "#D69E2E"],
+    ["#FFD4B8", "#C74A1E"],
+    ["#A8E0FF", "#0EA5E9"],
   ];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
+  for (let i = 0; i < name.length; i++)
     hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return gradients[hash % gradients.length];
+  return palette[hash % palette.length];
 }
 
-function buildModuleState(mod: {
-  id?: string;
-  type: string;
-  label: string;
-  isActive: boolean;
-  weight: number;
-  order: number;
-  params: Record<string, unknown>;
-}): ATSModuleState {
-  return {
-    id: mod.id,
-    type: mod.type,
-    label: mod.label,
-    icon: MODULE_ICONS[mod.type] ?? "⭐",
-    isActive: mod.isActive,
-    weight: mod.weight,
-    order: mod.order,
-    params: mod.params,
-  };
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function ATSConfigPage() {
+function formatInStage(createdAt: string): string {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  const min = Math.floor(ms / 60_000);
+  if (min < 60) return `${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} h`;
+  const d = Math.floor(hr / 24);
+  if (d < 7) return `${d} d`;
+  const w = Math.floor(d / 7);
+  return `${w} sem`;
+}
+
+function deriveStage(c: Candidate): PipelineStatus {
+  if (c.pipelineStatus) return c.pipelineStatus;
+  if (c.status === "PENDING") return "PENDING";
+  if (c.status === "REVIEWED") return "REVIEWING";
+  if (c.status === "ACCEPTED") return "ACCEPTED";
+  return "REJECTED";
+}
+
+export default function ATSKanbanPage() {
   const params = useParams();
+  const router = useRouter();
   const jobId = params.jobId as string;
 
-  const [activeModules, setActiveModules] = useState<ATSModuleState[]>([]);
-  const [editingModule, setEditingModule] = useState<ATSModuleState | null>(
-    null,
-  );
-  const [atsActive, setAtsActive] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [internship, setInternship] = useState<Internship | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [overStage, setOverStage] = useState<PipelineStatus | null>(null);
+  const [query, setQuery] = useState("");
+  const [minMatch, setMinMatch] = useState<number>(0);
+  const [view, setView] = useState<"kanban" | "table">("kanban");
+  const [busy, setBusy] = useState<string | null>(null);
+  // Locked mientras se inicia el chat (POST /conversations puede tardar 200-500ms)
+  const [startingChat, setStartingChat] = useState<string | null>(null);
 
-  const [candidates, setCandidates] = useState<CandidateData[]>([]);
-  const [selectedCandidate, setSelectedCandidate] =
-    useState<CandidateData | null>(null);
-  const [scoring, setScoring] = useState(false);
-
-  const loadCandidates = useCallback(
-    async (skipAutoScore = false) => {
-      const res = await fetchWithRefresh(
-        `/api/applications/internship/${jobId}`,
-      );
-      if (!res.ok) return;
-      const data: CandidateData[] = (await res.json()) ?? [];
-
-      if (
-        !skipAutoScore &&
-        data.length > 0 &&
-        data.some((c) => c.atsScore === null)
-      ) {
-        setScoring(true);
-        try {
-          await fetchWithRefresh(`/api/ats/score/job/${jobId}`, {
-            method: "POST",
-          });
-          const refreshed = await fetchWithRefresh(
-            `/api/applications/internship/${jobId}`,
+  // Inicia (o recupera) la conversación con el candidato y navega al inbox
+  // con ese chat abierto. Solo posible si el candidato está en INTERVIEW —
+  // regla del backend (chat.service.ts: INTERVIEW_REQUIRED).
+  const startChat = useCallback(
+    async (candidateId: string) => {
+      setStartingChat(candidateId);
+      try {
+        const res = await fetchWithRefresh("/api/chat/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ applicationId: candidateId }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          alert(
+            body.code === "PIPELINE_STATUS_REQUIRED"
+              ? "El chat se habilita cuando el candidato pasa a Entrevista."
+              : (body.error ?? "No se pudo iniciar la conversación."),
           );
-          if (refreshed.ok) {
-            const refreshedData: CandidateData[] =
-              (await refreshed.json()) ?? [];
-            setCandidates(refreshedData);
-            return;
-          }
-        } finally {
-          setScoring(false);
+          return;
         }
+        const conv = await res.json();
+        router.push(`/dashboard/empresa/inbox?c=${conv.id}`);
+      } catch {
+        alert("No se pudo iniciar la conversación. Reintenta.");
+      } finally {
+        setStartingChat(null);
       }
-
-      setCandidates(data);
     },
-    [jobId],
+    [router],
   );
 
-  const loadConfig = useCallback(async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchWithRefresh(`/api/ats/config/${jobId}`);
-      const data = await res.json();
-      if (data.config) {
-        setAtsActive(data.config.isActive);
-        setActiveModules(
-          data.config.modules
-            .filter((m: ATSModuleState) => m.isActive)
-            .map(buildModuleState),
-        );
-        await loadCandidates();
-      } else {
-        const defaults = PRESET_MODULES.filter((p) => p.defaultActive).map(
-          (p, i) =>
-            buildModuleState({
-              type: p.type,
-              label: p.label,
-              isActive: true,
-              weight: p.defaultWeight,
-              order: i,
-              params: p.defaultParams,
-            }),
-        );
-        setActiveModules(defaults);
+      const [intRes, candRes] = await Promise.all([
+        fetchWithRefresh(`/api/internships/${jobId}`, { cache: "no-store" }),
+        fetchWithRefresh(`/api/applications/internship/${jobId}`, {
+          cache: "no-store",
+        }),
+      ]);
+      if (intRes.ok) setInternship(await intRes.json());
+      if (candRes.ok) {
+        const data: Candidate[] = (await candRes.json()) ?? [];
+        setCandidates(data);
       }
     } finally {
       setLoading(false);
     }
-  }, [jobId, loadCandidates]);
+  }, [jobId]);
 
   useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
+    loadAll();
+  }, [loadAll]);
 
-  const totalWeight = activeModules.reduce((sum, m) => sum + m.weight, 0);
-  const weightsOk = activeModules.length === 0 || totalWeight === 100;
+  const moveStage = async (candidateId: string, nextStage: PipelineStatus) => {
+    const prev = candidates.find((c) => c.id === candidateId);
+    if (!prev || deriveStage(prev) === nextStage) return;
 
-  const handleWeightChange = (idx: number, weight: number) => {
-    setActiveModules((prev) =>
-      prev.map((m, i) => (i === idx ? { ...m, weight } : m)),
+    setBusy(candidateId);
+    setCandidates((cs) =>
+      cs.map((c) =>
+        c.id === candidateId ? { ...c, pipelineStatus: nextStage } : c,
+      ),
     );
-  };
-
-  const handleDeactivate = (idx: number) => {
-    setActiveModules((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleEdit = (idx: number) => {
-    setEditingModule(activeModules[idx]);
-  };
-
-  const handleSaveModule = (updated: ATSModuleState) => {
-    setActiveModules((prev) =>
-      prev.map((m) => (m === editingModule ? updated : m)),
-    );
-    setEditingModule(null);
-  };
-
-  const handleActivatePreset = (preset: (typeof PRESET_MODULES)[0]) => {
-    const alreadyActive = activeModules.some((m) => m.type === preset.type);
-    if (alreadyActive) return;
-    setActiveModules((prev) => [
-      ...prev,
-      buildModuleState({
-        type: preset.type,
-        label: preset.label,
-        isActive: true,
-        weight: 0,
-        order: prev.length,
-        params: preset.defaultParams,
-      }),
-    ]);
-  };
-
-  const handleAddCustom = () => {
-    setActiveModules((prev) => [
-      ...prev,
-      buildModuleState({
-        type: "CUSTOM",
-        label: "Módulo personalizado",
-        isActive: true,
-        weight: 0,
-        order: prev.length,
-        params: {},
-      }),
-    ]);
-  };
-
-  const handleRecalculate = async () => {
-    setScoring(true);
-    try {
-      await fetchWithRefresh(`/api/ats/score/job/${jobId}`, { method: "POST" });
-      await loadCandidates(true);
-    } finally {
-      setScoring(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!weightsOk) return;
-    setSaving(true);
-    setSaveError(null);
-
-    const allModules = activeModules.map((m, i) => ({
-      type: m.type,
-      label: m.label,
-      isActive: true,
-      weight: m.weight,
-      order: i,
-      params: m.params,
-    }));
 
     try {
-      const res = await fetchWithRefresh("/api/ats/config", {
-        method: "POST",
+      const res = await fetchWithRefresh(`/api/ats/pipeline/${candidateId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          internshipId: jobId,
-          isActive: atsActive,
-          modules: allModules,
-        }),
+        body: JSON.stringify({ status: nextStage }),
       });
-
       if (!res.ok) {
-        const err = await res.json();
-        setSaveError(err.error ?? "Error al guardar");
-        return;
+        setCandidates((cs) =>
+          cs.map((c) =>
+            c.id === candidateId
+              ? { ...c, pipelineStatus: prev.pipelineStatus }
+              : c,
+          ),
+        );
+      } else {
+        const data = await res.json();
+        if (data.application) {
+          setCandidates((cs) =>
+            cs.map((c) =>
+              c.id === candidateId
+                ? {
+                    ...c,
+                    pipelineStatus: data.application.pipelineStatus,
+                    status: data.application.status,
+                  }
+                : c,
+            ),
+          );
+        }
       }
-
-      await handleRecalculate();
     } finally {
-      setSaving(false);
+      setBusy(null);
     }
   };
 
-  const inactivePresets = PRESET_MODULES.filter(
-    (p) => !activeModules.some((m) => m.type === p.type),
-  );
+  const toggleSelect = (id: string) => {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
 
-  const ranked = [...candidates].sort((a, b) => {
-    if (a.passedFilters && !b.passedFilters) return -1;
-    if (!a.passedFilters && b.passedFilters) return 1;
-    return (b.atsScore ?? 0) - (a.atsScore ?? 0);
-  });
+  const bulkMove = async (stage: PipelineStatus) => {
+    const ids = Array.from(selected);
+    setSelected(new Set());
+    await Promise.all(ids.map((id) => moveStage(id, stage)));
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#FF6A3D] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return candidates.filter((c) => {
+      if ((c.matchScore ?? 0) < minMatch) return false;
+      if (!q) return true;
+      if (c.student.name.toLowerCase().includes(q)) return true;
+      if (c.student.studentProfile?.university?.toLowerCase().includes(q))
+        return true;
+      if (c.student.studentProfile?.career?.toLowerCase().includes(q))
+        return true;
+      return false;
+    });
+  }, [candidates, query, minMatch]);
 
-  const saveLabel = saving
-    ? "Guardando..."
-    : scoring
-      ? "Calculando..."
-      : "Guardar y calcular";
+  const byStage = useMemo(() => {
+    const map: Record<PipelineStatus, Candidate[]> = {
+      PENDING: [],
+      REVIEWING: [],
+      INTERVIEW: [],
+      ACCEPTED: [],
+      REJECTED: [],
+    };
+    for (const c of filtered) {
+      const s = deriveStage(c);
+      map[s].push(c);
+    }
+    return map;
+  }, [filtered]);
+
+  const totalActive = filtered.filter(
+    (c) => deriveStage(c) !== "REJECTED",
+  ).length;
+
+  const funnel = useMemo(() => {
+    const items = STAGES.map((s) => ({
+      ...s,
+      count: byStage[s.key].length,
+    }));
+    return items;
+  }, [byStage]);
+
+  const activeCandidate = activeId
+    ? candidates.find((c) => c.id === activeId)
+    : null;
+
+  const bulkMode = selected.size > 0;
 
   return (
-    <div className="px-4 md:px-8 py-6 md:py-10">
-      <div className="max-w-screen-xl mx-auto">
-        <div className="mb-6">
+    <div
+      style={{
+        background: E.bg,
+        minHeight: "100%",
+        padding: "20px 24px 80px",
+        fontFamily: "var(--font-onest), ui-sans-serif, system-ui",
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <Header
+        internship={internship}
+        loading={loading}
+        view={view}
+        onChangeView={setView}
+        totalActive={totalActive}
+        totalRejected={byStage.REJECTED.length}
+      />
+
+      <FunnelSummary funnel={funnel} />
+
+      <FilterBar
+        query={query}
+        onQuery={setQuery}
+        minMatch={minMatch}
+        onMinMatch={setMinMatch}
+      />
+
+      {loading ? (
+        <Spinner />
+      ) : view === "kanban" ? (
+        <KanbanBoard
+          byStage={byStage}
+          rejected={byStage.REJECTED}
+          overStage={overStage}
+          onSetOver={setOverStage}
+          onDrop={(id, stage) => {
+            moveStage(id, stage);
+            setOverStage(null);
+          }}
+          onOpenCandidate={setActiveId}
+          onToggleSelect={toggleSelect}
+          selected={selected}
+          bulkMode={bulkMode}
+          busy={busy}
+        />
+      ) : (
+        <TableView
+          candidates={filtered}
+          selected={selected}
+          onToggleSelect={toggleSelect}
+          onOpenCandidate={setActiveId}
+        />
+      )}
+
+      {activeCandidate && (
+        <CandidateDrawer
+          candidate={activeCandidate}
+          onClose={() => setActiveId(null)}
+          onMove={moveStage}
+          onStartChat={startChat}
+          busy={busy === activeCandidate.id}
+          chatBusy={startingChat === activeCandidate.id}
+        />
+      )}
+
+      {bulkMode && (
+        <BulkBar
+          count={selected.size}
+          onClear={() => setSelected(new Set())}
+          onMove={bulkMove}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ───────────────── Header ───────────────── */
+
+function Header({
+  internship,
+  loading,
+  view,
+  onChangeView,
+  totalActive,
+  totalRejected,
+}: {
+  internship: Internship | null;
+  loading: boolean;
+  view: "kanban" | "table";
+  onChangeView: (v: "kanban" | "table") => void;
+  totalActive: number;
+  totalRejected: number;
+}) {
+  return (
+    <header
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 14,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <nav
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 4,
+            fontSize: 11.5,
+            color: E.subtle,
+          }}
+        >
           <Link
             href="/dashboard/empresa"
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#6D6A63] hover:text-[#0A0909] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Volver al dashboard
-          </Link>
-        </div>
-
-        <div className="relative overflow-hidden rounded-[28px] bg-white border border-[#E8E5DD] shadow-[0_8px_32px_-16px_rgba(20,15,10,0.1)] p-6 md:p-8 mb-8">
-          <div
-            className="pointer-events-none absolute -top-24 -right-16 w-[340px] h-[340px] rounded-full opacity-60"
             style={{
-              background:
-                "radial-gradient(closest-side, rgba(255,106,61,0.15), transparent 72%)",
-              filter: "blur(40px)",
+              color: E.subtle,
+              fontWeight: 600,
+              textDecoration: "none",
             }}
-          />
-
-          <div className="relative flex flex-col md:flex-row md:items-start md:justify-between gap-5">
-            <div className="flex-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#FFF0E4] to-[#FFE1CB] border border-[#FFD4B5] mb-3">
-                <Sparkles
-                  className="w-3 h-3 text-[#C2410C]"
-                  strokeWidth={2.4}
-                />
-                <span className="text-[10px] font-bold text-[#9A3412] uppercase tracking-wider">
-                  Configuración ATS
-                </span>
-              </div>
-              <h1 className="text-[28px] md:text-[34px] font-extrabold tracking-tighter text-[#0A0909] leading-[1.05]">
-                Rankeá candidatos con criterios propios
-              </h1>
-              <p className="text-[14px] text-[#6D6A63] mt-2 max-w-xl leading-relaxed">
-                Activá los módulos de evaluación y ajustá sus pesos. El score se
-                recalcula automáticamente cuando guardás.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-stretch md:items-end gap-2.5 flex-shrink-0">
-              <div
-                className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 rounded-xl border tabular-nums ${
-                  weightsOk
-                    ? "bg-[#ECFDF3] text-[#047857] border-[#D1FAE5]"
-                    : "bg-[#FEF2F2] text-[#B91C1C] border-[#FEE2E2]"
-                }`}
-              >
-                Total {totalWeight}% {weightsOk ? "·  ok" : "· debe ser 100%"}
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <Link
-                  href={`/dashboard/empresa/candidatos/${jobId}`}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-[#4A4843] text-[12.5px] font-semibold rounded-xl border border-black/[0.08] hover:border-black/[0.15] hover:text-[#0A0909] transition-all"
-                >
-                  <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
-                  <span className="sm:hidden">Candidatos</span>
-                  <span className="hidden sm:inline">Gestionar candidatos</span>
-                </Link>
-
-                <button
-                  onClick={handleSave}
-                  disabled={!weightsOk || saving || scoring}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white text-[13px] font-bold rounded-xl shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {saveLabel}
-                </button>
-              </div>
-            </div>
-          </div>
+          >
+            Mis prácticas
+          </Link>
+          <Icon name="arr" size={11} color={E.subtle} />
+          <span style={{ color: E.text, fontWeight: 700 }}>Pipeline</span>
+        </nav>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "clamp(1.25rem, 2vw, 1.55rem)",
+              fontWeight: 800,
+              color: E.text,
+              letterSpacing: -0.8,
+              lineHeight: 1.1,
+            }}
+          >
+            {loading
+              ? "Cargando…"
+              : (internship?.title ?? "Práctica no encontrada")}
+          </h1>
         </div>
+        <p style={{ fontSize: 12, color: E.subtle, marginTop: 6 }}>
+          {totalActive} activos · {totalRejected} rechazados
+        </p>
+      </div>
 
-        {saveError && (
-          <div className="flex items-start gap-2.5 mb-6 p-4 bg-[#FEF2F2] border border-[#FEE2E2] rounded-xl">
-            <AlertCircle className="w-4 h-4 text-[#B91C1C] flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-[#B91C1C]">{saveError}</p>
-          </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            background: "rgba(15,23,42,.05)",
+            borderRadius: 9,
+            padding: 3,
+          }}
+        >
+          {(
+            [
+              { k: "kanban", i: "grid", l: "Kanban" },
+              { k: "table", i: "set", l: "Tabla" },
+            ] as const
+          ).map((v) => (
+            <button
+              key={v.k}
+              type="button"
+              onClick={() => onChangeView(v.k)}
+              style={{
+                padding: "6px 11px",
+                background: view === v.k ? E.surface : "transparent",
+                border: "none",
+                borderRadius: 7,
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: view === v.k ? E.text : E.muted,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                boxShadow:
+                  view === v.k ? "0 1px 2px rgba(15,23,42,.08)" : "none",
+              }}
+            >
+              <Icon
+                name={v.i}
+                size={12}
+                color={view === v.k ? E.text : E.muted}
+              />
+              {v.l}
+            </button>
+          ))}
+        </div>
+        {internship && (
+          <Link
+            href={`/dashboard/empresa/ats/${internship.id}/config`}
+            style={{
+              padding: "8px 13px",
+              background: E.surface,
+              border: `1px solid ${E.border}`,
+              color: E.text,
+              borderRadius: 9,
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Icon name="set" size={13} color={E.text} />
+            Scoring
+          </Link>
         )}
+      </div>
+    </header>
+  );
+}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-          <section className="bg-white border border-[#E8E5DD] rounded-[24px] p-5 md:p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider">
-                Módulos activos
-              </h2>
-              {activeModules.length > 0 && (
-                <span className="text-[10px] font-semibold text-[#9B9891] uppercase tracking-wider">
-                  {activeModules.length}{" "}
-                  {activeModules.length === 1 ? "activo" : "activos"}
+/* ───────────────── Funnel Summary ───────────────── */
+
+function FunnelSummary({
+  funnel,
+}: {
+  funnel: Array<{
+    key: PipelineStatus;
+    label: string;
+    color: string;
+    count: number;
+  }>;
+}) {
+  const pct = (n: number, total: number) =>
+    total > 0 ? Math.round((n / total) * 100) : 0;
+
+  return (
+    <section
+      style={{
+        background: E.surface,
+        border: `1px solid ${E.border}`,
+        borderRadius: 14,
+        padding: "12px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexWrap: "wrap",
+      }}
+    >
+      {funnel.map((s, i) => (
+        <Fragment key={s.key}>
+          <div style={{ flex: "1 1 100px", minWidth: 90 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                marginBottom: 3,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: s.color,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: E.subtle,
+                  letterSpacing: 0.3,
+                  textTransform: "uppercase",
+                }}
+              >
+                {s.label}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <span
+                style={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: s.count > 0 ? E.text : E.faint,
+                  letterSpacing: -0.5,
+                }}
+              >
+                {s.count}
+              </span>
+              {i > 0 && s.count > 0 && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: E.subtle,
+                    fontWeight: 700,
+                  }}
+                >
+                  {pct(s.count, funnel[i - 1].count || 1)}%
                 </span>
               )}
             </div>
+          </div>
+          {i < funnel.length - 1 && (
+            <Icon name="arr" size={14} color={E.faint} />
+          )}
+        </Fragment>
+      ))}
+    </section>
+  );
+}
 
-            {activeModules.length === 0 ? (
-              <div className="bg-[#FAFAF8] border border-dashed border-[#E8E5DD] rounded-[16px] p-8 text-center">
-                <p className="text-[13px] text-[#6D6A63]">
-                  Sin módulos activos. Activá desde la columna derecha.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeModules.map((mod, idx) => (
-                  <ModuleCard
-                    key={`${mod.type}-${idx}`}
-                    module={mod}
-                    onEdit={() => handleEdit(idx)}
-                    onDeactivate={() => handleDeactivate(idx)}
-                    onWeightChange={(w) => handleWeightChange(idx, w)}
-                  />
-                ))}
-              </div>
-            )}
+/* ───────────────── Filter Bar ───────────────── */
 
-            {!weightsOk && activeModules.length > 0 && (
-              <p className="mt-3 text-[11px] text-[#B91C1C] font-semibold flex items-center gap-1.5">
-                <AlertCircle className="w-3 h-3" />
-                Los pesos deben sumar 100%. Ahora: {totalWeight}%
-              </p>
-            )}
-          </section>
+function FilterBar({
+  query,
+  onQuery,
+  minMatch,
+  onMinMatch,
+}: {
+  query: string;
+  onQuery: (v: string) => void;
+  minMatch: number;
+  onMinMatch: (v: number) => void;
+}) {
+  return (
+    <section
+      style={{
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          flex: "1 1 240px",
+          maxWidth: 360,
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            display: "flex",
+          }}
+        >
+          <Icon name="search" size={14} color={E.subtle} />
+        </span>
+        <input
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          placeholder="Buscar por nombre, universidad o carrera…"
+          style={{
+            width: "100%",
+            background: E.surface,
+            border: `1px solid ${E.border}`,
+            borderRadius: 9,
+            padding: "8px 12px 8px 34px",
+            fontSize: 12.5,
+            color: E.text,
+            outline: "none",
+            fontFamily: "inherit",
+          }}
+        />
+      </div>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          background: E.surface,
+          border: `1px solid ${E.border}`,
+          borderRadius: 9,
+          padding: "6px 10px",
+        }}
+      >
+        <span style={{ fontSize: 11, color: E.muted, fontWeight: 700 }}>
+          Match ≥
+        </span>
+        <select
+          value={minMatch}
+          onChange={(e) => onMinMatch(Number(e.target.value))}
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            fontSize: 11.5,
+            fontWeight: 700,
+            color: E.text,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          <option value={0}>0%</option>
+          <option value={50}>50%</option>
+          <option value={70}>70%</option>
+          <option value={80}>80%</option>
+          <option value={90}>90%</option>
+        </select>
+      </div>
+      <div
+        style={{
+          marginLeft: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontSize: 11, color: E.subtle, fontWeight: 600 }}>
+          Tip: arrastrá tarjetas entre columnas para mover de etapa
+        </span>
+      </div>
+    </section>
+  );
+}
 
-          <section className="bg-white border border-[#E8E5DD] rounded-[24px] p-5 md:p-6 shadow-sm">
-            <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider mb-4">
-              Módulos disponibles
+/* ───────────────── Kanban Board ───────────────── */
+
+function KanbanBoard({
+  byStage,
+  rejected,
+  overStage,
+  onSetOver,
+  onDrop,
+  onOpenCandidate,
+  onToggleSelect,
+  selected,
+  bulkMode,
+  busy,
+}: {
+  byStage: Record<PipelineStatus, Candidate[]>;
+  rejected: Candidate[];
+  overStage: PipelineStatus | null;
+  onSetOver: (s: PipelineStatus | null) => void;
+  onDrop: (candidateId: string, stage: PipelineStatus) => void;
+  onOpenCandidate: (id: string) => void;
+  onToggleSelect: (id: string) => void;
+  selected: Set<string>;
+  bulkMode: boolean;
+  busy: string | null;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        flex: 1,
+        minHeight: 0,
+        alignItems: "stretch",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          overflowX: "auto",
+          flex: 1,
+          paddingBottom: 8,
+        }}
+      >
+        {STAGES.map((s) => (
+          <Column
+            key={s.key}
+            stage={s}
+            candidates={byStage[s.key]}
+            isOver={overStage === s.key}
+            onSetOver={onSetOver}
+            onDrop={onDrop}
+            onOpenCandidate={onOpenCandidate}
+            onToggleSelect={onToggleSelect}
+            selected={selected}
+            bulkMode={bulkMode}
+            busy={busy}
+          />
+        ))}
+      </div>
+      <Column
+        stage={REJECTED_STAGE}
+        candidates={rejected}
+        isOver={overStage === "REJECTED"}
+        onSetOver={onSetOver}
+        onDrop={onDrop}
+        onOpenCandidate={onOpenCandidate}
+        onToggleSelect={onToggleSelect}
+        selected={selected}
+        bulkMode={bulkMode}
+        busy={busy}
+        compact
+      />
+    </div>
+  );
+}
+
+function Column({
+  stage,
+  candidates,
+  isOver,
+  onSetOver,
+  onDrop,
+  onOpenCandidate,
+  onToggleSelect,
+  selected,
+  bulkMode,
+  busy,
+  compact = false,
+}: {
+  stage: StageDef;
+  candidates: Candidate[];
+  isOver: boolean;
+  onSetOver: (s: PipelineStatus | null) => void;
+  onDrop: (candidateId: string, stage: PipelineStatus) => void;
+  onOpenCandidate: (id: string) => void;
+  onToggleSelect: (id: string) => void;
+  selected: Set<string>;
+  bulkMode: boolean;
+  busy: string | null;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        onSetOver(stage.key);
+      }}
+      onDragLeave={() => onSetOver(null)}
+      onDrop={(e) => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("text/plain");
+        if (id) onDrop(id, stage.key);
+      }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minWidth: compact ? 200 : 240,
+        flex: compact ? "0 0 220px" : "0 0 260px",
+        maxWidth: compact ? 240 : 280,
+        background: isOver ? `${E.accentBg}AA` : "rgba(15,23,42,.025)",
+        borderRadius: 14,
+        padding: "10px 8px",
+        transition: "background .15s",
+        minHeight: 300,
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "2px 6px 10px",
+          gap: 6,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: stage.color,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11.5,
+              fontWeight: 800,
+              color: E.text,
+              letterSpacing: -0.1,
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {stage.label}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: E.subtle,
+              background: E.surface,
+              padding: "1px 7px",
+              borderRadius: 9,
+              border: `1px solid ${E.border}`,
+              flexShrink: 0,
+            }}
+          >
+            {candidates.length}
+          </span>
+        </div>
+      </header>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: "0 4px",
+          overflowY: "auto",
+          flex: 1,
+        }}
+      >
+        {candidates.map((c) => (
+          <CandCard
+            key={c.id}
+            c={c}
+            stage={stage}
+            selected={selected.has(c.id)}
+            onToggleSelect={onToggleSelect}
+            onOpen={onOpenCandidate}
+            bulkMode={bulkMode}
+            dense={compact}
+            busy={busy === c.id}
+          />
+        ))}
+        {candidates.length === 0 && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "24px 12px",
+              fontSize: 11,
+              color: E.subtle,
+              border: `1.5px dashed ${E.border}`,
+              borderRadius: 10,
+            }}
+          >
+            Arrastrá postulantes aquí
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────── Candidate Card ───────────────── */
+
+function CandCard({
+  c,
+  stage,
+  selected,
+  onToggleSelect,
+  onOpen,
+  bulkMode,
+  dense,
+  busy,
+}: {
+  c: Candidate;
+  stage: StageDef;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
+  onOpen: (id: string) => void;
+  bulkMode: boolean;
+  dense: boolean;
+  busy: boolean;
+}) {
+  const match = Math.round(c.matchScore ?? 0);
+  const matchC =
+    match >= 90
+      ? E.green
+      : match >= 75
+        ? E.amber
+        : match >= 60
+          ? E.subtle
+          : E.rose;
+  const matchBg =
+    match >= 90
+      ? E.greenBg
+      : match >= 75
+        ? E.amberBg
+        : match >= 60
+          ? "rgba(15,23,42,.05)"
+          : E.roseBg;
+  const [c1, c2] = avatarColors(c.student.name);
+  const ini = initialsFor(c.student.name);
+  const prof = c.student.studentProfile;
+  const isTop = match >= 90;
+
+  return (
+    <article
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", c.id);
+      }}
+      onClick={() => {
+        if (bulkMode) onToggleSelect(c.id);
+        else onOpen(c.id);
+      }}
+      style={{
+        background: E.surface,
+        border: `1px solid ${selected ? E.accent : E.border}`,
+        borderRadius: 11,
+        padding: dense ? "10px 11px" : "12px 13px",
+        cursor: bulkMode ? "pointer" : "grab",
+        boxShadow: selected
+          ? `0 0 0 3px ${E.accent}30`
+          : "0 1px 2px rgba(15,23,42,.03)",
+        transition: "all .15s",
+        position: "relative",
+        opacity: busy ? 0.6 : 1,
+      }}
+    >
+      {isTop && stage.key !== "REJECTED" && (
+        <span
+          style={{
+            position: "absolute",
+            top: -1,
+            right: 8,
+            fontSize: 9,
+            fontWeight: 900,
+            color: "#fff",
+            background: E.accent,
+            padding: "2px 7px",
+            borderRadius: "0 0 5px 5px",
+            letterSpacing: 0.5,
+          }}
+        >
+          TOP
+        </span>
+      )}
+
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          marginBottom: 8,
+        }}
+      >
+        {bulkMode && (
+          <span
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 4,
+              border: `1.6px solid ${selected ? E.accent : E.faint}`,
+              background: selected ? E.accent : "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {selected && <Icon name="check" size={10} color="#fff" />}
+          </span>
+        )}
+        <Avatar size={32} ini={ini} c1={c1} c2={c2} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 12.5,
+              fontWeight: 800,
+              color: E.text,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {c.student.name}
+          </div>
+          <div
+            style={{
+              fontSize: 10.5,
+              color: E.subtle,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              marginTop: 1,
+            }}
+          >
+            {prof?.university ?? "—"}
+            {prof?.career && ` · ${prof.career}`}
+          </div>
+        </div>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "2px 7px",
+            borderRadius: 6,
+            background: matchBg,
+            color: matchC,
+            fontSize: 11,
+            fontWeight: 900,
+            letterSpacing: -0.2,
+            flexShrink: 0,
+          }}
+        >
+          {match}
+        </span>
+      </header>
+
+      <footer
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          fontSize: 10.5,
+          color: E.subtle,
+          gap: 6,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
+            minWidth: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          }}
+        >
+          <Icon name="cal" size={11} color={E.subtle} />
+          hace {formatInStage(c.createdAt)}
+        </span>
+      </footer>
+    </article>
+  );
+}
+
+/* ───────────────── Drawer (Candidate Quick View) ───────────────── */
+
+function CandidateDrawer({
+  candidate,
+  onClose,
+  onMove,
+  onStartChat,
+  busy,
+  chatBusy,
+}: {
+  candidate: Candidate;
+  onClose: () => void;
+  onMove: (id: string, stage: PipelineStatus) => void;
+  onStartChat: (id: string) => void;
+  busy: boolean;
+  chatBusy: boolean;
+}) {
+  const [c1, c2] = avatarColors(candidate.student.name);
+  const ini = initialsFor(candidate.student.name);
+  const prof = candidate.student.studentProfile;
+  const match = Math.round(candidate.matchScore ?? 0);
+  const currentStage = deriveStage(candidate);
+  const allStages = [...STAGES, REJECTED_STAGE];
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(11,27,63,.5)",
+          zIndex: 60,
+        }}
+      />
+      <aside
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: "min(480px, 95vw)",
+          background: E.surface,
+          zIndex: 61,
+          boxShadow: "-20px 0 40px rgba(11,27,63,.18)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <header
+          style={{
+            padding: "18px 22px",
+            borderBottom: `1px solid ${E.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <Avatar size={48} ini={ini} c1={c1} c2={c2} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: E.text,
+                letterSpacing: -0.4,
+              }}
+            >
+              {candidate.student.name}
             </h2>
+            <p style={{ fontSize: 12, color: E.muted, marginTop: 2 }}>
+              {prof?.university ?? "—"}
+              {prof?.career && ` · ${prof.career}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "rgba(15,23,42,.05)",
+              border: "none",
+              cursor: "pointer",
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon name="x" size={15} color={E.muted} />
+          </button>
+        </header>
 
-            <div className="space-y-3">
-              {inactivePresets.map((preset) => {
-                const Icon = PRESET_LUCIDE[preset.type] ?? Star;
-                return (
-                  <div
-                    key={preset.type}
-                    className="bg-[#FAFAF8] border border-[#E8E5DD] rounded-[16px] p-4 flex items-center gap-3 hover:border-[#FFD4B5] hover:bg-white transition-all"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-white border border-[#E8E5DD] flex items-center justify-center flex-shrink-0">
-                      <Icon
-                        className="w-4 h-4 text-[#4A4843]"
-                        strokeWidth={2.2}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-[#0A0909] tracking-tight">
-                        {preset.label}
-                      </p>
-                      <p className="text-[11.5px] text-[#6D6A63] mt-0.5 leading-snug">
-                        {preset.description}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleActivatePreset(preset)}
-                      className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-[#C2410C] hover:text-white bg-[#FFF0E4] hover:bg-gradient-to-br hover:from-[#FF6A3D] hover:to-[#C2410C] border border-[#FFD4B5] hover:border-transparent px-3 py-1.5 rounded-lg transition-all"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Activar
-                    </button>
-                  </div>
-                );
-              })}
-
-              <button
-                onClick={handleAddCustom}
-                className="w-full flex items-center justify-center gap-2 border border-dashed border-[#FFD4B5] text-[#C2410C] hover:bg-[#FFF4EE] hover:border-[#FF6A3D] rounded-[16px] py-3.5 text-[12.5px] font-semibold transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Crear módulo personalizado
-              </button>
-            </div>
-          </section>
+        <div
+          style={{
+            padding: "14px 22px",
+            borderBottom: `1px solid ${E.border}`,
+            background: "rgba(15,23,42,.02)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10.5,
+              fontWeight: 800,
+              color: E.subtle,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              marginBottom: 7,
+            }}
+          >
+            Mover a etapa
+          </div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {allStages.map((s) => {
+              const active = s.key === currentStage;
+              const isRejected = s.key === "REJECTED";
+              return (
+                <button
+                  key={`${s.key}-${s.label}`}
+                  type="button"
+                  disabled={busy || active}
+                  onClick={() => onMove(candidate.id, s.key)}
+                  style={{
+                    padding: "5px 10px",
+                    background: active ? s.color : "transparent",
+                    border: `1px solid ${active ? s.color : E.border}`,
+                    color: active ? "#fff" : isRejected ? E.rose : E.muted,
+                    borderRadius: 7,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: busy || active ? "default" : "pointer",
+                    opacity: busy ? 0.6 : 1,
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-white border border-[#E8E5DD] flex items-center justify-center shadow-sm">
-                <Users className="w-4 h-4 text-[#FF6A3D]" strokeWidth={2.2} />
+        <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto 1fr",
+              gap: 14,
+              alignItems: "center",
+              marginBottom: 18,
+            }}
+          >
+            <ScoreVis score={match} style="ring" size={72} label={false} />
+            <div>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: E.subtle,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.4,
+                  marginBottom: 3,
+                }}
+              >
+                Match con la práctica
               </div>
-              <div>
-                <h2 className="text-[11px] font-bold text-[#6D6A63] uppercase tracking-wider">
-                  Ranking de candidatos
-                </h2>
-                <p className="text-[11px] text-[#9B9891] mt-0.5">
-                  {candidates.length}{" "}
-                  {candidates.length === 1 ? "postulación" : "postulaciones"}
-                </p>
+              <div
+                style={{
+                  fontSize: 24,
+                  fontWeight: 900,
+                  color: E.text,
+                  letterSpacing: -0.8,
+                  lineHeight: 1,
+                }}
+              >
+                {match}
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: E.muted,
+                    marginLeft: 4,
+                  }}
+                >
+                  /100
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: E.subtle,
+                  fontWeight: 700,
+                  marginTop: 4,
+                }}
+              >
+                Postuló hace {formatInStage(candidate.createdAt)}
               </div>
             </div>
-            {candidates.length > 0 && (
-              <button
-                onClick={handleRecalculate}
-                disabled={scoring}
-                className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#0A0909] bg-white hover:bg-[#F5F4F1] border border-[#E8E5DD] px-3 py-2 rounded-xl shadow-sm transition-all disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 text-[#FF6A3D] ${scoring ? "animate-spin" : ""}`}
-                />
-                {scoring ? "Calculando..." : "Recalcular"}
-              </button>
-            )}
           </div>
 
-          {scoring ? (
-            <div className="bg-white border border-[#E8E5DD] rounded-[24px] p-12 text-center shadow-sm">
-              <div className="w-10 h-10 border-[3px] border-[#FF6A3D] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-[13px] text-[#6D6A63] font-medium">
-                Calculando scores…
-              </p>
-            </div>
-          ) : candidates.length === 0 ? (
-            <div className="bg-white border border-[#E8E5DD] rounded-[24px] p-12 text-center shadow-sm">
-              <div className="inline-flex w-12 h-12 rounded-2xl bg-[#FAFAF8] items-center justify-center mb-3">
-                <Users className="w-5 h-5 text-[#9B9891]" />
+          <section style={{ marginBottom: 18 }}>
+            <h3
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: E.subtle,
+                letterSpacing: 0.4,
+                textTransform: "uppercase",
+                marginBottom: 8,
+              }}
+            >
+              Contacto
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                fontSize: 12.5,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "8px 11px",
+                  background: "rgba(15,23,42,.03)",
+                  borderRadius: 8,
+                }}
+              >
+                <span style={{ color: E.subtle }}>Correo</span>
+                <a
+                  href={`mailto:${candidate.student.email}`}
+                  style={{
+                    color: E.text,
+                    fontWeight: 600,
+                    textDecoration: "none",
+                  }}
+                >
+                  {candidate.student.email}
+                </a>
               </div>
-              <p className="text-[13px] text-[#6D6A63]">
-                Aún no hay postulaciones para esta práctica.
-              </p>
             </div>
-          ) : (
-            <div className="bg-white border border-[#E8E5DD] rounded-[24px] overflow-hidden shadow-sm">
-              {/* Mobile: cards */}
-              <div className="md:hidden divide-y divide-[#F0EDE4]">
-                {ranked.map((c, idx) => {
-                  const pipeline =
-                    PIPELINE_STYLES[c.pipelineStatus] ??
-                    PIPELINE_STYLES.PENDING;
-                  const initial = c.student.name.charAt(0).toUpperCase();
-                  const isDisqualified = !c.passedFilters;
-                  const scoreClass =
-                    c.atsScore !== null
-                      ? c.atsScore >= 80
-                        ? "bg-[#ECFDF3] text-[#047857]"
-                        : c.atsScore >= 60
-                          ? "bg-[#FFF7EC] text-[#B45309]"
-                          : "bg-[#F5F4F1] text-[#6D6A63]"
-                      : "bg-[#F5F4F1] text-[#9B9891]";
+          </section>
 
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => setSelectedCandidate(c)}
-                      className={`p-4 cursor-pointer active:bg-[#FAFAF8] transition-colors ${
-                        isDisqualified ? "opacity-60" : ""
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                          <span className="text-[10.5px] font-bold text-[#9B9891] tabular-nums">
-                            {isDisqualified ? "—" : `#${idx + 1}`}
-                          </span>
-                          <div
-                            className={`w-10 h-10 rounded-full text-white flex items-center justify-center text-[13px] font-bold shadow-sm bg-gradient-to-br ${avatarGradient(
-                              c.student.name,
-                            )}`}
-                          >
-                            {initial}
-                          </div>
-                        </div>
+          {prof?.cvUrl && (
+            <section style={{ marginBottom: 18 }}>
+              <h3
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: E.subtle,
+                  letterSpacing: 0.4,
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Archivos
+              </h3>
+              <a
+                href={prof.cvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 9,
+                  padding: "11px 12px",
+                  background: E.surface,
+                  border: `1px solid ${E.border}`,
+                  borderRadius: 10,
+                  textDecoration: "none",
+                }}
+              >
+                <span
+                  style={{
+                    width: 34,
+                    height: 42,
+                    borderRadius: 5,
+                    background: `linear-gradient(180deg, ${E.accentBg}, ${E.surface})`,
+                    border: `1px solid ${E.accentBdr}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 9,
+                    fontWeight: 900,
+                    color: E.accent,
+                    letterSpacing: 0.5,
+                    flexShrink: 0,
+                  }}
+                >
+                  CV
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: E.text,
+                    }}
+                  >
+                    CV del candidato
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      color: E.subtle,
+                      marginTop: 1,
+                    }}
+                  >
+                    Abrir en pestaña nueva
+                  </div>
+                </div>
+              </a>
+            </section>
+          )}
+        </div>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-bold text-[#0A0909] tracking-tight truncate">
-                            {c.student.name}
-                          </p>
-                          <p className="text-[11px] text-[#9B9891] truncate mt-0.5">
-                            {c.student.studentProfile?.career ??
-                              c.student.email}
-                          </p>
+        <footer
+          style={{
+            padding: "14px 22px",
+            borderTop: `1px solid ${E.border}`,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Chat — habilitado solo en INTERVIEW (regla backend). */}
+          {(() => {
+            const canChat = currentStage === "INTERVIEW";
+            const tooltip = canChat
+              ? "Iniciar conversación con el candidato"
+              : "Disponible cuando el candidato pase a Entrevista";
+            return (
+              <button
+                type="button"
+                disabled={!canChat || chatBusy}
+                onClick={() => onStartChat(candidate.id)}
+                title={tooltip}
+                style={{
+                  padding: "11px 14px",
+                  background: canChat ? E.surface : "rgba(15,23,42,.04)",
+                  border: `1px solid ${canChat ? E.border : "transparent"}`,
+                  color: canChat ? E.text : E.subtle,
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: !canChat || chatBusy ? "not-allowed" : "pointer",
+                  opacity: chatBusy ? 0.6 : 1,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Icon
+                  name="chat"
+                  size={14}
+                  color={canChat ? E.text : E.subtle}
+                />
+                {chatBusy ? "Abriendo…" : "Mensajear"}
+              </button>
+            );
+          })()}
+          {currentStage !== "REJECTED" && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                const idx = STAGES.findIndex((s) => s.key === currentStage);
+                const next = STAGES[idx + 1];
+                if (next) onMove(candidate.id, next.key);
+              }}
+              style={{
+                flex: 1,
+                padding: "11px",
+                background: `linear-gradient(135deg, ${E.accent}, ${E.accentHi})`,
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: busy ? "default" : "pointer",
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              Avanzar etapa
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy || currentStage === "REJECTED"}
+            onClick={() => onMove(candidate.id, "REJECTED")}
+            style={{
+              padding: "11px 14px",
+              background: E.surface,
+              border: `1px solid ${E.border}`,
+              color: E.rose,
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor:
+                busy || currentStage === "REJECTED" ? "default" : "pointer",
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            Descartar
+          </button>
+        </footer>
+      </aside>
+    </>
+  );
+}
 
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                            {isDisqualified ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#B91C1C] bg-[#FEF2F2] border border-[#FEE2E2] px-2 py-0.5 rounded-full">
-                                <AlertCircle className="w-2.5 h-2.5" />
-                                {c.filterReason?.split(":")[0] ??
-                                  "Descalificado"}
-                              </span>
-                            ) : c.atsScore !== null ? (
-                              <span
-                                className={`inline-flex items-center text-[10.5px] font-bold px-2 py-0.5 rounded-full tabular-nums ${scoreClass}`}
-                              >
-                                ATS {c.atsScore}%
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center text-[10px] font-semibold text-[#9B9891] bg-[#FAFAF8] border border-[#E8E5DD] px-2 py-0.5 rounded-full">
-                                Sin calcular
-                              </span>
-                            )}
-                            {c.matchScore !== null && c.matchScore > 0 && (
-                              <span className="inline-flex items-center text-[10.5px] font-semibold text-[#4A4843] bg-[#FAFAF8] border border-[#E8E5DD] px-2 py-0.5 rounded-full tabular-nums">
-                                Match {Math.round(c.matchScore)}%
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex items-center text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${pipeline.className}`}
-                            >
-                              {pipeline.label}
-                            </span>
-                          </div>
-                        </div>
+/* ───────────────── Bulk Bar ───────────────── */
+
+function BulkBar({
+  count,
+  onClear,
+  onMove,
+}: {
+  count: number;
+  onClear: () => void;
+  onMove: (stage: PipelineStatus) => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        bottom: 24,
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: E.dark,
+        color: "#fff",
+        padding: "10px 12px 10px 18px",
+        borderRadius: 14,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        zIndex: 50,
+        boxShadow: "0 20px 50px rgba(11,27,63,.4)",
+        flexWrap: "wrap",
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 800 }}>
+        {count} {count === 1 ? "seleccionado" : "seleccionados"}
+      </span>
+      <span
+        style={{
+          width: 1,
+          height: 20,
+          background: "rgba(255,255,255,.15)",
+        }}
+      />
+      {STAGES.map((s) => (
+        <button
+          key={s.key}
+          type="button"
+          onClick={() => onMove(s.key)}
+          style={{
+            padding: "7px 12px",
+            background: "rgba(255,255,255,.08)",
+            border: "1px solid rgba(255,255,255,.14)",
+            color: "#fff",
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          → {s.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => onMove("REJECTED")}
+        style={{
+          padding: "7px 12px",
+          background: "rgba(190,18,60,.2)",
+          border: "1px solid rgba(190,18,60,.4)",
+          color: "#fff",
+          borderRadius: 8,
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+        }}
+      >
+        <Icon name="x" size={12} color="#fff" />
+        Descartar
+      </button>
+      <span
+        style={{
+          width: 1,
+          height: 20,
+          background: "rgba(255,255,255,.15)",
+        }}
+      />
+      <button
+        type="button"
+        onClick={onClear}
+        style={{
+          padding: "7px 10px",
+          background: "transparent",
+          border: "none",
+          color: "rgba(255,255,255,.6)",
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
+/* ───────────────── Table View ───────────────── */
+
+function TableView({
+  candidates,
+  selected,
+  onToggleSelect,
+  onOpenCandidate,
+}: {
+  candidates: Candidate[];
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onOpenCandidate: (id: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        background: E.surface,
+        border: `1px solid ${E.border}`,
+        borderRadius: 14,
+        overflow: "hidden",
+      }}
+    >
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr
+            style={{
+              background: "rgba(15,23,42,.03)",
+              borderBottom: `1px solid ${E.border}`,
+            }}
+          >
+            {["", "Postulante", "Etapa", "Match", "Postuló"].map((h, i) => (
+              <th
+                key={i}
+                style={{
+                  textAlign: "left",
+                  padding: "10px 14px",
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  color: E.subtle,
+                  letterSpacing: 0.4,
+                  textTransform: "uppercase",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {candidates.map((c) => {
+            const stage = [...STAGES, REJECTED_STAGE].find(
+              (s) => s.key === deriveStage(c),
+            )!;
+            const match = Math.round(c.matchScore ?? 0);
+            const matchC =
+              match >= 90
+                ? E.green
+                : match >= 75
+                  ? E.amber
+                  : match >= 60
+                    ? E.subtle
+                    : E.rose;
+            const [c1, c2] = avatarColors(c.student.name);
+            const ini = initialsFor(c.student.name);
+            const prof = c.student.studentProfile;
+            const isSel = selected.has(c.id);
+            return (
+              <tr
+                key={c.id}
+                onClick={() => onOpenCandidate(c.id)}
+                style={{
+                  borderBottom: `1px solid ${E.border}`,
+                  cursor: "pointer",
+                  transition: "background .15s",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "rgba(15,23,42,.025)")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "transparent")
+                }
+              >
+                <td
+                  style={{ padding: "10px 14px", width: 30 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSelect(c.id);
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      width: 16,
+                      height: 16,
+                      borderRadius: 4,
+                      border: `1.6px solid ${isSel ? E.accent : E.faint}`,
+                      background: isSel ? E.accent : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {isSel && <Icon name="check" size={10} color="#fff" />}
+                  </span>
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                    }}
+                  >
+                    <Avatar size={30} ini={ini} c1={c1} c2={c2} />
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          color: E.text,
+                        }}
+                      >
+                        {c.student.name}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: E.subtle }}>
+                        {prof?.university ?? "—"}
+                        {prof?.career && ` · ${prof.career}`}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop: table */}
-              <table className="hidden md:table w-full">
-                <thead>
-                  <tr className="border-b border-[#E8E5DD] bg-[#FAFAF8]">
-                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5 w-10">
-                      #
-                    </th>
-                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
-                      Candidato
-                    </th>
-                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
-                      Score ATS
-                    </th>
-                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
-                      Match CV
-                    </th>
-                    <th className="text-left text-[10px] font-bold text-[#9B9891] uppercase tracking-wider px-6 py-3.5">
-                      Pipeline
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ranked.map((c, idx) => {
-                    const pipeline =
-                      PIPELINE_STYLES[c.pipelineStatus] ??
-                      PIPELINE_STYLES.PENDING;
-                    const initial = c.student.name.charAt(0).toUpperCase();
-                    const isDisqualified = !c.passedFilters;
-                    const scoreClass =
-                      c.atsScore !== null
-                        ? c.atsScore >= 80
-                          ? "text-[#047857]"
-                          : c.atsScore >= 60
-                            ? "text-[#C2410C]"
-                            : "text-[#6D6A63]"
-                        : "text-[#9B9891]";
-
-                    return (
-                      <tr
-                        key={c.id}
-                        onClick={() => setSelectedCandidate(c)}
-                        className={`border-b border-[#F0EDE4] last:border-0 hover:bg-[#FAFAF8] transition-colors cursor-pointer ${
-                          isDisqualified ? "opacity-60" : ""
-                        }`}
-                      >
-                        <td className="px-6 py-4 text-[12px] font-bold text-[#9B9891] tabular-nums">
-                          {isDisqualified ? "—" : idx + 1}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-[12px] font-bold flex-shrink-0 shadow-sm bg-gradient-to-br ${avatarGradient(
-                                c.student.name,
-                              )}`}
-                            >
-                              {initial}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-bold text-[#0A0909] truncate tracking-tight">
-                                {c.student.name}
-                              </p>
-                              <p className="text-[11px] text-[#9B9891] truncate">
-                                {c.student.studentProfile?.career ??
-                                  c.student.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {isDisqualified ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#B91C1C] bg-[#FEF2F2] border border-[#FEE2E2] px-2 py-1 rounded-lg">
-                              <AlertCircle className="w-3 h-3" />
-                              {c.filterReason?.split(":")[0] ?? "Descalificado"}
-                            </span>
-                          ) : c.atsScore !== null ? (
-                            <span
-                              className={`text-[14px] font-extrabold tabular-nums ${scoreClass}`}
-                            >
-                              {c.atsScore}%
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[#9B9891]">
-                              Sin calcular
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {c.matchScore !== null ? (
-                            <span className="text-[13px] font-semibold text-[#4A4843] tabular-nums">
-                              {Math.round(c.matchScore)}%
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[#C9C6BF]">
-                              —
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${pipeline.className}`}
-                          >
-                            {pipeline.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  </div>
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: stage.color,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: stage.color,
+                      }}
+                    />
+                    {stage.label}
+                  </span>
+                </td>
+                <td style={{ padding: "10px 14px" }}>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 900,
+                      color: matchC,
+                      letterSpacing: -0.3,
+                    }}
+                  >
+                    {match}
+                  </span>
+                </td>
+                <td
+                  style={{
+                    padding: "10px 14px",
+                    fontSize: 11.5,
+                    color: E.muted,
+                  }}
+                >
+                  hace {formatInStage(c.createdAt)}
+                </td>
+              </tr>
+            );
+          })}
+          {candidates.length === 0 && (
+            <tr>
+              <td
+                colSpan={5}
+                style={{
+                  padding: "32px 14px",
+                  textAlign: "center",
+                  fontSize: 12,
+                  color: E.subtle,
+                }}
+              >
+                Sin postulantes que coincidan con los filtros.
+              </td>
+            </tr>
           )}
-        </section>
-      </div>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-      {selectedCandidate && (
-        <ScoreBreakdownModal
-          applicant={{
-            id: selectedCandidate.id,
-            student: selectedCandidate.student,
-            atsScore: selectedCandidate.atsScore,
-            moduleScores: selectedCandidate.moduleScores as Parameters<
-              typeof ScoreBreakdownModal
-            >[0]["applicant"]["moduleScores"],
-            passedFilters: selectedCandidate.passedFilters,
-            filterReason: selectedCandidate.filterReason,
-            pipelineStatus: selectedCandidate.pipelineStatus,
-          }}
-          onClose={() => setSelectedCandidate(null)}
-        />
-      )}
+/* ───────────────── Spinner ───────────────── */
 
-      {editingModule && (
-        <ModuleEditModal
-          module={editingModule}
-          onSave={handleSaveModule}
-          onClose={() => setEditingModule(null)}
-        />
-      )}
+function Spinner() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 40,
+        color: E.muted,
+        fontSize: 13,
+        gap: 10,
+      }}
+    >
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          border: `2px solid ${E.accent}33`,
+          borderTopColor: E.accent,
+          borderRadius: "50%",
+          animation: "ats-spin .9s linear infinite",
+        }}
+      />
+      Cargando pipeline…
+      <style>{`@keyframes ats-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

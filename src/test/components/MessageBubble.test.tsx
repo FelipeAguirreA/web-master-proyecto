@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import MessageBubble from "@/components/chat/MessageBubble";
+import MessageBubble from "@/components/chat/_legacy/MessageBubble";
 
 const BASE_PROPS = {
   content: "Hola, ¿cómo estás?",

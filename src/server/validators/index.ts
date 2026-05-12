@@ -120,6 +120,7 @@ export const createInternshipSchema = z.object({
   location: z.string(),
   modality: z.enum(["REMOTE", "ONSITE", "HYBRID"]),
   duration: z.string(),
+  responsibilities: z.array(z.string()).default([]),
   requirements: z.array(z.string()),
   skills: z.array(z.string()),
 });

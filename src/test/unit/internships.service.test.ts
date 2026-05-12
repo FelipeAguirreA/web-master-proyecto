@@ -160,6 +160,7 @@ describe("createInternship", () => {
     location: "Santiago",
     modality: "REMOTE" as const,
     duration: "3 meses",
+    responsibilities: ["Construir componentes React"],
     requirements: ["Estudiante de último año"],
     skills: ["React"],
   };

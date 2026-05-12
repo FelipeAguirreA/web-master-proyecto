@@ -92,6 +92,17 @@ export async function getMyApplications(studentUserId: string) {
           company: { select: { companyName: true, logo: true } },
         },
       },
+      // Interview programada (1:1). El dashboard estudiante la usa para
+      // mostrar "Próxima entrevista" con fecha/hora real.
+      interview: {
+        select: {
+          id: true,
+          scheduledAt: true,
+          durationMins: true,
+          meetingLink: true,
+          status: true,
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

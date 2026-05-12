@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import ConversationItem from "@/components/chat/ConversationItem";
+import ConversationItem from "@/components/chat/_legacy/ConversationItem";
 
 const NOW = new Date("2026-04-24T15:00:00Z");
 

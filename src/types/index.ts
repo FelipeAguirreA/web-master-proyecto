@@ -40,6 +40,7 @@ export interface Internship {
   location: string;
   modality: "REMOTE" | "ONSITE" | "HYBRID";
   duration: string;
+  responsibilities: string[];
   requirements: string[];
   skills: string[];
   embedding: number[];

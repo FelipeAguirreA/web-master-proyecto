@@ -5,15 +5,18 @@ import { prisma } from "@/server/lib/db";
 import { requireAuth } from "@/server/lib/auth-guard";
 
 const patchSchema = z.object({
-  status: z.enum(["PENDING", "REVIEWING", "INTERVIEW", "REJECTED"]),
+  status: z.enum(["PENDING", "REVIEWING", "INTERVIEW", "ACCEPTED", "REJECTED"]),
 });
 
 // El pipelineStatus (operativo) dicta el status (decisión) para mantenerlos
 // sincronizados: mover una tarjeta en el kanban refleja la decisión final.
+// INTERVIEW se mapea a REVIEWED (sigue en evaluación), y ACCEPTED es la
+// columna explícita "Aprobado" donde se confirma la decisión final.
 const PIPELINE_TO_STATUS = {
   PENDING: "PENDING",
   REVIEWING: "REVIEWED",
-  INTERVIEW: "ACCEPTED",
+  INTERVIEW: "REVIEWED",
+  ACCEPTED: "ACCEPTED",
   REJECTED: "REJECTED",
 } as const;
 
