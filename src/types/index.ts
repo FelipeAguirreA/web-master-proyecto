@@ -48,15 +48,3 @@ export interface Internship {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export interface Application {
-  id: string;
-  studentId: string;
-  internshipId: string;
-  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
-  pipelineStatus?: "PENDING" | "REVIEWING" | "INTERVIEW" | "REJECTED";
-  matchScore?: number | null;
-  coverLetter?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}

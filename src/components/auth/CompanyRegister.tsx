@@ -462,7 +462,7 @@ export function CompanyRegister({ onSuccess }: Props) {
         </div>
       )}
 
-      <SubmitButton loading={loading}>Crear cuenta empresa →</SubmitButton>
+      <SubmitButton loading={loading}>Crear cuenta empresa</SubmitButton>
 
       <p
         style={{

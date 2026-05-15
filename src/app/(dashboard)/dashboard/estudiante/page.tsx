@@ -272,6 +272,7 @@ export default function StudentDashboard() {
 
   const [recs, setRecs] = useState<ApiInternship[]>([]);
   const [apps, setApps] = useState<ApiApplication[]>([]);
+  const [savedInternships, setSavedInternships] = useState<ApiInternship[]>([]);
   const [user, setUser] = useState<ApiUser | null>(null);
   const [conversations, setConversations] = useState<ApiConversation[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -314,7 +315,16 @@ export default function StudentDashboard() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d: ApiConversation[]) => setConversations(d ?? []))
       .catch(() => setConversations([]));
+    fetchWithRefresh("/api/internships/saved", init)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: ApiInternship[]) => setSavedInternships(d ?? []))
+      .catch(() => setSavedInternships([]));
   }, [session]);
+
+  const savedCards = useMemo(
+    () => savedInternships.slice(0, 6).map(toPracticaCard),
+    [savedInternships],
+  );
 
   const cards = useMemo(() => recs.slice(0, 6).map(toPracticaCard), [recs]);
   const featured = cards[0] ?? null;
@@ -589,7 +599,7 @@ export default function StudentDashboard() {
                       href="/perfil"
                       style={{ color: D.accent, fontWeight: 700 }}
                     >
-                      Ir al perfil →
+                      Ir al perfil
                     </a>
                   </>
                 )}
@@ -616,6 +626,29 @@ export default function StudentDashboard() {
               </>
             )}
           </section>
+
+          {savedCards.length > 0 && (
+            <section>
+              <SectionHead
+                title="Mis guardadas"
+                sub={`${savedInternships.length} práctica${savedInternships.length === 1 ? "" : "s"} que marcaste para revisar después`}
+                action={{ label: "Ver todas", href: "/practicas/guardadas" }}
+              />
+              <div
+                className="practix-recs-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2,1fr)",
+                  gap: 14,
+                }}
+              >
+                {savedCards.map((p) => (
+                  <PracticaCard key={p.id} p={p} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {appsLoading ? (
             <PipelineSkeleton />
           ) : (

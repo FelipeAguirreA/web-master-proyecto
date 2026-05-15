@@ -14,9 +14,14 @@ vi.mock("@/server/lib/cv-parser", () => ({
 vi.mock("@/server/lib/embeddings", () => ({
   generateEmbedding: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
   calculateMatchScore: vi.fn(),
+  calculateHybridMatchScore: vi.fn(),
+  computeSkillOverlap: vi.fn(),
 }));
 
-import { calculateMatchScore } from "@/server/lib/embeddings";
+import {
+  calculateMatchScore,
+  calculateHybridMatchScore,
+} from "@/server/lib/embeddings";
 import { uploadFile } from "@/server/lib/storage";
 import { extractTextFromCV } from "@/server/lib/cv-parser";
 import { generateEmbedding } from "@/server/lib/embeddings";
@@ -81,13 +86,16 @@ describe("calculateMatchScore — implementación real", () => {
 describe("getRecommendations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: estudiante sin postulaciones previas (no excluye nada).
+    prismaMock.application.findMany.mockResolvedValue([]);
   });
 
-  it("retorna lista vacía si el estudiante no tiene embedding", async () => {
+  it("retorna lista vacía si el estudiante no tiene embedding NI skills declaradas", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       id: "sp-1",
       userId: "user-1",
       embedding: [],
+      skills: [],
     });
 
     const result = await getRecommendations("user-1");
@@ -97,6 +105,7 @@ describe("getRecommendations", () => {
   it("retorna lista vacía si no hay prácticas activas con embedding", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [0.1, 0.2, 0.3],
+      skills: [],
     });
 
     prismaMock.internship.findMany.mockResolvedValue([]);
@@ -108,6 +117,7 @@ describe("getRecommendations", () => {
   it("ordena las prácticas por matchScore de mayor a menor", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [1, 0, 0],
+      skills: [],
     });
 
     prismaMock.internship.findMany.mockResolvedValue([
@@ -115,23 +125,26 @@ describe("getRecommendations", () => {
         id: "int-1",
         title: "A",
         embedding: [0.5, 0.5, 0],
+        skills: [],
         company: { companyName: "Co" },
       },
       {
         id: "int-2",
         title: "B",
         embedding: [1, 0, 0],
+        skills: [],
         company: { companyName: "Co" },
       },
       {
         id: "int-3",
         title: "C",
         embedding: [0.1, 0.9, 0],
+        skills: [],
         company: { companyName: "Co" },
       },
     ]);
 
-    vi.mocked(calculateMatchScore)
+    vi.mocked(calculateHybridMatchScore)
       .mockReturnValueOnce(50)
       .mockReturnValueOnce(100)
       .mockReturnValueOnce(30);
@@ -146,6 +159,7 @@ describe("getRecommendations", () => {
   it("no incluye el campo embedding en los resultados", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [1, 0, 0],
+      skills: [],
     });
 
     prismaMock.internship.findMany.mockResolvedValue([
@@ -153,11 +167,12 @@ describe("getRecommendations", () => {
         id: "int-1",
         title: "A",
         embedding: [1, 0, 0],
+        skills: [],
         company: { companyName: "Co" },
       },
     ]);
 
-    vi.mocked(calculateMatchScore).mockReturnValue(80);
+    vi.mocked(calculateHybridMatchScore).mockReturnValue(80);
 
     const result = await getRecommendations("user-1");
 
@@ -167,26 +182,29 @@ describe("getRecommendations", () => {
   it("limita los resultados a 20", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [1, 0, 0],
+      skills: [],
     });
 
     const manyInternships = Array.from({ length: 30 }, (_, i) => ({
       id: `int-${i}`,
       title: `Práctica ${i}`,
       embedding: [1, 0, 0],
+      skills: [],
       company: { companyName: "Co" },
     }));
 
     prismaMock.internship.findMany.mockResolvedValue(manyInternships);
-    vi.mocked(calculateMatchScore).mockReturnValue(75);
+    vi.mocked(calculateHybridMatchScore).mockReturnValue(75);
 
     const result = await getRecommendations("user-1");
 
     expect(result.length).toBeLessThanOrEqual(20);
   });
 
-  it("filtra prácticas con matchScore 0 (embedding vacío)", async () => {
+  it("filtra prácticas con matchScore 0 (sin embedding ni skill match)", async () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [1, 0, 0],
+      skills: [],
     });
 
     prismaMock.internship.findMany.mockResolvedValue([
@@ -194,23 +212,98 @@ describe("getRecommendations", () => {
         id: "int-with-emb",
         title: "Con embedding",
         embedding: [1, 0, 0],
+        skills: [],
         company: { companyName: "Co" },
       },
       {
         id: "int-no-emb",
         title: "Sin embedding",
         embedding: [],
+        skills: [],
         company: { companyName: "Co" },
       },
     ]);
 
-    vi.mocked(calculateMatchScore).mockReturnValue(80);
+    vi.mocked(calculateHybridMatchScore)
+      .mockReturnValueOnce(80)
+      .mockReturnValueOnce(0);
 
     const result = await getRecommendations("user-1");
 
-    // Solo se incluye la que tiene embedding (matchScore > 0)
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("int-with-emb");
+  });
+
+  it("excluye las prácticas a las que el estudiante ya postuló", async () => {
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [1, 0, 0],
+      skills: [],
+    });
+
+    prismaMock.application.findMany.mockResolvedValue([
+      { internshipId: "int-applied" },
+    ]);
+
+    prismaMock.internship.findMany.mockResolvedValue([
+      {
+        id: "int-fresh",
+        title: "Fresca",
+        embedding: [1, 0, 0],
+        skills: [],
+        company: { companyName: "Co" },
+      },
+    ]);
+
+    vi.mocked(calculateHybridMatchScore).mockReturnValue(80);
+
+    await getRecommendations("user-1");
+
+    expect(prismaMock.internship.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { notIn: ["int-applied"] },
+        }),
+      }),
+    );
+  });
+
+  it("no filtra por id cuando el estudiante no tiene postulaciones previas", async () => {
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [1, 0, 0],
+      skills: [],
+    });
+
+    prismaMock.application.findMany.mockResolvedValue([]);
+    prismaMock.internship.findMany.mockResolvedValue([]);
+
+    await getRecommendations("user-1");
+
+    const call = prismaMock.internship.findMany.mock.calls[0][0];
+    expect(call.where).not.toHaveProperty("id");
+  });
+
+  it("incluye recomendaciones si el estudiante tiene skills declaradas (sin CV)", async () => {
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [],
+      skills: ["React", "TypeScript"],
+    });
+
+    prismaMock.internship.findMany.mockResolvedValue([
+      {
+        id: "int-1",
+        title: "Frontend",
+        embedding: [],
+        skills: ["React", "TypeScript"],
+        company: { companyName: "Co" },
+      },
+    ]);
+
+    vi.mocked(calculateHybridMatchScore).mockReturnValue(100);
+
+    const result = await getRecommendations("user-1");
+
+    expect(result).toHaveLength(1);
+    expect(result[0].matchScore).toBe(100);
   });
 });
 

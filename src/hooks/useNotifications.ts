@@ -8,7 +8,9 @@ type AppNotification = {
   type:
     | "APPLICATION_REVIEWED"
     | "APPLICATION_ACCEPTED"
-    | "APPLICATION_REJECTED";
+    | "APPLICATION_REJECTED"
+    | "NEW_APPLICATION"
+    | "NEW_MESSAGE";
   title: string;
   body: string;
   read: boolean;

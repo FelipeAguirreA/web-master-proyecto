@@ -552,26 +552,51 @@ describe("sendMessage", () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       ...mockConversationRow,
       messages: [],
+      // Mensaje de empresa → service crea NEW_MESSAGE para estudiante.
+      student: { name: "María" },
+      company: {
+        name: "Juan",
+        companyProfile: { companyName: "TechCorp" },
+      },
+      application: { internship: { title: "Practicante Frontend" } },
     });
     prismaMock.message.create.mockResolvedValue(mockMessageCreated);
     prismaMock.conversation.update.mockResolvedValue(mockConversationRow);
+    prismaMock.notification.findFirst.mockResolvedValue(null);
 
     const result = await sendMessage(CONVERSATION_ID, COMPANY_USER_ID, "Hola");
 
     expect(result).toEqual(mockMessageCreated);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.notification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: STUDENT_USER_ID,
+          type: "NEW_MESSAGE",
+          entityId: CONVERSATION_ID,
+        }),
+      }),
+    );
   });
 
   it("permite al estudiante responder si ya hay mensajes en la conversación", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       ...mockConversationRow,
       messages: [{ id: "msg-prev", senderId: COMPANY_USER_ID }],
+      // Mensaje de estudiante → service crea NEW_MESSAGE para empresa.
+      student: { name: "María" },
+      company: {
+        name: "Juan",
+        companyProfile: { companyName: "TechCorp" },
+      },
+      application: { internship: { title: "Practicante Frontend" } },
     });
     prismaMock.message.create.mockResolvedValue({
       ...mockMessageCreated,
       senderId: STUDENT_USER_ID,
     });
     prismaMock.conversation.update.mockResolvedValue(mockConversationRow);
+    prismaMock.notification.findFirst.mockResolvedValue(null);
 
     const result = await sendMessage(
       CONVERSATION_ID,
@@ -581,15 +606,31 @@ describe("sendMessage", () => {
 
     expect(result.senderId).toBe(STUDENT_USER_ID);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaMock.notification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: COMPANY_USER_ID,
+          type: "NEW_MESSAGE",
+          entityId: CONVERSATION_ID,
+        }),
+      }),
+    );
   });
 
   it("usa $transaction para crear mensaje y bumpear updatedAt en una sola operación atómica", async () => {
     prismaMock.conversation.findUnique.mockResolvedValue({
       ...mockConversationRow,
       messages: [{ id: "msg-prev", senderId: COMPANY_USER_ID }],
+      student: { name: "María" },
+      company: {
+        name: "Juan",
+        companyProfile: { companyName: "TechCorp" },
+      },
+      application: { internship: { title: "Practicante Frontend" } },
     });
     prismaMock.message.create.mockResolvedValue(mockMessageCreated);
     prismaMock.conversation.update.mockResolvedValue(mockConversationRow);
+    prismaMock.notification.findFirst.mockResolvedValue(null);
 
     await sendMessage(CONVERSATION_ID, COMPANY_USER_ID, "Otro mensaje");
 

@@ -153,7 +153,7 @@ export function Welcome({
                 textDecoration: "none",
               }}
             >
-              Ver matches del día →
+              Ver matches del día
             </Link>
             <Link
               href="/perfil"

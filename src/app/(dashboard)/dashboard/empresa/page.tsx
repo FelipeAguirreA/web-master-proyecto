@@ -221,6 +221,7 @@ export default function CompanyDashboard() {
       if (res.ok) {
         setInternships((prev) => prev.filter((i) => i.id !== id));
         setApplicantsByInt((prev) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { [id]: _omit, ...rest } = prev;
           return rest;
         });
@@ -1436,7 +1437,14 @@ function ApplicantRow({
         borderTop: first ? "none" : `1px solid ${E.border}`,
       }}
     >
-      <Avatar size={38} ini={ini} c1={c1} c2={c2} />
+      <Avatar
+        size={38}
+        ini={ini}
+        c1={c1}
+        c2={c2}
+        src={a.student.image}
+        alt={a.student.name}
+      />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
@@ -1849,7 +1857,14 @@ function InboxMini({
                   (e.currentTarget.style.background = "transparent")
                 }
               >
-                <Avatar size={32} ini={ini} c1={c1} c2={c2} />
+                <Avatar
+                  size={32}
+                  ini={ini}
+                  c1={c1}
+                  c2={c2}
+                  src={c.student?.image}
+                  alt={name}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{

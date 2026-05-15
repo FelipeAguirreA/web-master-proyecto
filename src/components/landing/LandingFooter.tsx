@@ -1,6 +1,40 @@
 import Link from "next/link";
 import { C } from "./tokens";
 
+// Variante chica del footer: solo copyright + "Hecho con ♥ en Chile".
+// Pensado para páginas donde el footer grande (con columnas de navegación)
+// distrae del contenido — legal, errores, flujos de auth.
+export function LandingFooterMini() {
+  return (
+    <footer
+      style={{
+        background: C.bgAlt,
+        borderTop: `1px solid ${C.border}`,
+        padding: "20px 32px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        <p style={{ fontSize: 12.5, color: C.subtle, margin: 0 }}>
+          © {new Date().getFullYear()} PractiX · Todos los derechos reservados
+        </p>
+        <p style={{ fontSize: 12.5, color: C.subtle, margin: 0 }}>
+          Hecho con <span style={{ color: C.accent }}>♥</span> en Chile
+        </p>
+      </div>
+    </footer>
+  );
+}
+
 const COLS = [
   {
     title: "Producto",

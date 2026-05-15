@@ -86,22 +86,14 @@ export function PerfilHero({
         }}
       >
         <div style={{ position: "relative", flexShrink: 0 }}>
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={image}
-              alt={fullName}
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid rgba(255,255,255,.08)",
-              }}
-            />
-          ) : (
-            <Avatar ini={initial} size={88} c1={D.accentLo} c2={D.accent} />
-          )}
+          <Avatar
+            ini={initial}
+            size={88}
+            c1={D.accentLo}
+            c2={D.accent}
+            src={image}
+            alt={fullName}
+          />
           <button
             type="button"
             title="Cambiar foto"

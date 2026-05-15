@@ -10,6 +10,7 @@ import {
   Folder,
   Star,
 } from "lucide-react";
+import { Avatar } from "@/components/dashboard/atoms/Avatar";
 
 interface ModuleScore {
   moduleId: string;
@@ -104,18 +105,12 @@ export default function ScoreBreakdownModal({
         {/* Header */}
         <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 px-4 sm:px-6 py-4 sm:py-5 border-b border-black/[0.05] flex items-center justify-between gap-3 rounded-t-[24px]">
           <div className="flex items-center gap-3">
-            {applicant.student.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={applicant.student.image}
-                alt={applicant.student.name}
-                className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-[0_4px_12px_-3px_rgba(20,15,10,0.2)]"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center font-bold text-[15px] shadow-[0_4px_12px_-3px_rgba(255,106,61,0.45)]">
-                {initial}
-              </div>
-            )}
+            <Avatar
+              ini={initial}
+              size={44}
+              src={applicant.student.image}
+              alt={applicant.student.name}
+            />
             <div className="min-w-0">
               <p className="text-[14.5px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
                 {applicant.student.name}

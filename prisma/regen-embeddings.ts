@@ -18,7 +18,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { config } from "dotenv";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 
 const rawUrl = new URL(process.env.DATABASE_URL!);
 rawUrl.searchParams.delete("sslmode");

@@ -79,6 +79,7 @@ export async function getInternshipById(id: string) {
           logo: true,
           industry: true,
           website: true,
+          description: true,
         },
       },
     },

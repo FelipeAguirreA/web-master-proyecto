@@ -31,7 +31,7 @@ const PIPELINE_BADGE: Record<
   INTERVIEW: { label: "Entrevista", bg: D.accentBg, fg: D.accent },
 };
 
-export type ApplicationModalData = {
+type ApplicationModalData = {
   id: string;
   status: string;
   pipelineStatus?: string | null;
@@ -474,7 +474,7 @@ export function ApplicationDetailModal({
               boxShadow: `0 6px 18px ${D.accent}55`,
             }}
           >
-            Ver práctica completa →
+            Ver práctica completa
           </Link>
         </div>
       </div>

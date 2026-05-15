@@ -140,7 +140,7 @@ export function CompanyLogin({ callbackUrl }: Props) {
         </div>
       )}
 
-      <SubmitButton loading={loading}>Entrar a mi empresa →</SubmitButton>
+      <SubmitButton loading={loading}>Entrar a mi empresa</SubmitButton>
     </form>
   );
 }

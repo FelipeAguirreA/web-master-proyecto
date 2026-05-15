@@ -143,7 +143,7 @@ export function LandingCTA() {
                   transition: "transform .25s,box-shadow .25s",
                 }}
               >
-                Soy estudiante →
+                Soy estudiante
               </Link>
               <Link
                 href="/login?role=company"
@@ -163,7 +163,7 @@ export function LandingCTA() {
                   transition: "background .2s",
                 }}
               >
-                Soy empresa →
+                Soy empresa
               </Link>
             </div>
             <p

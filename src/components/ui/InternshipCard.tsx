@@ -163,9 +163,6 @@ export default function InternshipCard({
             <span className="font-medium text-[#4A4843]">{modality}</span>
           </>
         )}
-        <span className="ml-auto text-[11px] text-[#9B9891] group-hover:text-[#FF6A3D] transition-colors">
-          →
-        </span>
       </div>
     </Link>
   );

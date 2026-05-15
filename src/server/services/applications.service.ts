@@ -1,10 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/server/lib/db";
-import { calculateMatchScore } from "@/server/lib/embeddings";
-import {
-  sendNewApplicationEmail,
-  sendStatusUpdateEmail,
-} from "@/server/lib/mail";
+import { calculateHybridMatchScore } from "@/server/lib/embeddings";
+import { sendNewApplicationEmail } from "@/server/lib/mail";
 
 export async function applyToInternship(
   studentUserId: string,
@@ -31,10 +28,24 @@ export async function applyToInternship(
       select: { name: true },
     });
 
-    let matchScore: number | null = null;
-    if (student?.embedding.length && internship.embedding.length) {
-      matchScore = calculateMatchScore(student.embedding, internship.embedding);
-    }
+    // Score híbrido: combina similitud semántica del CV (70%) con overlap
+    // de skills declaradas en el perfil (30%). Estudiantes sin CV pero
+    // con skills declaradas pueden obtener score > 0 — antes era 0.
+    // matchScore queda null si no hay NADA con qué calcular (sin CV ni
+    // skills declaradas), para distinguir "no calculable" de "calculé 0%".
+    const hasEmbedding =
+      (student?.embedding.length ?? 0) > 0 && internship.embedding.length > 0;
+    const hasSkillsInfo =
+      (student?.skills.length ?? 0) > 0 && internship.skills.length > 0;
+    const matchScore =
+      hasEmbedding || hasSkillsInfo
+        ? calculateHybridMatchScore(
+            student?.embedding ?? [],
+            internship.embedding,
+            student?.skills ?? [],
+            internship.skills,
+          )
+        : null;
 
     const application = await prisma.application.create({
       data: {
@@ -42,6 +53,17 @@ export async function applyToInternship(
         internshipId,
         coverLetter,
         matchScore,
+      },
+    });
+
+    // Notificación in-app para la empresa (campanita del topbar).
+    await prisma.notification.create({
+      data: {
+        userId: internship.company.userId,
+        type: "NEW_APPLICATION",
+        title: "Nueva postulación",
+        body: `${studentUser?.name ?? "Un estudiante"} postuló a "${internship.title}".`,
+        entityId: application.id,
       },
     });
 
@@ -213,38 +235,4 @@ export async function updateApplicationStatus(
   }
 
   return updated;
-}
-
-export async function notifyRejectedApplication(
-  applicationId: string,
-  companyUserId: string,
-) {
-  const app = await findOwnedApplication(applicationId, companyUserId);
-  if (!app) throw new Error("Not found or not authorized");
-  if (app.status !== "REJECTED")
-    throw new Error("La postulación no está rechazada");
-
-  await sendStatusUpdateEmail(
-    app.student.email,
-    app.student.name,
-    app.internship.title,
-    "REJECTED",
-  );
-}
-
-export async function notifyAcceptedApplication(
-  applicationId: string,
-  companyUserId: string,
-) {
-  const app = await findOwnedApplication(applicationId, companyUserId);
-  if (!app) throw new Error("Not found or not authorized");
-  if (app.status !== "ACCEPTED")
-    throw new Error("La postulación no está aceptada");
-
-  await sendStatusUpdateEmail(
-    app.student.email,
-    app.student.name,
-    app.internship.title,
-    "ACCEPTED",
-  );
 }

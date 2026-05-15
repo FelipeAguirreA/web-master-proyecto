@@ -25,6 +25,7 @@ type StudentProfile = {
 type Candidate = {
   id: string;
   matchScore: number;
+  atsScore: number | null;
   status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
   pipelineStatus?: PipelineStatus | null;
   createdAt: string;
@@ -249,7 +250,10 @@ export default function ATSKanbanPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return candidates.filter((c) => {
-      if ((c.matchScore ?? 0) < minMatch) return false;
+      // Filtro por Scoring ATS (no por matchScore semántico). Si el ATS aún
+      // no se calculó (atsScore=null), sólo pasa cuando el umbral es 0 — sin
+      // valor no podemos garantizar que cumpla el corte que pidió el admin.
+      if (minMatch > 0 && (c.atsScore ?? -1) < minMatch) return false;
       if (!q) return true;
       if (c.student.name.toLowerCase().includes(q)) return true;
       if (c.student.studentProfile?.university?.toLowerCase().includes(q))
@@ -512,7 +516,7 @@ function Header({
             }}
           >
             <Icon name="set" size={13} color={E.text} />
-            Scoring
+            Scoring ATS
           </Link>
         )}
       </div>
@@ -681,7 +685,7 @@ function FilterBar({
         }}
       >
         <span style={{ fontSize: 11, color: E.muted, fontWeight: 700 }}>
-          Match ≥
+          ATS ≥
         </span>
         <select
           value={minMatch}
@@ -967,27 +971,25 @@ function CandCard({
   dense: boolean;
   busy: boolean;
 }) {
-  const match = Math.round(c.matchScore ?? 0);
+  // Badge de las cards: mostramos el Scoring ATS (no el matchScore semántico
+  // del CV). Tres tramos visibles (verde / ámbar / rojo) + gris sólo cuando
+  // todavía no se calculó. Sin un tramo "gris a medias" — todo score con
+  // valor tiene color para que se distinga de un vistazo.
+  const ats = c.atsScore != null ? Math.round(c.atsScore) : null;
   const matchC =
-    match >= 90
-      ? E.green
-      : match >= 75
-        ? E.amber
-        : match >= 60
-          ? E.subtle
-          : E.rose;
+    ats == null ? E.subtle : ats >= 80 ? E.green : ats >= 50 ? E.amber : E.rose;
   const matchBg =
-    match >= 90
-      ? E.greenBg
-      : match >= 75
-        ? E.amberBg
-        : match >= 60
-          ? "rgba(15,23,42,.05)"
+    ats == null
+      ? "rgba(15,23,42,.05)"
+      : ats >= 80
+        ? E.greenBg
+        : ats >= 50
+          ? E.amberBg
           : E.roseBg;
   const [c1, c2] = avatarColors(c.student.name);
   const ini = initialsFor(c.student.name);
   const prof = c.student.studentProfile;
-  const isTop = match >= 90;
+  const isTop = ats != null && ats >= 90;
 
   return (
     <article
@@ -1058,7 +1060,14 @@ function CandCard({
             {selected && <Icon name="check" size={10} color="#fff" />}
           </span>
         )}
-        <Avatar size={32} ini={ini} c1={c1} c2={c2} />
+        <Avatar
+          size={32}
+          ini={ini}
+          c1={c1}
+          c2={c2}
+          src={c.student.image}
+          alt={c.student.name}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -1100,7 +1109,7 @@ function CandCard({
             flexShrink: 0,
           }}
         >
-          {match}
+          {ats != null ? `${ats}%` : "—"}
         </span>
       </header>
 
@@ -1191,7 +1200,14 @@ function CandidateDrawer({
             gap: 12,
           }}
         >
-          <Avatar size={48} ini={ini} c1={c1} c2={c2} />
+          <Avatar
+            size={48}
+            ini={ini}
+            c1={c1}
+            c2={c2}
+            src={candidate.student.image}
+            alt={candidate.student.name}
+          />
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2
               style={{
@@ -1332,6 +1348,86 @@ function CandidateDrawer({
               </div>
             </div>
           </div>
+
+          {/* Scoring ATS — score según los pesos configurados en
+              /ats/[jobId]/config. Mismo formato visual que el Match con IA. */}
+          {(() => {
+            const ats =
+              candidate.atsScore != null
+                ? Math.round(candidate.atsScore)
+                : null;
+            const hint =
+              ats == null
+                ? "Sin calcular · usá Recalcular desde Scoring ATS."
+                : ats >= 70
+                  ? "Cumple bien los filtros configurados."
+                  : ats >= 40
+                    ? "Cumple parcialmente — revisar."
+                    : "Pocos filtros cumplidos.";
+            return (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  gap: 14,
+                  alignItems: "center",
+                  marginBottom: 18,
+                }}
+              >
+                <ScoreVis
+                  score={ats ?? 0}
+                  style="ring"
+                  size={72}
+                  label={false}
+                />
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: E.subtle,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.4,
+                      marginBottom: 3,
+                    }}
+                  >
+                    Scoring ATS
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 24,
+                      fontWeight: 900,
+                      color: E.text,
+                      letterSpacing: -0.8,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {ats ?? "—"}
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: E.muted,
+                        marginLeft: 4,
+                      }}
+                    >
+                      /100
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: E.subtle,
+                      fontWeight: 700,
+                      marginTop: 4,
+                    }}
+                  >
+                    {hint}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           <section style={{ marginBottom: 18 }}>
             <h3
@@ -1602,7 +1698,7 @@ function BulkBar({
             cursor: "pointer",
           }}
         >
-          → {s.label}
+          {s.label}
         </button>
       ))}
       <button
@@ -1704,14 +1800,17 @@ function TableView({
             const stage = [...STAGES, REJECTED_STAGE].find(
               (s) => s.key === deriveStage(c),
             )!;
-            const match = Math.round(c.matchScore ?? 0);
+            // Columna "Score" de la tabla: igual que las cards del board,
+            // pintamos el Scoring ATS (no el matchScore semántico). Tramos
+            // alineados con la card (verde ≥80, ámbar ≥50, rojo el resto).
+            const ats = c.atsScore != null ? Math.round(c.atsScore) : null;
             const matchC =
-              match >= 90
-                ? E.green
-                : match >= 75
-                  ? E.amber
-                  : match >= 60
-                    ? E.subtle
+              ats == null
+                ? E.subtle
+                : ats >= 80
+                  ? E.green
+                  : ats >= 50
+                    ? E.amber
                     : E.rose;
             const [c1, c2] = avatarColors(c.student.name);
             const ini = initialsFor(c.student.name);
@@ -1763,7 +1862,14 @@ function TableView({
                       gap: 9,
                     }}
                   >
-                    <Avatar size={30} ini={ini} c1={c1} c2={c2} />
+                    <Avatar
+                      size={30}
+                      ini={ini}
+                      c1={c1}
+                      c2={c2}
+                      src={c.student.image}
+                      alt={c.student.name}
+                    />
                     <div>
                       <div
                         style={{
@@ -1812,7 +1918,7 @@ function TableView({
                       letterSpacing: -0.3,
                     }}
                   >
-                    {match}
+                    {ats != null ? `${ats}%` : "—"}
                   </span>
                 </td>
                 <td

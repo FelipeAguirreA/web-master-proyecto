@@ -19,6 +19,11 @@ const STUDENT_NAV: NavItem[] = [
   { icon: "home", label: "Inicio", href: "/dashboard/estudiante" },
   { icon: "search", label: "Prácticas", href: "/practicas" },
   {
+    icon: "heart",
+    label: "Guardadas",
+    href: "/practicas/guardadas",
+  },
+  {
     icon: "flag",
     label: "Mis postulaciones",
     href: "/dashboard/estudiante#postulaciones",
@@ -29,7 +34,6 @@ const STUDENT_NAV: NavItem[] = [
     href: "/dashboard/estudiante/inbox",
   },
   { icon: "cal", label: "Agenda", href: "/dashboard/estudiante#agenda" },
-  { icon: "user", label: "Mi perfil", href: "/perfil" },
 ];
 
 const COMPANY_NAV: NavItem[] = [
@@ -41,7 +45,6 @@ const COMPANY_NAV: NavItem[] = [
     href: "/dashboard/empresa/calendar",
   },
   { icon: "chat", label: "Mensajes", href: "/dashboard/empresa/inbox" },
-  { icon: "user", label: "Mi perfil", href: "/perfil" },
 ];
 
 type Props = {
@@ -299,7 +302,7 @@ export function DashboardSidebar({
                 textDecoration: "none",
               }}
             >
-              {cvPct === null ? "Subir CV →" : "Mejorar CV →"}
+              {cvPct === null ? "Subir CV" : "Mejorar CV"}
             </Link>
           </div>
         )}
@@ -350,7 +353,7 @@ export function DashboardSidebar({
               Verifica tu empresa para publicar más prácticas.
             </p>
             <Link
-              href="/perfil"
+              href="/dashboard/empresa/perfil"
               style={{
                 padding: "6px 11px",
                 background: "#fff",
@@ -369,8 +372,14 @@ export function DashboardSidebar({
           </div>
         )}
         <Link
-          href="/perfil"
+          href={role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil"}
           className="practix-sidebar-item"
+          data-active={
+            pathname ===
+            (role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil")
+              ? "1"
+              : "0"
+          }
           style={{
             display: "flex",
             alignItems: "center",
@@ -383,8 +392,8 @@ export function DashboardSidebar({
             textDecoration: "none",
           }}
         >
-          <Icon name="set" size={16} color={p.muted} />
-          Ajustes
+          <Icon name="user" size={16} color={p.muted} />
+          Mi perfil
         </Link>
       </div>
       <style>{`

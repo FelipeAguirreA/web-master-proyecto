@@ -234,17 +234,23 @@ export default function ATSConfigPage() {
   };
 
   const handleAddCustom = () => {
-    setActiveModules((prev) => [
-      ...prev,
-      buildModuleState({
-        type: "CUSTOM",
-        label: "Módulo personalizado",
-        isActive: true,
-        weight: 0,
-        order: prev.length,
-        params: {},
-      }),
-    ]);
+    // Creamos el módulo con defaults vacíos y abrimos el modal de edición de
+    // inmediato. Así el reclutador pone primero el nombre del módulo y las
+    // palabras clave que quiere ver en el CV — sin tener que adivinar después
+    // que se edita haciendo click en el card.
+    const newModule = buildModuleState({
+      type: "CUSTOM",
+      // Label vacío para que el placeholder del input del modal se muestre y
+      // el reclutador pueda escribir directo sin tener que borrar el texto
+      // pre-cargado primero.
+      label: "",
+      isActive: true,
+      weight: 0,
+      order: activeModules.length,
+      params: { keywords: [], hardFilter: false },
+    });
+    setActiveModules((prev) => [...prev, newModule]);
+    setEditingModule(newModule);
   };
 
   const handleRecalculate = async () => {
@@ -374,12 +380,12 @@ export default function ATSConfigPage() {
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Link
-                  href={`/dashboard/empresa/candidatos/${jobId}`}
+                  href={`/dashboard/empresa/ats/${jobId}`}
                   className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-[#4A4843] text-[12.5px] font-semibold rounded-xl border border-black/[0.08] hover:border-black/[0.15] hover:text-[#0A0909] transition-all"
                 >
                   <Users className="w-3.5 h-3.5" strokeWidth={2.2} />
                   <span className="sm:hidden">Candidatos</span>
-                  <span className="hidden sm:inline">Gestionar candidatos</span>
+                  <span className="hidden sm:inline">Volver al kanban</span>
                 </Link>
 
                 <button

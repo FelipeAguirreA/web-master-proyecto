@@ -6,7 +6,7 @@ import { Send } from "lucide-react";
 const TEMPLATES: { label: string; body: string }[] = [
   {
     label: "Saludo",
-    body: "Hola, gracias por postular a la práctica. Te respondemos a la brevedad.",
+    body: "Hola, gracias por postular a la práctica.",
   },
   {
     label: "Agendar",
@@ -15,10 +15,6 @@ const TEMPLATES: { label: string; body: string }[] = [
   {
     label: "Pedir info",
     body: "¿Puedes contarme un poco más sobre tu experiencia previa y por qué te interesa este rol?",
-  },
-  {
-    label: "Rechazo amable",
-    body: "Gracias por postular y por el tiempo dedicado. En esta oportunidad decidimos avanzar con otro perfil. Te deseamos mucho éxito.",
   },
 ];
 

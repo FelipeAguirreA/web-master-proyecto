@@ -35,19 +35,31 @@ async function sendEmail(
   log.info({ subject, to: to.email, status: res.status }, "email sent");
 }
 
+// Escape mínimo de HTML para datos que vienen del admin (companyName y
+// suspensionReason). El admin no es un atacante, pero un nombre con `<` o `&`
+// rompería el render del mail si no lo escapamos.
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export function sendCompanyStatusEmail(
   companyEmail: string,
   companyName: string,
-  status: "APPROVED" | "REJECTED",
+  status: "APPROVED" | "REJECTED" | "SUSPENDED",
+  suspensionReason?: string | null,
 ): Promise<void> {
-  const approved = status === "APPROVED";
-  const subject = approved
-    ? "¡Tu empresa fue aprobada en PractiX!"
-    : "Actualización sobre tu cuenta en PractiX";
-  const htmlContent = approved
-    ? `
+  const safeName = escapeHtml(companyName);
+
+  if (status === "APPROVED") {
+    const subject = "¡Tu empresa fue aprobada en PractiX!";
+    const htmlContent = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h2 style="color:#1d4ed8">¡Bienvenida, ${companyName}!</h2>
+      <h2 style="color:#1d4ed8">¡Bienvenida, ${safeName}!</h2>
       <p style="font-size:16px;color:#374151">
         Tu empresa fue <strong>aprobada</strong>. A partir de ahora tus prácticas
         publicadas serán visibles para todos los estudiantes en PractiX.
@@ -58,10 +70,55 @@ export function sendCompanyStatusEmail(
       </a>
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
     </div>
-  `
-    : `
+  `;
+    return sendEmail(
+      { email: companyEmail, name: companyName },
+      subject,
+      htmlContent,
+    );
+  }
+
+  if (status === "SUSPENDED") {
+    const subject = "Tu cuenta de PractiX fue suspendida";
+    const hasReason = !!suspensionReason && suspensionReason.length > 0;
+    const reasonBlock = hasReason
+      ? `
+      <div style="margin-top:16px;padding:14px 16px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:6px">
+        <p style="font-size:13px;color:#92400E;margin:0 0 4px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase">Motivo</p>
+        <p style="font-size:14px;color:#92400E;margin:0;line-height:1.5">${escapeHtml(suspensionReason as string)}</p>
+      </div>`
+      : `
+      <div style="margin-top:16px;padding:14px 16px;background:#F1F5F9;border-left:3px solid #94A3B8;border-radius:6px">
+        <p style="font-size:13px;color:#475569;margin:0 0 4px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase">Motivo</p>
+        <p style="font-size:14px;color:#475569;margin:0;line-height:1.5;font-style:italic">El administrador no especificó un motivo público. Contactá al soporte para más información.</p>
+      </div>`;
+    const htmlContent = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
-      <h2 style="color:#374151">Hola ${companyName}</h2>
+      <h2 style="color:#B91C1C">Hola ${safeName}</h2>
+      <p style="font-size:16px;color:#374151">
+        Tu cuenta en PractiX fue <strong>suspendida</strong>. Mientras dure la
+        suspensión no podrás publicar prácticas ni gestionar postulaciones.
+      </p>
+      ${reasonBlock}
+      <p style="font-size:16px;color:#374151;margin-top:18px">
+        Si crees que es un error o quieres apelar, contactá al administrador escribiendo a
+        <a href="mailto:soporte@practix.cl">soporte@practix.cl</a>.
+      </p>
+      <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>
+    </div>
+  `;
+    return sendEmail(
+      { email: companyEmail, name: companyName },
+      subject,
+      htmlContent,
+    );
+  }
+
+  // REJECTED
+  const subject = "Actualización sobre tu cuenta en PractiX";
+  const htmlContent = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+      <h2 style="color:#374151">Hola ${safeName}</h2>
       <p style="font-size:16px;color:#374151">
         Luego de revisar tu solicitud, tu empresa no pudo ser aprobada en esta
         oportunidad. Si crees que es un error o quieres más información, escríbenos a

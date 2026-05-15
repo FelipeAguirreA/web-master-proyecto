@@ -185,12 +185,7 @@ export default function ForgotPasswordPage() {
                         Enviando…
                       </>
                     ) : (
-                      <>
-                        Enviar instrucciones
-                        <span className="transition-transform group-hover:translate-x-0.5">
-                          →
-                        </span>
-                      </>
+                      <>Enviar instrucciones</>
                     )}
                   </button>
                 </form>

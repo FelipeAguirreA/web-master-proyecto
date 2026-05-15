@@ -325,12 +325,27 @@ export default function ModuleEditModal({
         );
       case "CUSTOM":
         return (
-          <div className="bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl p-3.5">
-            <p className="text-[12.5px] text-[#6D6A63] leading-relaxed">
-              Los módulos personalizados se puntúan manualmente en el dashboard
-              de candidatos.
-            </p>
-          </div>
+          <>
+            <TagInput
+              label="Palabras clave a buscar en el CV"
+              values={(params.keywords as string[]) ?? []}
+              onChange={(v) => updateParam("keywords", v)}
+              placeholder="ej: liderazgo, voluntariado, hackathon"
+            />
+            <CheckboxRow
+              checked={(params.hardFilter as boolean) ?? false}
+              onChange={(v) => updateParam("hardFilter", v)}
+            >
+              Hard filter: descalificar si ninguna palabra aparece en el CV
+            </CheckboxRow>
+            <div className="bg-[#FAFAF8] border border-[#E8E5DD] rounded-xl p-3.5">
+              <p className="text-[12.5px] text-[#6D6A63] leading-relaxed">
+                El score sube según cuántas palabras se encuentren en el texto
+                del CV (búsqueda case-insensitive). Sin palabras configuradas el
+                módulo queda neutral (50).
+              </p>
+            </div>
+          </>
         );
       default:
         return null;
@@ -358,7 +373,7 @@ export default function ModuleEditModal({
                 Editar módulo
               </p>
               <h2 className="text-[16px] font-extrabold text-[#0A0909] tracking-tight truncate">
-                {label}
+                {label.trim() || "Nuevo módulo personalizado"}
               </h2>
             </div>
           </div>
@@ -381,6 +396,8 @@ export default function ModuleEditModal({
                   name="label"
                   type="text"
                   aria-label="Nombre del módulo personalizado"
+                  placeholder="Ej: Voluntariado universitario"
+                  autoFocus
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                 />
@@ -399,7 +416,8 @@ export default function ModuleEditModal({
           </button>
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white text-[13px] font-bold rounded-xl shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5 transition-all"
+            disabled={module.type === "CUSTOM" && label.trim().length === 0}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-br from-[#FF6A3D] to-[#C2410C] text-white text-[13px] font-bold rounded-xl shadow-md shadow-[#FF6A3D]/20 hover:shadow-lg hover:shadow-[#FF6A3D]/30 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:hover:shadow-md"
           >
             Guardar cambios
           </button>

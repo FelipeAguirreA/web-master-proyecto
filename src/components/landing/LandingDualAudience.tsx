@@ -207,7 +207,7 @@ export function LandingDualAudience() {
                   transition: "opacity .2s",
                 }}
               >
-                Empezar gratis →
+                Empezar gratis
               </Link>
             </div>
           </div>
@@ -354,7 +354,7 @@ export function LandingDualAudience() {
                   transition: "background .2s",
                 }}
               >
-                Publicar práctica →
+                Publicar práctica
               </Link>
             </div>
           </div>

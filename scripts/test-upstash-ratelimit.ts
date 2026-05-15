@@ -12,7 +12,7 @@
  *   pnpm tsx scripts/test-upstash-ratelimit.ts
  */
 import { config } from "dotenv";
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 
 async function main() {
   console.log("─".repeat(70));

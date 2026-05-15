@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 import { PerfilHero } from "@/components/perfil/PerfilHero";
 import { AboutBlock } from "@/components/perfil/AboutBlock";
@@ -12,6 +13,7 @@ import { CompletenessCard } from "@/components/perfil/CompletenessCard";
 import { computeCompleteness, computeCvProgress } from "@/lib/cv-progress";
 import { ContactCard } from "@/components/perfil/ContactCard";
 import { Block } from "@/components/perfil/Block";
+import MyRightsCard from "@/components/MyRightsCard";
 import { D } from "@/components/dashboard/tokens";
 
 type ProfileData = {
@@ -47,7 +49,18 @@ const INPUT_STYLE = {
 
 export default function PerfilPage() {
   const { update } = useSession();
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const isCompany = profile != null && profile.role !== "STUDENT";
+
+  // /perfil sólo aplica al estudiante. Si entra una empresa (link viejo,
+  // bookmark, redirect interno residual), la redirigimos a su propia pantalla
+  // en /dashboard/empresa/perfil. El redirect tiene que vivir en un effect —
+  // llamar router.replace durante el render dispara el warning de React
+  // "Cannot update a component while rendering a different one".
+  useEffect(() => {
+    if (isCompany) router.replace("/dashboard/empresa/perfil");
+  }, [isCompany, router]);
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [nameEditing, setNameEditing] = useState(false);
@@ -241,32 +254,9 @@ export default function PerfilPage() {
 
   if (!profile) return null;
 
-  // Solo STUDENT usa este layout. Si es COMPANY, mostramos un fallback simple.
-  if (profile.role !== "STUDENT") {
-    return (
-      <div
-        style={{
-          padding: "40px 24px",
-          maxWidth: 640,
-          margin: "0 auto",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: D.text,
-            marginBottom: 8,
-          }}
-        >
-          Editar perfil
-        </h1>
-        <p style={{ fontSize: 13.5, color: D.muted, marginBottom: 20 }}>
-          Vista de perfil empresa próximamente.
-        </p>
-      </div>
-    );
-  }
+  // Mientras el effect arriba dispara el router.replace, devolvemos null para
+  // no pintar nada del shell de estudiante a la empresa.
+  if (isCompany) return null;
 
   const sp = profile.studentProfile;
 
@@ -473,6 +463,7 @@ export default function PerfilPage() {
               }
             }}
           />
+          <MyRightsCard />
         </aside>
       </div>
 

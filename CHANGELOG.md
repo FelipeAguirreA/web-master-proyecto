@@ -5,6 +5,339 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-05-15
+
+### Added (sistema de notificaciones in-app completo)
+
+- `feat(notifications): in-app notification system end-to-end`
+  - Migration `20260515150000_add_notification_types_new_application_message` agrega valores `NEW_APPLICATION` y `NEW_MESSAGE` al enum `NotificationType` (`ALTER TYPE ADD VALUE`, no destructivo, aplicada a prod).
+  - **Empresa recibe** notif cuando un estudiante postula a una de sus prácticas (`applyToInternship` → `NEW_APPLICATION`).
+  - **Ambos lados reciben** notif cuando llega un mensaje en chat. Dedupe GLOBAL por user (no por conversación): mensajes de 10 personas distintas = 1 sola campanita "Tienes mensajes sin leer" hasta abrir cualquier chat (UX tipo Slack/WhatsApp).
+  - **Estudiante recibe** notif cuando la empresa lo mueve en el kanban ATS (REVIEWING/INTERVIEW/ACCEPTED/REJECTED). Sólo dispara si el `pipelineStatus` cambió de verdad (evita spam por PATCH redundantes).
+  - **Email automático** al estudiante en avances finales del kanban (ACCEPTED/REJECTED) además de la campanita — usa `sendStatusUpdateEmail` con catch a Sentry, no bloqueante.
+  - `markConversationRead` limpia TODAS las `NEW_MESSAGE` no leídas del user, manteniendo sincronía chat ↔ campanita.
+  - **Badge numérico** en la campana del topbar (1, 2, ..., 9+) en vez del puntito de 7px anterior. El conteo persiste hasta que el user aprieta "Marcar leídas" del panel (antes se marcaban auto al abrir).
+
+### Added (wishlist de prácticas guardadas)
+
+- `feat(saved): saved internships wishlist`
+  - Migration `20260515170000_add_saved_internships` crea tabla `SavedInternship` con `@@unique([studentId, internshipId])` + índice `(studentId, createdAt desc)` + cascadas `onDelete: Cascade` (sin huérfanos).
+  - **Service** `saved-internships.service.ts` con `toggleSavedInternship` (idempotente), `getSavedInternships` (con matchScore híbrido calculado, filtra prácticas inactivas/empresas no aprobadas) y `getSavedInternshipIds`.
+  - **Endpoints**: `POST /api/internships/[id]/save` (toggle con anti-enumeration 404) + `GET /api/internships/saved`.
+  - **UI detalle**: botón "Guardar/Guardada" en `/practicas/[id]` ahora persiste de verdad (antes era solo `useState` local). Optimistic update + hidrata desde server al recargar. Visitante → redirect a login.
+  - **Dashboard estudiante**: nueva sección "Mis guardadas" debajo de "Recomendadas" — solo se renderiza si hay al menos 1. Muestra hasta 6 con link "Ver todas".
+  - **Página dedicada** `/practicas/guardadas`: lista completa con grid `PracticaCard`, badge "Postulación enviada" si ya postuló, estado vacío con CTA, link "Volver al dashboard". Auth guard: solo STUDENT.
+  - **Sidebar**: nuevo ítem "Guardadas" (icon `heart`) entre "Prácticas" y "Mis postulaciones" (desktop + drawer mobile).
+
+### Added (match híbrido — skills declaradas también suben el %)
+
+- `feat(matching): hybrid match score with declared skills boost`
+  - `embeddings.ts` expone `computeSkillOverlap` (case-insensitive con trim, ignora skills extras del estudiante) y `calculateHybridMatchScore` (0-100).
+  - **Fórmula**: `min(100, semántico + (skillOverlap/100) × 20)` — boost aditivo capeado, NUNCA penaliza. Agregar una skill que matchea siempre sube el match (antes: blend 70/30 podía bajarlo).
+  - **Casos borde**: sin CV pero con skills declaradas → 100% skillOverlap (antes era 0 → ahora el estudiante puede ver recomendaciones sin haber subido el CV). Sin CV ni skills → 0 (sin info para calcular).
+  - **Excluye prácticas postuladas** de recomendaciones (`getRecommendations`): no tiene sentido recomendar lo que ya postulaste. Query usa `id: { notIn: [...] }` solo si hay postulaciones previas (no genera SQL inútil con array vacío).
+  - **Badge "Postulación enviada"** en `/practicas` para las cards que ya postuló — antes mostraban "0% match" porque el endpoint de recomendaciones las excluía. Card cambia `ScoreVis` por badge naranja, botón "Ver" → "Ver detalle" outline.
+
+### Added (compliance F-Legal-3 conectado)
+
+- `feat(privacy): mount MyRightsCard on student & company profiles`
+  - `MyRightsCard` (UI ARCO+: descargar mis datos + eliminar cuenta) era código completo pero no estaba importado en ningún lado. Borrarlo rompía compliance F-Legal-3. Ahora montado en `/perfil` (estudiante) y `/dashboard/empresa/perfil` (empresa), conectado a los endpoints existentes `GET /api/users/me/export-data` y `DELETE /api/users/me`.
+
+### Added (OWASP A07 — invalidación de sesión tras reset password)
+
+- `feat(auth): revoke refresh tokens after password reset`
+  - `/api/auth/reset-password` ahora llama `revokeAllForUser(userId)` después de actualizar el `passwordHash`. Sin esto, un atacante con un refresh token filtrado mantenía acceso aunque el dueño reseteara la contraseña.
+  - En `deleteAccount` no se agrega — la cascada `onDelete: Cascade` ya elimina los `RefreshToken` al borrar el `User`.
+
+### Added (CTA visitante en /practicas)
+
+- `feat(practicas): hero CTA prompting visitors to log in for matches`
+  - Banner oscuro arriba del listado solo para no logueados: gradient con accent, label "Match con IA", título "Encontrá las prácticas que mejor calzan con vos", botones "Iniciar sesión" + "Crear cuenta". Más prominente que el texto del hero anterior.
+
+### Changed (inbox de chat — orden por actividad real)
+
+- `fix(chat): order inbox by last message, not updatedAt`
+  - El inbox ordenaba por `conversation.updatedAt`, que se modifica al marcar leído / pinear / unread. Resultado: clickear una conversación la hacía saltar al top. Ahora ordena en memoria por `messages[0].createdAt ?? conversation.createdAt` post-query. Reflejado en `chat.service.ts`.
+
+### Changed (sidebar dashboard)
+
+- `chore(dashboard): sidebar layout cleanup`
+  - "Mi perfil" movido al footer del sidebar (donde antes estaba "Ajustes"). El item "Ajustes" se borró porque apuntaba exactamente al mismo destino que "Mi perfil" — duplicado puro.
+  - Card "Tu CV" del sidebar ahora hidrata `cvPct` desde `/api/users/me` con `computeCvProgress`. Antes quedaba `null` siempre y mostraba "Sube tu CV..." aunque ya lo hubiera subido. Mensaje y CTA cambian según el progreso (sin CV / mejorá / top).
+
+### Changed (templates del chat empresa)
+
+- `chore(chat): simplify templates`
+  - "Saludo" → "Hola, gracias por postular a la práctica." (sin el "Te respondemos a la brevedad").
+  - Borrado template "Rechazo amable" — cero sentido tenerlo como atajo de un click.
+
+### Changed (visual cleanup)
+
+- `style(ui): remove 20+ decorative arrows for consistency`
+  - Quitadas flechas `→` cosméticas en 14 archivos (CTAs, botones submit, navegación). Mantenidas las funcionales (paginator de `/practicas` con `aria-label="Página siguiente"`).
+- `chore(avatars): use unified Avatar atom everywhere`
+  - Reemplazadas todas las instancias manuales de `<img>` para avatares en dashboard estudiante, ATS, topbar, drawer, admin, PerfilHero, ScoreBreakdownModal. Soporta `src` con fallback a iniciales sobre gradient. Excepción justificada: `InboxAvatar` mantiene su lógica por especialización chat (gradientes hash por nombre, `Building2` para empresas, `onError` handler).
+
+### Fixed (badge campana — el contador desaparecía al abrir)
+
+- `fix(notifications): bell counter persists until explicit "Marcar leídas"`
+  - El onClick del bell llamaba `markAllRead()` automático: el badge desaparecía apenas abrías el panel. Ahora solo el botón "Marcar leídas" del header del dropdown marca como leído.
+
+### Removed (limpieza Round 1 + Round 2)
+
+- `chore(cleanup): dead code sweep — round 1 + round 2`
+  - **Muerto real**:
+    - Página huérfana `src/app/(dashboard)/dashboard/empresa/candidatos/[jobId]/page.tsx` (reemplazada por kanban ATS, sin links que apuntaran ahí).
+    - Endpoint huérfano `POST /api/applications/[id]/notify` + funciones `notifyAcceptedApplication`, `notifyRejectedApplication` (sin caller en frontend). Su funcionalidad de email se reusa ahora desde el kanban ATS.
+    - Función `getSkillCatalog()` (exportada, nunca llamada).
+    - Interface `Application` en `src/types/index.ts` (duplicado del tipo generado por Prisma).
+    - 5 componentes en `src/components/chat/_legacy/` (`ChatWindow`, `ConversationItem`, `ConversationList`, `MessageBubble`, `MessageInput`) + sus 5 tests asociados — chat pre-rediseño sin callers en código activo.
+    - 2 archivos `.bak` de respaldo en `_legacy/` (`empresa/_legacy/page.legacy.tsx.bak` + `ats/[jobId]/_legacy/page.legacy.tsx.bak`).
+  - **Exports redundantes** (uso solo interno, no rompe nada): `SHORT_MONTHS_ES`, `PRIVACIDAD`, `TERMINOS`, `LegalListBlock`, `LegalSection`, `LegalDoc`, `CvProgressInput`, `AuditActionValue`, `PipelineStatusValue`, `StageMeta`, `ApplicationModalData`, `CompletenessItem` (deduplicado: fuente canónica `cv-progress.ts`, eliminado el duplicado en `CompletenessCard.tsx`).
+  - **knip = 0 findings** tras el barrido.
+
+### Tests
+
+- 1127 tests verde / 59 archivos. +30 tests nuevos en esta versión (saved-internships.service, computeSkillOverlap, calculateHybridMatchScore, chat simétrico, ATS pipeline notifications).
+- Mock `prismaMock.savedInternship` agregado en `src/test/mocks/prisma.ts`.
+
+### Migrations a producción (aplicadas a Supabase prod en esta release)
+
+1. `20260515150000_add_notification_types_new_application_message` — `ALTER TYPE NotificationType ADD VALUE` × 2 (no destructivo).
+2. `20260515170000_add_saved_internships` — `CREATE TABLE` + 2 índices + 2 FKs con cascada.
+
+### Note
+
+- Comentario "PUNTO DE SWAP DE PROVIDER" agregado al header de `src/server/lib/embeddings.ts` para documentar el lugar exacto donde refactorear cuando se migre de HuggingFace a OpenAI / modelo self-hosted (sin abstracción prematura — YAGNI).
+
+## [1.11.23] - 2026-05-15
+
+### Added (perfil empresa: rediseño Claude Design — cierre del rediseño)
+
+- `feat(empresa): pixel-perfect Perfil de empresa (screen 4/4)`
+  - **Ruta nueva** `/dashboard/empresa/perfil` (`src/app/(dashboard)/dashboard/empresa/perfil/page.tsx`) — siguiendo el patrón de calendar/ats/inbox. Paleta `E` (B2B azul, regla del proyecto para área empresa).
+  - **Bloques** alineados al mock `empresa-perfil-app.jsx` (versión simplificada que el user pidió en chat3):
+    - **Hero oscuro** (`E.dark` + mesh + gradient radial) con logo (img si `CompanyProfile.logo` está, sino iniciales sobre gradient), badge **Verificada** cuando `companyStatus === "APPROVED"`, nombre, tagline derivada (primer párrafo del `description`), industria + web + RUT, botón **Editar perfil** y botón **+ logo**.
+    - **Sobre nosotros**: muestra `description` con fallback en itálica si falta.
+    - **Mis prácticas publicadas**: lista de `internships` activas con border-left `E.accent`, área/modalidad/duración, link a `/dashboard/empresa/ats/[id]`. Link discreto "Publicar prácticas desde el dashboard →" al pie.
+    - **Rail derecho "Datos de la empresa"**: razón social, RUT, industria, estado (Aprobada/En revisión/Rechazada/Suspendida) + tarjeta Web con link.
+  - **Modal "Editar perfil"** con 4 campos editables (`companyName`, `industry`, `website`, `description`) que llama `PUT /api/users/profile/company`. Validación zod ya existente en el backend (URL real para web, max 1000 para description). Errores del backend se muestran en el modal.
+  - **Subir logo**: file input oculto en el botón **+** del hero, dispara `POST /api/perfil/avatar` (endpoint reutilizado — ya soporta `role: COMPANY` sincronizando `CompanyProfile.logo`). Acepta JPG/PNG/WebP, max 2 MB, rate-limit 10/hora.
+  - **Bloques omitidos del mock** (no existen en backend, scope creep evitar): Beneficios (4 ítems con emoji), Tagline como campo separado, Tamaño/HQ/LinkedIn, vista pública con toggle. Si más adelante se quieren, hay que agregar columnas/tablas al modelo.
+  - **Drawer empresa actualizado**: el item "Mi perfil" en `DashboardSidebar.COMPANY_NAV` y en `(dashboard)/layout.tsx` COMPANY_DRAWER ahora apunta a `/dashboard/empresa/perfil` en lugar de `/perfil` (que es para estudiantes).
+
+🎉 **Rediseño Claude Design completo** — las 12 pantallas del bundle ya están implementadas en el repo (landing, dashboard estudiante, login/registro, listado prácticas, detalle práctica, perfil estudiante, dashboard empresa, ATS Kanban, inbox/chat, calendar, admin empresas, privacidad/términos, perfil empresa).
+
+### Added (detalle práctica: botón "Ver empresa" en el hero abre modal con perfil)
+
+- `feat(practicas): show company profile modal from internship detail`
+  - El estudiante ahora puede ver los datos del perfil de empresa sin salir del detalle de la práctica. En el hero oscuro aparece un botón **"Ver empresa"** a la derecha (mismo estilo que "Editar perfil" del rediseño empresa), que abre un modal centrado con el logo, nombre, industria, descripción y bloque de sitio web.
+  - **Sección "Sitio web"** muestra la URL visible como texto (ej. `lumen.cl`) en una pill con el icono ↗ que linkea a la URL completa en una pestaña nueva. Si la empresa no agregó web, muestra un mensaje fallback en gris itálica. Útil cuando la empresa no rellenó la descripción — al menos el estudiante puede acceder a su sitio.
+  - **Backend**: `getInternshipById` extendido para incluir `description` del companyProfile (ya traía `companyName`, `logo`, `industry`, `website`). Cero cambios de schema.
+  - **Fallback**: si la empresa todavía no completó su descripción, el modal muestra un mensaje en gris/itálica.
+
+### Changed (dashboard search: dropdown con altura fija y scroll interno)
+
+- `chore(dashboard): cap search dropdown height and scroll on many results`
+  - El dropdown del buscador antes capeaba a 8 resultados arbitrariamente. Ahora muestra todos los matches con scroll interno: alto fijo `min(380px, viewport - 96px)`, lista scrollable con `overscroll-behavior: contain` (el scroll no se filtra al body), footer fijo abajo con el contador "N resultados". En pantallas chicas el dropdown nunca excede el viewport.
+
+### Fixed (dashboard search: dropdown quedaba en "Cargando…" indefinidamente)
+
+- `fix(dashboard): drop unstable deps from search effect to avoid loop`
+  - El `useEffect` que cargaba la fuente del buscador tenía `[searchOpen, searchItems, searchLoading, role]` en deps. Al `setSearchLoading(true)`, las deps cambiaban, el effect se re-ejecutaba, el cleanup del run anterior marcaba `cancelled = true`, el guard `!cancelled` del `finally` impedía el `setSearchLoading(false)` final y el dropdown quedaba en "Cargando…" para siempre.
+  - Reemplazado por deps mínimas `[searchOpen, role]` + ref `loadedForRoleRef` que tracker el role para el que ya se cargó. Si el role cambia (logout + login con otro), invalida la cache y refetchea. Si falla, no marca el ref → siguiente apertura reintenta.
+
+### Added (dashboard: buscador del topbar ahora funciona)
+
+- `feat(dashboard): wire topbar search to scope by role`
+  - El input "Busca prácticas, empresas o habilidades…" del topbar sólo trackeaba focus — no buscaba nada. Removido el `<kbd>⌘K</kbd>` decorativo (no había hotkey real). Reemplazado por un buscador funcional con dropdown de resultados:
+    - **Estudiante**: busca entre sus propias postulaciones (`/api/applications/my`). Cada resultado muestra el título de la práctica, área/modalidad y un badge con el estado (En revisión / Vista / Aceptada / No avanzó). Click linkea al detalle público de la práctica.
+    - **Empresa**: busca entre las prácticas que publicó (`/api/company/internships`). Muestra título y área/modalidad/estado activo. Click linkea al ATS de esa práctica (`/dashboard/empresa/ats/[id]`).
+  - **Scope limitado a la home del dashboard** (`/dashboard/estudiante` y `/dashboard/empresa`). En las pantallas internas (ATS, calendar, inbox, perfil, etc.) el buscador queda oculto — no tiene sentido prometer "buscar tus prácticas" mientras estás dentro de un ATS específico.
+  - Match tolera acentos vía `normalize("NFD")` para que "Diseño" matchee con "diseno". Resultados limitados a 8 para no saturar el dropdown.
+  - Dropdown se cierra con click fuera o Escape.
+
+### Fixed (perfil empresa: links residuales caían en el fallback de /perfil)
+
+- `fix(empresa): route Editar perfil + Ajustes + Mi empresa to /dashboard/empresa/perfil for COMPANY role`
+  - El dropdown del topbar ("Editar perfil"), el ítem "Ajustes" del sidebar y el CTA "Mi empresa" del banner Growth seguían apuntando a `/perfil` — que es la página unificada del estudiante y mostraba un placeholder "Vista de perfil empresa próximamente" cuando entraba una empresa.
+  - `DashboardTopbar`: nuevo prop `role` que decide el destino del link "Editar perfil" (`/dashboard/empresa/perfil` si `COMPANY`, `/perfil` si `STUDENT`). El `(dashboard)/layout.tsx` pasa el role de la sesión.
+  - `DashboardSidebar`: el CTA "Mi empresa" (sólo visible para COMPANY) ya apunta directo a la ruta empresa. El ítem "Ajustes" del footer decide por `role` (que ya recibía como prop).
+  - **Defensa en profundidad**: `/perfil` ahora redirige con `router.replace("/dashboard/empresa/perfil")` cuando `profile.role !== "STUDENT"`. Cualquier link viejo o bookmark a `/perfil` desde una empresa termina en la pantalla correcta sin ver el placeholder.
+
+## [1.11.22] - 2026-05-15
+
+### Changed (legal: rediseño Claude Design para Privacidad y Términos)
+
+- `feat(legal): pixel-perfect Privacidad y Términos (screen 3/4 del rediseño)`
+  - **Contenido extraído a módulo compartido** `src/lib/legal/content.ts`: tipos `LegalDoc`/`LegalSection`/`LegalListBlock` + constantes `PRIVACIDAD` (10 secciones) y `TERMINOS` (11 secciones). Texto literal del mock con referencias a Ley N° 19.628 y Ley N° 21.719 (Chile).
+  - **Componente compartido** `src/components/legal/LegalShell.tsx` (client) que recibe el doc por prop y pinta: header sticky con logo + toggle Privacidad/Términos + "Volver al sitio", hero con badge "Legal · Chile" + título + última actualización + intro, body en grid 2 col (TOC sticky con scroll-spy + content), cross-link box al pie, footer. Paleta D, tuteo, fallback de TOC a una sola columna en pantallas <720px.
+  - **`src/app/privacidad/page.tsx` y `src/app/terminos/page.tsx`** reescritas: server components delgados con `metadata` + `<LegalShell doc="..." />`. URLs preservadas para SEO/bookmarks. El toggle en el header es un `<Link>` entre ambas rutas.
+  - **Placeholders sample del mock que requieren reemplazo antes de prod**: razón social `PractiX SpA`, `RUT 77.000.000-0`, dirección `Av. Vitacura 2939, Las Condes, Santiago`, emails `privacidad@practix.cl` / `soporte@practix.cl` / `legal@practix.cl`, fecha "Última actualización: 14 de mayo de 2026".
+
+### Changed (legal: footer chico con copy estándar del sitio)
+
+- `chore(legal): introduce LandingFooterMini and use it in privacidad/terminos`
+  - Nuevo componente `LandingFooterMini` exportado desde `src/components/landing/LandingFooter.tsx`. Renderiza solo dos líneas: "© {año} PractiX · Todos los derechos reservados" y "Hecho con ♥ en Chile" — sin las columnas de navegación del footer principal, que distraían del contenido legal.
+  - Las páginas legales (`/privacidad` y `/terminos`) ya no usan el footer custom inicial ni el footer grande del landing — usan este mini reutilizable. Disponible para otras páginas (auth, errores) que prefieran el chico.
+
+### Fixed (legal: scroll-spy en el pie del documento)
+
+- `fix(legal): scroll-spy uses bottom<=threshold to decide when to promote last visible`
+  - El TOC del LegalShell tuvo dos iteraciones falladas antes de cerrar bien:
+    - **V1**: si el viewport llegaba al fondo, forzaba la última sección. Bug: click en una sección cercana al pie (ej. la 9 de 10) saltaba a la 10 porque `scrollTo` topaba contra el límite del documento.
+    - **V2**: override sólo si la sección elegida tenía `bottom < 0` (fuera del viewport por arriba). Bug opuesto: click en la última sección no la marcaba porque la sección anterior seguía visible.
+  - **V3**: override cuando atBottom y `bottom <= threshold` de la elegida. Bug: aún saltaba a la última visible cuando se clickeaba 10 u 11 si el scroll topaba — el override ignora qué sección clickeó el user.
+  - **V4 (final)**: el `goto` del TOC marca la sección **antes** de scrollear y bloquea el spy durante 900 ms con un ref booleano. El spy ignora todos los scrolls durante ese período. Después del lock, vuelve a la lógica normal con el override del pie. Casos cubiertos: click en cualquier sección (incluso las últimas con scroll topado) mantiene la selección; scroll continuo natural sigue funcionando con el override de "última visible".
+
+## [1.11.21] - 2026-05-15
+
+### Changed (admin: rediseño Claude Design + flujo completo de moderación)
+
+- `feat(admin): pixel-perfect Admin de Empresas (screen 2/4 del rediseño) + action reopen`
+  - **Página** `src/app/(admin)/admin/empresas/page.tsx` reescrita de 473 líneas (card-list naranjo + voseo) a un layout pixel-perfect basado en `admin-app.jsx` del bundle Stitch (`Rmh6I9ub`):
+    - Sidebar admin con badge `ADMIN`, item activo "Empresas" con badge de pendientes, panel "Hoy" dinámico al pie.
+    - Topbar "Panel interno" con datos reales del admin de la sesión + botón cerrar sesión.
+    - 4 KPIs (En revisión / Aprobadas / Rechazadas / Suspendidas) calculados desde companies.
+    - 4 tabs filtrando misma tabla con contadores, buscador (nombre / RUT / email / industria).
+    - Tabla con columnas dinámicas según tab: Riesgo + Espera en pendientes, Prácticas publicadas + Fecha en aprobadas, Motivo + Fecha en rechazadas/suspendidas.
+    - Acciones inline ✓ / ✕ en pendientes + bulk approve/reject con selección múltiple.
+    - Drawer lateral (520 px) con badge estado, logo de iniciales, datos, contacto + tag `EMAIL GENÉRICO`, motivo (en suspendidas), stats "Prácticas publicadas" (en aprobadas/suspendidas) y footer con acciones por estado: Rechazar/Aprobar · Suspender · Reabrir revisión · Restablecer empresa.
+    - Modal de suspensión con textarea de motivo (max 500, opcional).
+  - **Heurísticas client-side** (sin tocar backend extra): `isGenericEmail()` con lista de dominios públicos, `inferRisk()` (alto = email_genérico + sin web; medio = uno de los dos; bajo = corporativo + tiene web), `daysWaiting()` desde `createdAt`, `pickInitials()`.
+  - **Bloques omitidos del mock**: NAV sidebar adicional (Inicio/Estudiantes/Prácticas/Reportes/Configuración) — solo Empresas existe; documentos subidos, notas del equipo, activity rail con eventos reales, botón "Pedir info", "Ver dashboard de empresa". Quedan como cero-scope hasta que el backend tenga la data.
+  - **Backend**: `GET /api/admin/empresas` incluye `_count: { internships: true }` para el stat de prácticas publicadas. `PATCH /api/admin/empresas/[id]` ahora acepta `action: "reopen"` que vuelve la empresa a `PENDING` y limpia `suspensionReason`+`suspendedAt`. `reopen` no manda email (status PENDING no tiene plantilla y el cambio es administrativo).
+  - **Tests**: agregado test para `reopen` (status + limpieza + no-email). 17/17 verdes en admin-empresas-route.test.ts.
+
+### Fixed (admin: layout duplicado tapaba el drawer)
+
+- `fix(admin): trim (admin)/layout.tsx to auth guard only`
+  - El `(admin)/layout.tsx` traía del rediseño previo un `<header sticky z-40>` con su propio logo + dropdown de cerrar sesión. Mi rewrite agregaba un topbar nuevo dentro de la página, así que quedaban DOS navbars apilados: el viejo arriba siempre visible tapando la parte superior del drawer al abrir una empresa.
+  - El layout queda reducido a guarda de auth (sesión admin → continuar, si no → redirect a /login). Todo el chrome (sidebar + topbar) vive dentro de cada página admin, igual que el patrón del dashboard.
+
+### Fixed (suspensión: fallback genérico cuando el admin no deja motivo)
+
+- `fix(suspendida): show generic placeholder when suspensionReason is empty`
+  - Cuando el admin suspendía sin escribir motivo, la pantalla `/empresa/suspendida`, el email y el drawer del admin no mostraban ningún bloque — la empresa veía sólo "tu cuenta fue suspendida" sin contexto y el admin tampoco veía nada al volver a abrir la ficha.
+  - Ahora los tres lugares muestran un bloque "Motivo" con copy fallback en gris/itálica:
+    - Pantalla empresa: _"El administrador no especificó un motivo público. Contactá al soporte para más información."_
+    - Email: idem.
+    - Drawer del admin: _"No se registró un motivo al suspender esta empresa."_
+  - El bloque con motivo real sigue en amber (más prominente) para diferenciarlo visualmente del placeholder.
+  - Test actualizado: `SUSPENDED sin reason` ahora valida que el email incluye el fallback en lugar de no contener "Motivo".
+
+### Fixed (admin: PATCH 500 al suspender + falta del botón "volver al dashboard")
+
+- `fix(admin): regen Prisma client + log errors in PATCH + restore back-link`
+  - El PATCH a `/api/admin/empresas/[id]` con `action: "suspend"` devolvía 500 sin info. El `catch` outer del handler se tragaba el error sin loguear. Causa raíz: el cliente Prisma generado del dev server no conocía los campos `suspensionReason` y `suspendedAt` (la migration había corrido pero el cliente generado vivía en memoria del dev anterior).
+  - Fix runtime: `pnpm db:generate` regenera el cliente con los campos nuevos (verificado: 75 referencias en el `.d.ts`). El dev server tiene que reiniciarse para tomarlo.
+  - Fix defense-in-depth: el `catch` ahora loguea con pino + reporta a Sentry con tag `route: admin.empresas.PATCH`. Próximos 500 quedan visibles en consola y observabilidad.
+  - Restaurado el link **"Volver al dashboard"** en el topbar admin junto a "Cerrar sesión" (desaparecido cuando trimeamos `(admin)/layout.tsx` al solo guard).
+
+### Changed (admin: emails desechables/reservados → riesgo alto directo)
+
+- `chore(admin): split generic-email list into PERSONAL + HIGH_RISK domains`
+  - Antes los desechables (`mailinator`, `yopmail`, `tempmail`, …) y reservados de IANA (`example.*`, `test.com`) compartían lista con los personales (`gmail`, `hotmail`, …) y subían el riesgo a "alto" sólo si encima la empresa no tenía web. Una empresa con `mailinator.com` + web cualquiera quedaba en "medio".
+  - Ahora se separan: `HIGH_RISK_DOMAINS` (desechables + reservados) **siempre fuerza riesgo alto** porque no son cuentas humanas. `PERSONAL_DOMAINS` mantiene la lógica vieja (alto sólo sin web, medio si tiene web). El tag amarillo "EMAIL GENÉRICO" sigue marcando ambos grupos en tabla y drawer.
+
+### Changed (admin: búsqueda de RUT tolera puntos y guiones)
+
+- `chore(admin): normalize RUT in search to ignore dots/dashes/spaces`
+  - El buscador normaliza tanto el input como el RUT guardado quitando `.`, `-` y espacios antes de comparar. Resultado: `76.892.341-5`, `76892341-5` y `768923415` matchean entre sí. Otros campos (nombre, email, industria) siguen con match literal.
+
+### Changed (admin: ampliar lista de dominios EMAIL GENÉRICO)
+
+- `chore(admin): extend generic-email domains with example/test/disposable`
+  - Agregados a `GENERIC_DOMAINS`: dominios reservados de IANA (`example.com`, `example.org`, `example.net`, `test.com`) y desechables comunes (`mailinator.com`, `yopmail.com`, `tempmail.com`, `guerrillamail.com`, `10minutemail.com`, `trashmail.com`). El tag "EMAIL GENÉRICO" + el cálculo de riesgo ahora los marcan.
+
+### Fixed (admin: usar logo real de la empresa cuando existe)
+
+- `fix(admin): render CompanyProfile.logo with fallback to initials`
+  - El tipo `Company` del admin no declaraba el campo `logo` (sí existe en el modelo Prisma) y la UI siempre pintaba iniciales con gradiente. Si la empresa había cargado un logo, no se veía.
+  - Agregado helper `CompanyLogo` reutilizado en tabla (34 px) y drawer header (54 px). Mismo patrón que `src/components/ui/InternshipCard.tsx`: `<img>` con `object-cover` si `logo` está; fallback a iniciales sobre el gradiente cuando no hay imagen.
+
+## [1.11.20] - 2026-05-15
+
+### Added (admin: suspender empresa con motivo)
+
+- `feat(admin): suspender empresa con motivo + pantalla de cuenta suspendida`
+  - **Schema**: nuevo estado `SUSPENDED` en `enum CompanyStatus` + columnas `suspensionReason String?` y `suspendedAt DateTime?` en `company_profiles`. Migration `20260515130745_add_company_suspended_status`.
+  - **Endpoint** `PATCH /api/admin/empresas/[id]`: nuevas acciones `suspend` (con `reason` opcional, max 500 chars) y `unsuspend`. Al suspender setea `suspensionReason` + `suspendedAt = now()`. Al aprobar o unsuspender limpia ambos campos.
+  - **Email** `sendCompanyStatusEmail`: nueva variante `SUSPENDED` con subject "Tu cuenta de PractiX fue suspendida", bloque "Motivo" si el admin dejó un reason, link a soporte. HTML del companyName y reason escapado (defensa básica anti-XSS en mails).
+  - **Proxy** `src/proxy.ts`: empresa con `companyStatus === "SUSPENDED"` queda atrapada en `/empresa/suspendida` — cualquier `/dashboard/*` o `/registro/*` la rebota allí. Empresa no-suspendida y otros roles no pueden ver la pantalla (redirect). En APIs de mutación (`POST/PATCH/PUT/DELETE` sobre `/api/internships`, `/api/applications`, `/api/chat`) devuelve 403 si el token marca SUSPENDED. El bloqueo es por JWT — la propagación post-suspensión tarda hasta `ACCESS_TOKEN_MAX_AGE` (15 min) en sesiones ya activas; las llamadas del dashboard al fetch con refresh van a recoger el cambio al primer refresh.
+  - **Pantalla** `/empresa/suspendida` (server component): muestra nombre de empresa, motivo si existe (escape de saltos de línea preservado), fecha de suspensión, link a `mailto:` del admin, botón "Cerrar sesión". Usa paleta `E` (B2B blue). Si la empresa ya no está suspendida, redirige al dashboard.
+
+### Fixed (prisma: baseline init.sql contaminado + opt-out de los tips promocionales de dotenv v17)
+
+- `fix(prisma): clean log leaked into 20260507100000_init/migration.sql + silence dotenv tips`
+  - Las líneas 1-2 del archivo `prisma/migrations/20260507100000_init/migration.sql` contenían texto de log (`◇ injected env (18) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]` + `Loaded Prisma config from prisma.config.ts.`) que NO es SQL — había sido commiteado por un redirect erróneo de salida en algún punto del pasado.
+  - Prod no rompió en su momento (la baseline estaba marcada como applied vía `migrate resolve` y no se re-ejecutaba) pero `prisma migrate dev` fallaba al intentar aplicar la baseline en la shadow DB con `syntax error at or near ◇`.
+  - Limpieza: removidas las dos líneas basura; checksum nuevo (`37e36e46…`) sincronizado en `_prisma_migrations` de la DB de Supabase prod vía `db execute` antes de poder correr nuevas migrations.
+  - **Causa raíz del leak**: el paquete `dotenv` v17 (no dotenvx — el `dotenv` estándar que está en `package.json` como devDependency) ahora imprime al cargar el .env una línea con un "tip" promocional rotativo, incluyendo banners hacia `dotenvx.com` y `vestauth.com` (productos del mismo dueño del paquete, ver `dotenv@17.4.2/lib/main.js` líneas 5-15 y 309). El log se redirige a stdout en TODOS los scripts que llaman `dotenv.config()` — `prisma.config.ts` es el más visible porque corre en cada `pnpm prisma …`.
+  - Opt-out aplicado: `config({ path: ".env.local", quiet: true })` en `prisma.config.ts`, `prisma/seed.ts`, `prisma/regen-embeddings.ts` y `scripts/test-upstash-ratelimit.ts`. Salida limpia, sin tips. Verificado con `pnpm prisma --version`.
+
+## [1.11.19] - 2026-05-14
+
+### Added (calendar: color events by timing)
+
+- `feat(calendar): color events green when upcoming, gray when past`
+  - Added `isInterviewPast(scheduledAt, durationMins, now?)` pure helper in `calendarHelpers.ts`. An interview is "past" when `scheduledAt + durationMins < now`; in-progress counts as upcoming.
+  - WeekView, DayView, AgendaView, UpcomingList: upcoming events render with green left-border (`E.green #0E8A4A`) and green background (`E.greenBg #DFF6E8`). Past events render with gray left-border (`E.subtle #94A3B8`) and neutral slate tint (`rgba(15,23,42,0.05)`).
+  - DayView "Abrir" button follows the same status color (green for upcoming, gray for past).
+  - EventDrawer header background and status badge reflect past/upcoming state; badge label changes to "Finalizada" for past interviews. Action buttons (Reagendar/Cancelar/Enviar al chat) remain unchanged.
+  - The now-line stays `E.accent` (blue) throughout.
+  - Unit tests added for `isInterviewPast`: future, in-progress, exact-end boundary, and past cases.
+
+## [1.11.18] - 2026-05-14
+
+### Fixed (calendar: InterviewFormModal migrated to E palette + Chilean tuteo)
+
+- `fix(calendar): migrate InterviewFormModal to E (B2B blue) palette`
+  - The "Nueva entrevista" / "Editar entrevista" modal was still on the warm `D` (orange) palette while the rest of the empresa calendar uses `E` (blue). The modal is only consumed by `dashboard/empresa/calendar`, so it was safe to migrate.
+  - Header icon gradient, submit button, focus ring, and the manual-send info box swapped from `#FF6A3D`/`#FF9B6A` to `#2C5CFA`/`#4A78FF` (`E.accent`/`E.accentHi`).
+  - Copy de-voseado to Chilean tuteo: "Seleccioná→Selecciona", "Completá→Completa", "Actualizá/guardá→Actualiza/guarda", "Iniciá→Inicia", "Podés→Puedes", "presionés→presiones", "traé→trae".
+
+## [1.11.17] - 2026-05-14
+
+### Fixed (calendar: 00:00 label no longer clipped)
+
+- `fix(calendar): give hour grid a top padding so the 00:00 label is visible`
+  - The first hour label (`00:00`) is positioned at a negative `top` (~-7/-8px) relative to the hour gutter. In `WeekView` it was covered by the sticky day-header; in `DayView` it was clipped by the top edge of the scroll container.
+  - Added `paddingTop: 12` to the hour-grid body in both `WeekView.tsx` and `DayView.tsx` (with matching `height: TOTAL_H + 12`). All grid items shift down uniformly, so events, hour lines and the now-line stay perfectly aligned.
+
+## [1.11.16] - 2026-05-14
+
+### Fixed (calendar: full 24h grid + align day headers with scrollable body)
+
+- `fix(calendar): full 24h grid + align day headers with scrollable body`
+  - **Bug 1 — header/column misalignment (`WeekView.tsx`)**: Day-header row was rendered in a separate `grid` outside the `overflow-y-auto` container. When the scrollbar appeared, the body's `1fr` columns shrank but the header's didn't, causing misalignment. Fixed by moving the day-header row _inside_ the scroll container as `position: sticky; top: 0; z-index: 20` with `background: E.surface`. Header and body now share the exact same grid width context; the scrollbar shrinks both identically.
+  - **Bug 2 — only 08:00–20:00 visible (`WeekView.tsx`, `DayView.tsx`)**: `HOURS` covered only 13 entries (08–20); interviews before 08:00 or after 20:00 were invisible. Fixed: `HOURS` now covers all 24 hours ("00"–"23"), `START_MIN = 0`, `END_MIN = 1440`. `PX_PER_MIN` lowered to 0.8 (Week) / 0.85 (Day) so the full day is a comfortable scroll. Event `top` and `height` math (using `startMin - START_MIN`) remains correct with `START_MIN = 0`. Hour-line divs (24 cells × `CELL_H`) fill `TOTAL_H` exactly with no gap or overflow.
+  - **Auto-scroll on mount**: Both views now scroll on mount to the earliest interview (with a 30-min buffer above) or 07:00 if no interviews are scheduled, so the working-hours region is immediately in view instead of the empty midnight area.
+
+## [1.11.15] - 2026-05-14
+
+### Fixed (calendar: use E — B2B blue palette — to match empresa screens)
+
+- `fix(calendar): use E (B2B blue) palette to match empresa screens` — All 7 calendar files were incorrectly using hardcoded warm-orange hex values from palette `D` (the student dashboard palette). Migrated every hardcoded color to inline `style={{}}` references to palette `E` (`#2C5CFA` accent, `#F4F6FB` bg, `#0F172A` text, etc.), matching the pattern used by `dashboard/empresa/page.tsx` and the ATS kanban. No logic, structure, props, or backend wiring changed.
+- Files changed: `src/app/(dashboard)/dashboard/empresa/calendar/page.tsx`, `src/components/dashboard/calendar/WeekView.tsx`, `src/components/dashboard/calendar/DayView.tsx`, `src/components/dashboard/calendar/AgendaView.tsx`, `src/components/dashboard/calendar/MiniMonthCalendar.tsx`, `src/components/dashboard/calendar/UpcomingList.tsx`, `src/components/dashboard/calendar/EventDrawer.tsx`.
+
+## [1.11.14] - 2026-05-14
+
+### Changed (redesign: empresa calendar — pixel-perfect three-view calendar)
+
+- **`src/app/(dashboard)/dashboard/empresa/calendar/page.tsx`**: Full redesign following the Stitch mock. Replaced the single-column month+list layout with a three-view calendar (Semana / Día / Agenda) plus a right rail (mini-month + Próximas). All real API wiring preserved: `fetchWithRefresh('/api/interviews')`, `fetchWithRefresh('/api/company/internships')`, POST/PATCH/DELETE `/api/interviews`, send-to-chat. UI copy fixed from Argentine voseo to Chilean tuteo.
+- **`src/components/dashboard/calendar/calendarHelpers.ts`** (new): Pure helper functions — week-range math, month-cell builder, time conversions. Fully unit-tested.
+- **`src/components/dashboard/calendar/WeekView.tsx`** (new): Hour grid 08:00–20:00, Mon–Fri columns, absolute event positioning, live now-line.
+- **`src/components/dashboard/calendar/DayView.tsx`** (new): Single-day timeline, taller rows, avatar + "Abrir" per event card.
+- **`src/components/dashboard/calendar/AgendaView.tsx`** (new): List grouped by day, compact event rows.
+- **`src/components/dashboard/calendar/MiniMonthCalendar.tsx`** (new): Right-rail mini-month with dots for interview days, current-week highlight, day-click to switch date.
+- **`src/components/dashboard/calendar/UpcomingList.tsx`** (new): Right-rail list of next 8 upcoming interviews from real data.
+- **`src/components/dashboard/calendar/EventDrawer.tsx`** (new): Slide-in drawer on event click showing postulante, modalidad, notes, send-to-chat / reagendar / cancelar actions.
+
+### Tests
+
+- **`src/test/unit/calendarHelpers.test.ts`** (new): 22 unit tests covering all pure helper functions.
+
 ## [1.11.13] - 2026-05-07
 
 ### Added (privacy / Ley 21.719 — F-Legal-3.4: audit log forense — cierra F-Legal-3)

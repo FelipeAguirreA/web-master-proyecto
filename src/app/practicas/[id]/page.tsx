@@ -29,7 +29,13 @@ type InternshipDetail = {
   requirements: string[];
   skills: string[];
   createdAt: string;
-  company: { companyName: string; logo: string | null };
+  company: {
+    companyName: string;
+    logo: string | null;
+    industry: string | null;
+    website: string | null;
+    description: string | null;
+  };
 };
 
 const MODALITY_LABEL: Record<string, string> = {
@@ -142,6 +148,7 @@ export default function InternshipDetailPage() {
   const [applyError, setApplyError] = useState("");
   const [shareLabel, setShareLabel] = useState("Compartir");
   const [saved, setSaved] = useState(false);
+  const [showCompany, setShowCompany] = useState(false);
 
   useEffect(() => {
     const fetchInternship = async () => {
@@ -189,6 +196,41 @@ export default function InternshipDetailPage() {
       })
       .catch(() => {});
   }, [id, session]);
+
+  // Estado "guardada" inicial. Hidrata desde el server para que al recargar
+  // la página el corazón refleje la verdad y no el default false.
+  useEffect(() => {
+    if (!session || session.user.role !== "STUDENT") return;
+    fetchWithRefresh("/api/internships/saved", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((items: Array<{ id: string }>) => {
+        if (items.some((i) => i.id === id)) setSaved(true);
+      })
+      .catch(() => {});
+  }, [id, session]);
+
+  const handleToggleSave = async () => {
+    if (!session) {
+      router.push(`/login?callbackUrl=/practicas/${id}`);
+      return;
+    }
+    if (session.user.role !== "STUDENT") return;
+    // Optimistic update: si el server falla, revertimos.
+    const prev = saved;
+    setSaved(!prev);
+    try {
+      const res = await fetchWithRefresh(`/api/internships/${id}/save`, {
+        method: "POST",
+      });
+      if (!res.ok) setSaved(prev);
+      else {
+        const data: { saved: boolean } = await res.json();
+        setSaved(data.saved);
+      }
+    } catch {
+      setSaved(prev);
+    }
+  };
 
   const handleApply = async () => {
     if (!session) {
@@ -632,6 +674,33 @@ export default function InternshipDetailPage() {
                   </span>
                 </div>
               </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  marginLeft: "auto",
+                  minWidth: 170,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowCompany(true)}
+                  style={{
+                    padding: "10px 16px",
+                    background: "rgba(255,255,255,.08)",
+                    border: "1px solid rgba(255,255,255,.14)",
+                    color: "#fff",
+                    borderRadius: 11,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Ver sobre la empresa
+                </button>
+              </div>
             </div>
           </section>
 
@@ -1038,7 +1107,7 @@ export default function InternshipDetailPage() {
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => setSaved((s) => !s)}
+                    onClick={handleToggleSave}
                     style={{
                       flex: 1,
                       padding: 10,
@@ -1161,6 +1230,206 @@ export default function InternshipDetailPage() {
           </div>
         </div>
       </main>
+
+      {showCompany && internship && (
+        <>
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={() => setShowCompany(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(10,9,9,.55)",
+              border: "none",
+              cursor: "pointer",
+              zIndex: 80,
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="company-modal-title"
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%,-50%)",
+              width: "min(520px, 94vw)",
+              maxHeight: "90vh",
+              overflow: "auto",
+              background: D.bg,
+              borderRadius: 18,
+              zIndex: 81,
+              boxShadow: "0 24px 64px rgba(10,9,9,.28)",
+            }}
+          >
+            <div style={{ padding: "24px 24px 18px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "center",
+                }}
+              >
+                <CoLogo
+                  logo={companyInitials(co)}
+                  logoUrl={internship.company.logo}
+                  logoBg={color.bg}
+                  logoFg={color.fg}
+                  size={64}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2
+                    id="company-modal-title"
+                    style={{
+                      fontSize: 19,
+                      fontWeight: 800,
+                      color: D.text,
+                      letterSpacing: -0.5,
+                      lineHeight: 1.2,
+                      margin: 0,
+                    }}
+                  >
+                    {co}
+                  </h2>
+                  {internship.company.industry && (
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: D.subtle,
+                        marginTop: 4,
+                        margin: 0,
+                      }}
+                    >
+                      {internship.company.industry}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCompany(false)}
+                  aria-label="Cerrar"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: "rgba(10,9,9,.05)",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 18,
+                    color: D.muted,
+                    lineHeight: 1,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: D.subtle,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                  }}
+                >
+                  Sobre la empresa
+                </div>
+                {internship.company.description ? (
+                  <p
+                    style={{
+                      fontSize: 13.5,
+                      color: D.muted,
+                      lineHeight: 1.65,
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {internship.company.description}
+                  </p>
+                ) : (
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: D.subtle,
+                      fontStyle: "italic",
+                      margin: 0,
+                    }}
+                  >
+                    Esta empresa todavía no agregó una descripción.
+                  </p>
+                )}
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: D.subtle,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    marginBottom: 8,
+                  }}
+                >
+                  Sitio web
+                </div>
+                {internship.company.website ? (
+                  <a
+                    href={
+                      internship.company.website.startsWith("http")
+                        ? internship.company.website
+                        : `https://${internship.company.website}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "10px 14px",
+                      background: "rgba(10,9,9,.04)",
+                      border: `1px solid ${D.border}`,
+                      color: D.text,
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      maxWidth: "100%",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {internship.company.website.replace(/^https?:\/\//, "")}
+                    <span
+                      style={{ fontSize: 13, color: D.muted, flexShrink: 0 }}
+                    >
+                      ↗
+                    </span>
+                  </a>
+                ) : (
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: D.subtle,
+                      fontStyle: "italic",
+                      margin: 0,
+                    }}
+                  >
+                    Esta empresa no agregó un sitio web.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <style>{`
         @media (max-width:1024px) {

@@ -113,7 +113,16 @@ export async function getConversationsByUser(
         },
       },
     },
-    orderBy: { updatedAt: "desc" },
+  });
+
+  // Orden por actividad real de la conversación: createdAt del último mensaje,
+  // con fallback a createdAt de la conversación (cuando no hay mensajes). NO
+  // usamos updatedAt porque también se toca al marcar leído / pin / unread,
+  // y eso movería al top conversaciones sin actividad nueva.
+  conversations.sort((a, b) => {
+    const aTime = (a.messages[0]?.createdAt ?? a.createdAt).getTime();
+    const bTime = (b.messages[0]?.createdAt ?? b.createdAt).getTime();
+    return bTime - aTime;
   });
 
   return conversations.map((c) => ({
@@ -369,6 +378,39 @@ export async function sendMessage(
     }),
   ]);
 
+  // Notificación in-app para el destinatario. Dedupe GLOBAL por user (no
+  // por conversación): si ya tiene una NEW_MESSAGE no leída — sin importar
+  // de qué chat — solo refrescamos createdAt para que suba al top. Esto
+  // evita 20 campanitas si llegan mensajes de 10 personas; queda 1 sola
+  // "Tienes mensajes sin leer" hasta que el destinatario entre al inbox.
+  const recipientId = isStudent ? conv.companyId : conv.studentId;
+  const body = "Tienes mensajes sin leer.";
+
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId: recipientId,
+      type: "NEW_MESSAGE",
+      read: false,
+    },
+    select: { id: true },
+  });
+  if (existing) {
+    await prisma.notification.update({
+      where: { id: existing.id },
+      data: { body, createdAt: new Date() },
+    });
+  } else {
+    await prisma.notification.create({
+      data: {
+        userId: recipientId,
+        type: "NEW_MESSAGE",
+        title: "Nuevo mensaje",
+        body,
+        entityId: conversationId,
+      },
+    });
+  }
+
   return message;
 }
 
@@ -401,6 +443,18 @@ export async function markConversationRead(
     prisma.conversation.update({
       where: { id: conversationId },
       data: { [unreadField]: false },
+    }),
+    // Sincroniza la campanita con el estado leído del chat. Como la notif
+    // NEW_MESSAGE es global (1 por user, no 1 por conversación — ver
+    // sendMessage), limpiamos TODAS las NEW_MESSAGE no leídas del user:
+    // si abriste un chat, asumimos que viste el inbox.
+    prisma.notification.updateMany({
+      where: {
+        userId,
+        type: "NEW_MESSAGE",
+        read: false,
+      },
+      data: { read: true },
     }),
   ]);
 }

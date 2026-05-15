@@ -252,7 +252,3 @@ export function matchSkills(text: string): string[] {
 
   return Array.from(found).sort();
 }
-
-export function getSkillCatalog(): string[] {
-  return CATALOG.map((e) => e.canonical).sort();
-}

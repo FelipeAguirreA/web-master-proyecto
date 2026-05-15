@@ -393,15 +393,24 @@ describe("ModuleEditModal", () => {
       expect(onSave.mock.calls[0][0].label).toBe("Editado");
     });
 
-    it("muestra mensaje explicativo de scoring manual", () => {
+    it("renderiza TagInput de palabras clave + hard filter + nota explicativa", () => {
       render(
         <ModuleEditModal
-          module={buildModule({ type: "CUSTOM" })}
+          module={buildModule({
+            type: "CUSTOM",
+            params: { keywords: [], hardFilter: false },
+          })}
           onSave={() => {}}
           onClose={() => {}}
         />,
       );
-      expect(screen.getByText(/se puntúan manualmente/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Palabras clave a buscar en el CV/),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/descalificar si ninguna palabra aparece/),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/score sube según/i)).toBeInTheDocument();
     });
   });
 

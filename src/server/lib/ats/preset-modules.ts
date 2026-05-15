@@ -31,19 +31,6 @@ export const PRESET_MODULES: PresetModule[] = [
     },
   },
   {
-    type: "EXPERIENCE",
-    label: "Experiencia Laboral",
-    description: "Evalúa años de experiencia y roles previos relevantes",
-    icon: "💼",
-    defaultWeight: 30,
-    defaultActive: true,
-    defaultParams: {
-      minYears: 0,
-      preferredRoles: [],
-      hardFilter: false,
-    },
-  },
-  {
     type: "EDUCATION",
     label: "Formación Académica",
     description: "Evalúa carrera, institución y promedio académico",

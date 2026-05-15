@@ -45,6 +45,7 @@ enum CompanyStatus {
   PENDING
   APPROVED
   REJECTED
+  SUSPENDED
 }
 
 enum MessageType {
@@ -62,6 +63,8 @@ enum NotificationType {
   APPLICATION_REVIEWED
   APPLICATION_ACCEPTED
   APPLICATION_REJECTED
+  NEW_APPLICATION
+  NEW_MESSAGE
 }
 
 model User {
@@ -95,6 +98,7 @@ model User {
   notifications        Notification[]
   refreshTokens        RefreshToken[]
   auditLogs            AuditLog[]
+  savedInternships     SavedInternship[]
 
   @@map("users")
 }
@@ -140,6 +144,8 @@ model CompanyProfile {
   companyName   String
   empresaRut    String?
   companyStatus CompanyStatus @default(PENDING)
+  suspensionReason String?
+  suspendedAt   DateTime?
   industry      String?
   website       String?
   logo          String?
@@ -173,10 +179,28 @@ model Internship {
   applications Application[]
   atsConfig    ATSConfig?
   interviews   Interview[]
+  savedBy      SavedInternship[]
 
   @@index([isActive, createdAt(sort: Desc)])
   @@index([companyId])
   @@map("internships")
+}
+
+// Wishlist del estudiante: prácticas marcadas para revisar después sin haber
+// postulado todavía. Cardinalidad many-to-many entre User (rol STUDENT) e
+// Internship. @@unique evita duplicados; el índice (studentId, createdAt desc)
+// soporta el listado "mis guardadas" ordenado por más reciente.
+model SavedInternship {
+  id           String     @id @default(cuid())
+  studentId    String
+  internshipId String
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  internship   Internship @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([studentId, internshipId])
+  @@index([studentId, createdAt(sort: Desc)])
+  @@map("saved_internships")
 }
 
 model Application {

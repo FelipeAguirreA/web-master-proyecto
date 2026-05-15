@@ -570,11 +570,6 @@ export default function RegistroPage() {
             <span className="relative">
               {loading ? "Guardando…" : "Continuar"}
             </span>
-            {!loading && (
-              <span className="relative text-[11px] transition-transform group-hover:translate-x-0.5">
-                →
-              </span>
-            )}
           </button>
 
           <p className="text-center text-[12.5px] text-[#6D6A63]">

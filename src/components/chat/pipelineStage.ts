@@ -2,14 +2,14 @@
 // rediseñado. El mock usa colores específicos por etapa que también se usan en
 // el ATS Kanban — mantener sincronizados si cambia uno.
 
-export type PipelineStatusValue =
+type PipelineStatusValue =
   | "PENDING"
   | "REVIEWING"
   | "INTERVIEW"
   | "ACCEPTED"
   | "REJECTED";
 
-export type StageMeta = {
+type StageMeta = {
   label: string;
   color: string;
   bg: string;

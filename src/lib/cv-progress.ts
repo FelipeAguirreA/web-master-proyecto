@@ -16,7 +16,7 @@ export type CompletenessItem = {
   pts: number;
 };
 
-export type CvProgressInput = {
+type CvProgressInput = {
   name?: string | null;
   lastName?: string | null;
   image?: string | null;

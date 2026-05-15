@@ -2,14 +2,7 @@
 
 import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
-
-export type CompletenessItem = {
-  key: string;
-  title: string;
-  body?: string;
-  done: boolean;
-  pts: number;
-};
+import type { CompletenessItem } from "@/lib/cv-progress";
 
 type Props = {
   items: CompletenessItem[];

@@ -24,6 +24,7 @@ export type PracticaCardData = {
   applicants?: number | null;
   isNew?: boolean;
   ai?: string | null;
+  applied?: boolean;
 };
 
 type Props = {
@@ -255,31 +256,53 @@ export function PracticaCard({ p, featured = false }: Props) {
             gap: 10,
           }}
         >
-          <ScoreVis score={p.score} style="ring" size={56} label={false} />
-          <div>
-            {p.applicants !== null && p.applicants !== undefined && (
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: D.muted,
-                  fontWeight: 600,
-                }}
-              >
-                {p.applicants} postulantes
+          {p.applied ? (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: D.accentBg,
+                color: D.accent,
+                padding: "6px 11px",
+                borderRadius: 8,
+                fontSize: 11.5,
+                fontWeight: 700,
+                letterSpacing: 0.2,
+              }}
+            >
+              <Icon name="check" size={12} color={D.accent} />
+              Postulación enviada
+            </span>
+          ) : (
+            <>
+              <ScoreVis score={p.score} style="ring" size={56} label={false} />
+              <div>
+                {p.applicants !== null && p.applicants !== undefined && (
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: D.muted,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {p.applicants} postulantes
+                  </div>
+                )}
+                {p.deadline && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: D.accent,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {p.deadline}
+                  </div>
+                )}
               </div>
-            )}
-            {p.deadline && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: D.accent,
-                  fontWeight: 700,
-                }}
-              >
-                {p.deadline}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
         <Link
           href={`/practicas/${p.id}`}
@@ -287,8 +310,9 @@ export function PracticaCard({ p, featured = false }: Props) {
             display: "inline-flex",
             alignItems: "center",
             gap: 5,
-            background: D.text,
-            color: "#fff",
+            background: p.applied ? "transparent" : D.text,
+            color: p.applied ? D.text : "#fff",
+            border: p.applied ? `1px solid ${D.border}` : "none",
             padding: "9px 14px",
             borderRadius: 10,
             fontSize: 12.5,
@@ -297,7 +321,7 @@ export function PracticaCard({ p, featured = false }: Props) {
             textDecoration: "none",
           }}
         >
-          Ver
+          {p.applied ? "Ver detalle" : "Ver"}
         </Link>
       </footer>
       <style>{`

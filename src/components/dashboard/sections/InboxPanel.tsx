@@ -117,7 +117,7 @@ export function InboxPanel({
             flexShrink: 0,
           }}
         >
-          Inbox →
+          Inbox
         </Link>
       </header>
       {messages.length === 0 ? (

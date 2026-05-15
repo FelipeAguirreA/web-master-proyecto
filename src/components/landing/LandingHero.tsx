@@ -281,7 +281,7 @@ export function LandingHero() {
               transition: "background .2s,border-color .2s",
             }}
           >
-            Ver prácticas disponibles →
+            Ver prácticas disponibles
           </Link>
         </div>
 

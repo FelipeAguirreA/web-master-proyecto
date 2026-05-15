@@ -146,6 +146,60 @@ describe("sendCompanyStatusEmail", () => {
     expect(body.htmlContent).toContain("Hola TechCorp");
     expect(body.htmlContent).toContain("soporte@practix.cl");
   });
+
+  it("SUSPENDED con reason → subject de suspensión + bloque Motivo + reason escapado + soporte", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+
+    await sendCompanyStatusEmail(
+      "e@x.com",
+      "TechCorp",
+      "SUSPENDED",
+      "Publicaciones fuera de norma",
+    );
+
+    const body = lastCallBody(fetchSpy);
+    expect(body.subject).toBe("Tu cuenta de PractiX fue suspendida");
+    expect(body.htmlContent).toContain("Hola TechCorp");
+    expect(body.htmlContent).toContain("suspendida");
+    expect(body.htmlContent).toContain("Motivo");
+    expect(body.htmlContent).toContain("Publicaciones fuera de norma");
+    expect(body.htmlContent).toContain("soporte@practix.cl");
+  });
+
+  it("SUSPENDED sin reason → bloque Motivo con texto fallback genérico", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+
+    await sendCompanyStatusEmail("e@x.com", "TechCorp", "SUSPENDED");
+
+    const body = lastCallBody(fetchSpy);
+    expect(body.subject).toBe("Tu cuenta de PractiX fue suspendida");
+    expect(body.htmlContent).toContain("Motivo");
+    expect(body.htmlContent).toContain(
+      "El administrador no especificó un motivo",
+    );
+  });
+
+  it("companyName con < > & queda HTML-escapeado en el body", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+
+    await sendCompanyStatusEmail(
+      "e@x.com",
+      "<script>alert(1)</script> & Co",
+      "APPROVED",
+    );
+
+    const body = lastCallBody(fetchSpy);
+    expect(body.htmlContent).not.toContain("<script>alert(1)</script>");
+    expect(body.htmlContent).toContain(
+      "&lt;script&gt;alert(1)&lt;/script&gt; &amp; Co",
+    );
+  });
 });
 
 describe("sendNewApplicationEmail", () => {

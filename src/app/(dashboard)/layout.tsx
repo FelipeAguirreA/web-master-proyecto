@@ -11,10 +11,13 @@ import { Icon } from "@/components/dashboard/Icon";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardTopbar } from "@/components/dashboard/DashboardTopbar";
 import { Avatar } from "@/components/dashboard/atoms/Avatar";
+import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
+import { computeCvProgress } from "@/lib/cv-progress";
 
 const STUDENT_DRAWER = [
   { icon: "home" as const, label: "Inicio", href: "/dashboard/estudiante" },
   { icon: "search" as const, label: "Prácticas", href: "/practicas" },
+  { icon: "heart" as const, label: "Guardadas", href: "/practicas/guardadas" },
   {
     icon: "chat" as const,
     label: "Mensajes",
@@ -38,7 +41,11 @@ const COMPANY_DRAWER = [
     label: "Calendario",
     href: "/dashboard/empresa/calendar",
   },
-  { icon: "user" as const, label: "Mi perfil", href: "/perfil" },
+  {
+    icon: "user" as const,
+    label: "Mi perfil",
+    href: "/dashboard/empresa/perfil",
+  },
 ];
 
 export default function DashboardLayout({
@@ -51,11 +58,27 @@ export default function DashboardLayout({
   const router = useRouter();
   const unreadCount = useUnreadCount();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [cvPct, setCvPct] = useState<number | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
+
+  // Para STUDENT: calcula el % de completitud del CV/perfil y lo pasa al
+  // sidebar para que la card "Tu CV" muestre el mensaje correcto (sin CV /
+  // mejorá / top). Sin esto, queda siempre en "Sube tu CV" aunque el user
+  // ya lo haya subido. Si el user no es STUDENT, el sidebar recibe null
+  // (ver llamada a <DashboardSidebar> abajo) — el effect no setea state
+  // sincrónicamente para no violar react-hooks/set-state-in-effect.
+  const isStudent = session?.user?.role === "STUDENT";
+  useEffect(() => {
+    if (!isStudent) return;
+    fetchWithRefresh("/api/users/me", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((user) => setCvPct(user ? computeCvProgress(user) : null))
+      .catch(() => setCvPct(null));
+  }, [isStudent]);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -131,7 +154,12 @@ export default function DashboardLayout({
         display: "flex",
       }}
     >
-      <DashboardSidebar role={role} unreadInbox={unreadCount} palette={p} />
+      <DashboardSidebar
+        role={role}
+        unreadInbox={unreadCount}
+        cvPct={isStudent ? cvPct : null}
+        palette={p}
+      />
 
       <div
         style={{
@@ -146,6 +174,7 @@ export default function DashboardLayout({
           userEmail={session.user.email ?? ""}
           userImage={session.user.image}
           isAdmin={isAdmin}
+          role={role}
           onMenu={() => setDrawerOpen(true)}
           palette={p}
         />
@@ -271,23 +300,12 @@ export default function DashboardLayout({
               gap: 12,
             }}
           >
-            {session.user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={session.user.image}
-                alt={name}
-                width={44}
-                height={44}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                }}
-              />
-            ) : (
-              <Avatar ini={initial} size={44} />
-            )}
+            <Avatar
+              ini={initial}
+              size={44}
+              src={session.user.image}
+              alt={name}
+            />
             <div style={{ minWidth: 0, flex: 1 }}>
               <p
                 style={{

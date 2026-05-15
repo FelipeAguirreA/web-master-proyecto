@@ -71,7 +71,7 @@ export function RegistroExitoso({ onContinue }: Props) {
           boxShadow: `0 8px 22px -8px ${A.text}`,
         }}
       >
-        Ir al inicio de sesión →
+        Ir al inicio de sesión
       </button>
     </div>
   );

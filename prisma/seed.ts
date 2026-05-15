@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { config } from "dotenv";
 import { hashSync } from "bcryptjs";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 
 // Password de empresas seed para E2E con credentials login.
 // Cumple las reglas del registro: 8+ chars, mayúscula, minúscula, número, símbolo.

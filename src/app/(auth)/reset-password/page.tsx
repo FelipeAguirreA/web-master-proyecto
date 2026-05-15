@@ -98,7 +98,7 @@ function ResetPasswordForm() {
           href="/forgot-password"
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
         >
-          Solicitar un nuevo enlace →
+          Solicitar un nuevo enlace
         </Link>
       </div>
     );
@@ -159,7 +159,7 @@ function ResetPasswordForm() {
             href="/login"
             className="text-[13px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
           >
-            Ir al login ahora →
+            Ir al login ahora
           </Link>
         </div>
       </div>
@@ -326,12 +326,7 @@ function ResetPasswordForm() {
               Actualizando…
             </>
           ) : (
-            <>
-              Actualizar contraseña
-              <span className="transition-transform group-hover:translate-x-0.5">
-                →
-              </span>
-            </>
+            <>Actualizar contraseña</>
           )}
         </button>
       </form>

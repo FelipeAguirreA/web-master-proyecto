@@ -65,7 +65,11 @@ type ApiResponse = {
 
 type RecMap = Map<string, number>;
 
-function toCard(it: ApiInternship, score: number | null): PracticaCardData {
+function toCard(
+  it: ApiInternship,
+  score: number | null,
+  applied: boolean,
+): PracticaCardData {
   const co = it.company.companyName;
   const color = companyColor(co);
   const safeScore = score ?? 0;
@@ -100,6 +104,7 @@ function toCard(it: ApiInternship, score: number | null): PracticaCardData {
     applicants: null,
     isNew,
     ai: null,
+    applied,
   };
 }
 
@@ -129,6 +134,7 @@ export default function PracticasPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [recs, setRecs] = useState<RecMap>(new Map());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortKey>("newest");
 
   useEffect(() => {
@@ -175,15 +181,39 @@ export default function PracticasPage() {
       .catch(() => setRecs(new Map()));
   }, [session]);
 
+  // Carga prácticas ya postuladas por el estudiante. Necesario para distinguir
+  // entre "match 0%" y "ya postulaste" — las postuladas las excluye getRecommendations
+  // pero igual aparecen en /practicas, y sin esta info quedaban con score 0%.
+  useEffect(() => {
+    if (!session || session.user.role !== "STUDENT") {
+      setAppliedIds(new Set());
+      return;
+    }
+    fetchWithRefresh("/api/applications/my", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((apps: Array<{ internship?: { id: string } | null }>) => {
+        const ids = new Set<string>();
+        for (const a of apps ?? []) {
+          if (a.internship?.id) ids.add(a.internship.id);
+        }
+        setAppliedIds(ids);
+      })
+      .catch(() => setAppliedIds(new Set()));
+  }, [session]);
+
   const cards = useMemo(() => {
     const base = internships.map((it) =>
-      toCard(it, recs.has(it.id) ? Math.round(recs.get(it.id) ?? 0) : null),
+      toCard(
+        it,
+        recs.has(it.id) ? Math.round(recs.get(it.id) ?? 0) : null,
+        appliedIds.has(it.id),
+      ),
     );
     if (sort === "match") {
       return [...base].sort((a, b) => b.score - a.score);
     }
     return base;
-  }, [internships, recs, sort]);
+  }, [internships, recs, appliedIds, sort]);
 
   const setFilter = (setter: (v: string) => void) => (value: string) => {
     setter(value);
@@ -286,6 +316,115 @@ export default function PracticasPage() {
           }}
           className="practix-list-container"
         >
+          {/* CTA destacado para no logueados — invita a registrarse/loggearse
+              para activar el match. Más prominente que el texto del hero. */}
+          {!session && (
+            <section
+              style={{
+                background: `linear-gradient(135deg, ${D.dark} 0%, #2a2722 100%)`,
+                borderRadius: 18,
+                padding: "20px 24px",
+                marginBottom: 20,
+                color: "#fff",
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 18,
+                flexWrap: "wrap",
+              }}
+            >
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  top: -60,
+                  right: -40,
+                  width: 220,
+                  height: 220,
+                  background: `radial-gradient(circle, ${D.accent}55, transparent 65%)`,
+                  pointerEvents: "none",
+                }}
+              />
+              <div style={{ position: "relative", flex: 1, minWidth: 240 }}>
+                <p
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    color: D.accent,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    marginBottom: 6,
+                  }}
+                >
+                  Match con IA
+                </p>
+                <h2
+                  style={{
+                    fontSize: "clamp(1.05rem,1.8vw,1.3rem)",
+                    fontWeight: 800,
+                    letterSpacing: -0.4,
+                    lineHeight: 1.25,
+                    marginBottom: 4,
+                  }}
+                >
+                  Encontrá las prácticas que mejor calzan con vos
+                </h2>
+                <p
+                  style={{
+                    fontSize: 12.5,
+                    color: "rgba(255,255,255,.7)",
+                    lineHeight: 1.55,
+                    maxWidth: 520,
+                  }}
+                >
+                  Iniciá sesión o creá tu cuenta. Subí tu CV y declarás tus
+                  skills, y te mostramos cada práctica con un % de match real.
+                </p>
+              </div>
+              <div
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <a
+                  href="/login?role=student"
+                  style={{
+                    background: `linear-gradient(135deg,${D.accent},${D.accentHi})`,
+                    color: "#fff",
+                    padding: "10px 18px",
+                    borderRadius: 11,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    boxShadow: `0 6px 16px ${D.accent}55`,
+                  }}
+                >
+                  Iniciar sesión
+                </a>
+                <a
+                  href="/registro"
+                  style={{
+                    background: "rgba(255,255,255,.1)",
+                    color: "#fff",
+                    padding: "10px 18px",
+                    borderRadius: 11,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    border: "1px solid rgba(255,255,255,.18)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Crear cuenta
+                </a>
+              </div>
+            </section>
+          )}
+
           {/* Hero */}
           <section
             style={{
