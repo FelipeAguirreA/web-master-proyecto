@@ -3,7 +3,7 @@ import { uploadFile } from "@/server/lib/storage";
 import { extractTextFromCV } from "@/server/lib/cv-parser";
 import {
   generateEmbedding,
-  calculateMatchScore,
+  calculateHybridMatchScore,
 } from "@/server/lib/embeddings";
 
 const ALLOWED_EXTENSIONS = new Set(["pdf", "doc", "docx"]);
@@ -84,12 +84,26 @@ export async function getRecommendations(userId: string) {
     where: { userId },
   });
 
-  if (!student || !student.embedding.length) {
-    return [];
-  }
+  // Antes requería embedding del CV obligatoriamente. Con el score híbrido,
+  // un estudiante sin CV pero con skills declaradas puede ver recomendaciones.
+  if (!student) return [];
+  if (!student.embedding.length && !student.skills.length) return [];
+
+  // Excluir prácticas ya postuladas — no tiene sentido recomendar lo que ya
+  // postuló. Trae solo internshipId (mínimo necesario).
+  const myApplications = await prisma.application.findMany({
+    where: { studentId: userId },
+    select: { internshipId: true },
+  });
+  const excludedIds = myApplications.map((a) => a.internshipId);
 
   const internships = await prisma.internship.findMany({
-    where: { isActive: true, company: { companyStatus: "APPROVED" } },
+    where: {
+      isActive: true,
+      deletedAt: null,
+      company: { companyStatus: "APPROVED" },
+      ...(excludedIds.length > 0 && { id: { notIn: excludedIds } }),
+    },
     include: {
       company: { select: { companyName: true, logo: true } },
     },
@@ -97,10 +111,12 @@ export async function getRecommendations(userId: string) {
 
   const scored = internships.map(({ embedding, ...internship }) => ({
     ...internship,
-    matchScore:
-      embedding.length > 0
-        ? calculateMatchScore(student.embedding, embedding)
-        : 0,
+    matchScore: calculateHybridMatchScore(
+      student.embedding,
+      embedding,
+      student.skills,
+      internship.skills,
+    ),
   }));
 
   return scored

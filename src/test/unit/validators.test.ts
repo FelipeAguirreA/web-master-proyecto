@@ -355,8 +355,14 @@ describe("filterInternshipSchema", () => {
     expect(filterInternshipSchema.parse({ limit: "25" }).limit).toBe(25);
   });
 
-  it("rechaza limit > 50", () => {
-    expect(filterInternshipSchema.safeParse({ limit: 51 }).success).toBe(false);
+  it("rechaza limit > 100", () => {
+    // El max se bumpeo de 50 a 100 durante el refactor 1.13.0 para soportar
+    // paginas mas grandes en dashboards admin/empresa sin n+1 fetches.
+    expect(filterInternshipSchema.safeParse({ limit: 101 }).success).toBe(
+      false,
+    );
+    // Verifica el limite superior valido pasa.
+    expect(filterInternshipSchema.safeParse({ limit: 100 }).success).toBe(true);
   });
 
   it("rechaza page < 1", () => {

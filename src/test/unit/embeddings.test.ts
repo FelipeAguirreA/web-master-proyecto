@@ -23,6 +23,8 @@ vi.mock("@/server/lib/logger", () => ({
 import {
   generateEmbedding,
   calculateMatchScore,
+  computeSkillOverlap,
+  calculateHybridMatchScore,
 } from "@/server/lib/embeddings";
 import { env as mockedEnv } from "@/lib/env";
 
@@ -163,5 +165,131 @@ describe("calculateMatchScore", () => {
     const a = Array(384).fill(0.1);
     const b = Array(384).fill(0.1);
     expect(calculateMatchScore(a, b)).toBe(100);
+  });
+});
+
+describe("computeSkillOverlap", () => {
+  it("retorna 0 si studentSkills está vacío", () => {
+    expect(computeSkillOverlap([], ["React"])).toBe(0);
+  });
+
+  it("retorna 0 si internshipSkills está vacío", () => {
+    expect(computeSkillOverlap(["React"], [])).toBe(0);
+  });
+
+  it("retorna 100 cuando el estudiante tiene todas las skills requeridas", () => {
+    expect(
+      computeSkillOverlap(["React", "TypeScript"], ["React", "TypeScript"]),
+    ).toBe(100);
+  });
+
+  it("retorna 50 cuando el estudiante matchea la mitad", () => {
+    expect(computeSkillOverlap(["React"], ["React", "TypeScript"])).toBe(50);
+  });
+
+  it("compara case-insensitive — react matchea React", () => {
+    expect(computeSkillOverlap(["react"], ["React"])).toBe(100);
+  });
+
+  it("ignora whitespace circundante", () => {
+    expect(computeSkillOverlap([" React "], ["React"])).toBe(100);
+  });
+
+  it("ignora skills extra del estudiante que no están en la práctica", () => {
+    expect(computeSkillOverlap(["React", "Vue", "Angular"], ["React"])).toBe(
+      100,
+    );
+  });
+
+  it("filtra strings vacíos en la lista del estudiante", () => {
+    expect(computeSkillOverlap(["", "  ", "React"], ["React"])).toBe(100);
+  });
+});
+
+describe("calculateHybridMatchScore", () => {
+  it("retorna 0 cuando no hay nada (sin embedding ni skills)", () => {
+    expect(calculateHybridMatchScore([], [], [], [])).toBe(0);
+  });
+
+  it("retorna 100% semántico cuando no hay skills declaradas en ningún lado", () => {
+    // Embeddings idénticos → cosine = 100, sin skills → score = 100 (no penaliza).
+    expect(calculateHybridMatchScore([1, 0, 0], [1, 0, 0], [], [])).toBe(100);
+  });
+
+  it("retorna overlap directo cuando NO hay CV pero SÍ skills declaradas", () => {
+    expect(calculateHybridMatchScore([], [], ["React"], ["React"])).toBe(100);
+  });
+
+  it("retorna overlap directo cuando solo el internship tiene embedding", () => {
+    expect(calculateHybridMatchScore([], [1, 0, 0], ["React"], ["React"])).toBe(
+      100,
+    );
+  });
+
+  it("agregar 1 skill sobre 5 SIEMPRE sube el score (no lo baja)", () => {
+    // Bug original: blend 70/30 podía bajar el match al agregar pocas skills.
+    // Fix: boost aditivo — semántico 78 + 20% * 20 = 78 + 4 = 82.
+    // Sin skills: 78 (semántico puro).
+    const noSkills = calculateHybridMatchScore(
+      [0.78, 0.62, 0],
+      [1, 0, 0],
+      [],
+      ["React", "TS", "Node", "CSS", "Git"],
+    );
+    const oneSkill = calculateHybridMatchScore(
+      [0.78, 0.62, 0],
+      [1, 0, 0],
+      ["React"],
+      ["React", "TS", "Node", "CSS", "Git"],
+    );
+    expect(oneSkill).toBeGreaterThan(noSkills);
+  });
+
+  it("score 100 + 20% skills = 100 (capeado, no overflow)", () => {
+    const result = calculateHybridMatchScore(
+      [1, 0, 0],
+      [1, 0, 0],
+      ["React"],
+      ["React", "TypeScript"],
+    );
+    // 100 + (50/100) * 20 = 110 → cap 100
+    expect(result).toBe(100);
+  });
+
+  it("score 80 + 100% skills = 100 (max boost de 20 puntos)", () => {
+    const result = calculateHybridMatchScore(
+      [4, 3, 0], // → score 80 vs [1, 0, 0]
+      [1, 0, 0],
+      ["React", "TypeScript"],
+      ["React", "TypeScript"],
+    );
+    // semántico ~80 + 20 = 100
+    expect(result).toBe(100);
+  });
+
+  it("agregar TODAS las skills suma el boost máximo (+20)", () => {
+    const noSkills = calculateHybridMatchScore(
+      [4, 3, 0],
+      [1, 0, 0],
+      [],
+      ["React", "TS"],
+    );
+    const allSkills = calculateHybridMatchScore(
+      [4, 3, 0],
+      [1, 0, 0],
+      ["React", "TS"],
+      ["React", "TS"],
+    );
+    expect(allSkills - noSkills).toBe(20);
+  });
+
+  it("retorna entero (round)", () => {
+    const result = calculateHybridMatchScore(
+      [1, 1, 0],
+      [1, 0, 1],
+      ["React"],
+      ["React", "TypeScript", "Node"],
+    );
+    expect(Number.isInteger(result)).toBe(true);
   });
 });

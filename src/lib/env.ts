@@ -6,6 +6,16 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_KEY: z.string().min(1),
+  // JWT Secret (Legacy HS256) — Supabase Dashboard → Settings → API → JWT Keys
+  // → Legacy JWT Secret tab → Reveal. Lo usamos en /api/auth/supabase-token
+  // para firmar JWTs HS256 que pasamos a supabaseRealtime.realtime.setAuth().
+  //
+  // NOTA: el dashboard de Supabase no expone "Generic OIDC Third-Party Auth"
+  // en free tier (solo Clerk/Firebase/Auth0/Cognito/WorkOS). Por eso usamos
+  // el legacy secret en vez de RS256/JWKS. Cuando upgradeás a Pro o cuando
+  // Supabase abra Generic OIDC al free tier, ver `docs/supabase-third-party-auth-setup.md`
+  // para la migración.
+  SUPABASE_JWT_SECRET: z.string().min(32),
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().min(1),

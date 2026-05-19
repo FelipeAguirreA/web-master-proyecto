@@ -5,6 +5,7 @@ import { hash } from "bcryptjs";
 import { prisma } from "@/server/lib/db";
 import { rateLimit, rateLimitResponse } from "@/server/lib/rate-limit";
 import { createLogger, getRequestId } from "@/server/lib/logger";
+import { revokeAllForUser } from "@/server/services/refresh-tokens.service";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
         resetTokenExp: null,
       },
     });
+
+    // OWASP A07 — sesiones viejas (refresh tokens emitidos antes del cambio)
+    // quedan revocados. Sin esto, un atacante con token filtrado mantendría
+    // acceso aunque el dueño resetee la contraseña.
+    await revokeAllForUser(user.id);
 
     return NextResponse.json({
       message: "Contraseña actualizada correctamente.",

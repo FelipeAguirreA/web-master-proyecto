@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/lib/auth-guard";
 import { prisma } from "@/server/lib/db";
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const auth = await requireAdmin();
     if ("error" in auth) {
@@ -20,6 +20,9 @@ export async function GET(_request: NextRequest) {
             phone: true,
             createdAt: true,
           },
+        },
+        _count: {
+          select: { internships: true },
         },
       },
       orderBy: { createdAt: "desc" },

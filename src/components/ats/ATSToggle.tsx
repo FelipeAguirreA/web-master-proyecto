@@ -51,7 +51,7 @@ export default function ATSToggle({
             className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors"
           >
             <Settings className="w-3.5 h-3.5" />
-            {hasConfig ? "Configurar módulos" : "Configurar ATS"} →
+            {hasConfig ? "Configurar módulos" : "Configurar ATS"}
           </Link>
         )}
 

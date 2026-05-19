@@ -116,8 +116,8 @@ describe("getInternshipById", () => {
     expect(result).toBeNull();
   });
 
-  // #E1 — filtros para no exponer prácticas inactivas o de empresas no APPROVED
-  it("filtra por isActive: true y company.companyStatus: APPROVED (#E1)", async () => {
+  // #E1 — filtros para no exponer prácticas inactivas, soft-deleted o de empresas no APPROVED
+  it("filtra por isActive: true, deletedAt: null y company.companyStatus: APPROVED (#E1)", async () => {
     prismaMock.internship.findFirst.mockResolvedValue(null);
 
     await getInternshipById("int-1");
@@ -127,6 +127,7 @@ describe("getInternshipById", () => {
         where: {
           id: "int-1",
           isActive: true,
+          deletedAt: null,
           company: { is: { companyStatus: "APPROVED" } },
         },
       }),
@@ -160,6 +161,7 @@ describe("createInternship", () => {
     location: "Santiago",
     modality: "REMOTE" as const,
     duration: "3 meses",
+    responsibilities: ["Construir componentes React"],
     requirements: ["Estudiante de último año"],
     skills: ["React"],
   };
@@ -242,11 +244,13 @@ describe("updateInternship", () => {
     ).rejects.toThrow("Not found or not authorized");
   });
 
-  it("actualiza la práctica cuando el usuario es dueño", async () => {
+  it("actualiza la práctica cuando el usuario es dueño (regen embedding si cambia title)", async () => {
     prismaMock.companyProfile.findUnique.mockResolvedValue({
       id: "cp-1",
       userId: "user-1",
     });
+    // Sin postulantes → gate de edit pasa
+    prismaMock.application.count.mockResolvedValue(0);
     prismaMock.internship.findFirst.mockResolvedValue(mockInternship);
     prismaMock.internship.update.mockResolvedValue({
       ...mockInternship,
@@ -258,13 +262,17 @@ describe("updateInternship", () => {
     });
 
     expect(result.title).toBe("Nuevo título");
-    expect(prismaMock.internship.update).toHaveBeenCalledWith({
-      where: { id: "int-1" },
-      data: { title: "Nuevo título" },
-    });
+    // Aceptamos `embedding` en el data porque al cambiar `title` el service
+    // regenera el embedding (ver internships.service.ts: needsReembed).
+    expect(prismaMock.internship.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "int-1" },
+        data: expect.objectContaining({ title: "Nuevo título" }),
+      }),
+    );
   });
 
-  it("permite actualizar isActive (re-activar/desactivar)", async () => {
+  it("permite actualizar isActive (re-activar/desactivar) sin gate de postulantes", async () => {
     prismaMock.companyProfile.findUnique.mockResolvedValue({
       id: "cp-1",
       userId: "user-1",
@@ -277,6 +285,9 @@ describe("updateInternship", () => {
 
     await updateInternship("int-1", "user-1", { isActive: false });
 
+    // El gate SOLO aplica a edits de contenido, no a toggle isActive.
+    // application.count NO debe haberse llamado.
+    expect(prismaMock.application.count).not.toHaveBeenCalled();
     expect(prismaMock.internship.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { isActive: false } }),
     );
@@ -296,7 +307,7 @@ describe("deleteInternship", () => {
     );
   });
 
-  it("hace soft delete (isActive: false) en lugar de borrar", async () => {
+  it("hace soft delete real (deletedAt: now) ortogonal a isActive", async () => {
     prismaMock.companyProfile.findUnique.mockResolvedValue({
       id: "cp-1",
       userId: "user-1",
@@ -304,15 +315,17 @@ describe("deleteInternship", () => {
     prismaMock.internship.findFirst.mockResolvedValue(mockInternship);
     prismaMock.internship.update.mockResolvedValue({
       ...mockInternship,
-      isActive: false,
+      deletedAt: new Date(),
     });
 
     const result = await deleteInternship("int-1", "user-1");
 
     expect(result).toEqual({ success: true });
+    // Soft delete real: setea deletedAt (NO isActive). Esto preserva la
+    // semántica de "Finalizada" (isActive=false) vs "Eliminada" (deletedAt!=null).
     expect(prismaMock.internship.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ isActive: false }),
+        data: expect.objectContaining({ deletedAt: expect.any(Date) }),
       }),
     );
   });

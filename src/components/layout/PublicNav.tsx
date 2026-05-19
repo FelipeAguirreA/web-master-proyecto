@@ -23,8 +23,10 @@ type PublicNavProps = {
 
 const PUBLIC_LINKS = [
   { label: "Prácticas", href: "/practicas" },
+  { label: "Cómo funciona", href: "/#como-funciona" },
   { label: "Producto", href: "/#producto" },
-  { label: "Para empresas", href: "/#empresas" },
+  { label: "Para empresas", href: "/#para-quien" },
+  { label: "FAQ", href: "/#faq" },
 ];
 
 type DashboardLink = {
@@ -172,9 +174,6 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
                   >
                     <span className="hidden sm:inline">Ir al panel</span>
                     <span className="sm:hidden">Panel</span>
-                    <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                      →
-                    </span>
                   </Link>
                 </>
               ) : (
@@ -191,9 +190,6 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
                   >
                     <span className="hidden sm:inline">Empezar gratis</span>
                     <span className="sm:hidden">Entrar</span>
-                    <span className="text-[11px] transition-transform group-hover:translate-x-0.5">
-                      →
-                    </span>
                   </Link>
                 </>
               )}
@@ -376,7 +372,6 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
                   className="inline-flex items-center justify-center gap-1.5 text-[13.5px] font-medium bg-[#0A0909] text-white px-3 py-2.5 rounded-xl hover:bg-[#1D1B18] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
                 >
                   Empezar gratis
-                  <span className="text-[11px]">→</span>
                 </Link>
               </div>
             </>

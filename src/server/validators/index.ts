@@ -120,6 +120,7 @@ export const createInternshipSchema = z.object({
   location: z.string(),
   modality: z.enum(["REMOTE", "ONSITE", "HYBRID"]),
   duration: z.string(),
+  responsibilities: z.array(z.string()).default([]),
   requirements: z.array(z.string()),
   skills: z.array(z.string()),
 });
@@ -130,7 +131,7 @@ export const filterInternshipSchema = z.object({
   modality: z.enum(["REMOTE", "ONSITE", "HYBRID"]).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(12),
+  limit: z.coerce.number().int().min(1).max(100).default(12),
 });
 
 export const applySchema = z.object({

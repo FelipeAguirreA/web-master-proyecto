@@ -48,3 +48,9 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Claude Design exported bundles (mocks fuente, no parte del build)
+.design-drop/
+
+# Agent Teams Lite local state
+.atl/

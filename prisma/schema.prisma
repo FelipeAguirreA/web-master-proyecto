@@ -28,6 +28,7 @@ enum PipelineStatus {
   PENDING
   REVIEWING
   INTERVIEW
+  ACCEPTED
   REJECTED
 }
 
@@ -44,6 +45,7 @@ enum CompanyStatus {
   PENDING
   APPROVED
   REJECTED
+  SUSPENDED
 }
 
 enum MessageType {
@@ -61,6 +63,8 @@ enum NotificationType {
   APPLICATION_REVIEWED
   APPLICATION_ACCEPTED
   APPLICATION_REJECTED
+  NEW_APPLICATION
+  NEW_MESSAGE
 }
 
 model User {
@@ -94,6 +98,7 @@ model User {
   notifications        Notification[]
   refreshTokens        RefreshToken[]
   auditLogs            AuditLog[]
+  savedInternships     SavedInternship[]
 
   @@map("users")
 }
@@ -139,6 +144,8 @@ model CompanyProfile {
   companyName   String
   empresaRut    String?
   companyStatus CompanyStatus @default(PENDING)
+  suspensionReason String?
+  suspendedAt   DateTime?
   industry      String?
   website       String?
   logo          String?
@@ -161,20 +168,41 @@ model Internship {
   location     String
   modality     Modality
   duration     String
+  responsibilities String[] @default([])
   requirements String[]
   skills       String[]
   embedding    Float[]
   isActive     Boolean   @default(true)
+  deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   applications Application[]
   atsConfig    ATSConfig?
   interviews   Interview[]
+  savedBy      SavedInternship[]
 
   @@index([isActive, createdAt(sort: Desc)])
   @@index([companyId])
+  @@index([deletedAt])
   @@map("internships")
+}
+
+// Wishlist del estudiante: prácticas marcadas para revisar después sin haber
+// postulado todavía. Cardinalidad many-to-many entre User (rol STUDENT) e
+// Internship. @@unique evita duplicados; el índice (studentId, createdAt desc)
+// soporta el listado "mis guardadas" ordenado por más reciente.
+model SavedInternship {
+  id           String     @id @default(cuid())
+  studentId    String
+  internshipId String
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  internship   Internship @relation(fields: [internshipId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([studentId, internshipId])
+  @@index([studentId, createdAt(sort: Desc)])
+  @@map("saved_internships")
 }
 
 model Application {
@@ -232,17 +260,21 @@ model ATSModule {
 }
 
 model Conversation {
-  id             String       @id @default(cuid())
-  companyId      String
-  studentId      String
-  applicationId  String       @unique
-  company        User         @relation("CompanyConversations", fields: [companyId], references: [id], onDelete: Cascade)
-  student        User         @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
-  application    Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  messages       Message[]
-  interviews     Interview[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  companyId            String
+  studentId            String
+  applicationId        String       @unique
+  company              User         @relation("CompanyConversations", fields: [companyId], references: [id], onDelete: Cascade)
+  student              User         @relation("StudentConversations", fields: [studentId], references: [id], onDelete: Cascade)
+  application          Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  messages             Message[]
+  interviews           Interview[]
+  companyPinned        Boolean      @default(false)
+  studentPinned        Boolean      @default(false)
+  companyMarkedUnread  Boolean      @default(false)
+  studentMarkedUnread  Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@index([companyId])
   @@index([studentId])

@@ -11,6 +11,7 @@ const baseInternship = {
   modality: "REMOTE" as const,
   duration: "3 meses",
   skills: ["React", "TypeScript"],
+  responsibilities: ["Construir componentes React"],
   requirements: ["Estudiante de último año"],
   isActive: true,
   companyId: "comp-1",

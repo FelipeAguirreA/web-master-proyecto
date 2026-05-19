@@ -59,7 +59,7 @@ practix/
 │   │   └── auth.ts       # authOptions de NextAuth
 │   └── types/            # Tipos TypeScript compartidos
 ├── prisma/
-│   ├── schema.prisma     # 5 modelos: User, StudentProfile, CompanyProfile, Internship, Application
+│   ├── schema.prisma     # Modelos: User, profiles, Internship (soft-delete con `deletedAt`), Application, SavedInternship, Conversation, Message, Interview, Notification, ATSConfig/Module, AuditLog, RefreshToken
 │   └── seed.ts           # Datos de ejemplo
 └── prisma.config.ts      # Config Prisma 7 (URL fuera del schema)
 ```
@@ -84,8 +84,8 @@ cp .env.example .env.local
 docker compose up -d
 
 # 5. Crear tablas y seed
-pnpm db:push
-pnpm db:seed
+pnpm prisma migrate dev   # aplica todas las migrations versionadas en prisma/migrations/
+pnpm db:seed              # datos de ejemplo (tsx prisma/seed.ts)
 
 # 6. Correr servidor de desarrollo
 pnpm dev
@@ -94,20 +94,24 @@ pnpm dev
 
 ## Variables de entorno
 
-| Variable                   | Descripción                                                                                                                                                                    | Dónde obtenerla                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `DATABASE_URL`             | PostgreSQL connection string usado por el cliente Prisma (queries)                                                                                                             | Supabase → Settings → Database → Transaction Pooler (puerto 6543) |
-| `DIRECT_URL`               | Conexión directa para migraciones (`db push`, `migrate`). El pooler de pgBouncer no soporta todas las queries que usa la CLI. Opcional en dev local con Docker (no hay pooler) | Supabase → Settings → Database → Direct connection (puerto 5432)  |
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase                                                                                                                                                      | Supabase → Settings → API                                         |
-| `SUPABASE_SERVICE_KEY`     | Service role key                                                                                                                                                               | Supabase → Settings → API                                         |
-| `NEXTAUTH_URL`             | URL base de la app                                                                                                                                                             | `http://localhost:3000` en dev, URL de Vercel en prod             |
-| `NEXTAUTH_SECRET`          | Secreto para firmar tokens                                                                                                                                                     | `openssl rand -base64 32`                                         |
-| `GOOGLE_CLIENT_ID`         | OAuth Client ID                                                                                                                                                                | Google Cloud Console → APIs & Services → Credentials              |
-| `GOOGLE_CLIENT_SECRET`     | OAuth Client Secret                                                                                                                                                            | Google Cloud Console → APIs & Services → Credentials              |
-| `HUGGINGFACE_API_KEY`      | Token de HuggingFace                                                                                                                                                           | huggingface.co → Settings → Access Tokens                         |
-| `BREVO_API_KEY`            | API Key de Brevo                                                                                                                                                               | Brevo → Settings → SMTP & API → API Keys                          |
-| `BREVO_SENDER_EMAIL`       | Email del remitente                                                                                                                                                            | Email verificado en Brevo                                         |
-| `NEXT_PUBLIC_SENTRY_DSN`   | DSN de Sentry                                                                                                                                                                  | sentry.io → Project → Settings → Client Keys                      |
+| Variable                        | Descripción                                                                                                                                                                                                                         | Dónde obtenerla                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL`                  | PostgreSQL connection string usado por el cliente Prisma (queries)                                                                                                                                                                  | Supabase → Settings → Database → Transaction Pooler (puerto 6543)         |
+| `DIRECT_URL`                    | Conexión directa para migraciones (`db push`, `migrate`). El pooler de pgBouncer no soporta todas las queries que usa la CLI. Opcional en dev local con Docker (no hay pooler)                                                      | Supabase → Settings → Database → Direct connection (puerto 5432)          |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL del proyecto Supabase                                                                                                                                                                                                           | Supabase → Settings → API                                                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key pública — la usa el cliente browser para Supabase Realtime (WebSocket). Pública por diseño, no es secret.                                                                                                                  | Supabase → Settings → API                                                 |
+| `SUPABASE_SERVICE_KEY`          | Service role key                                                                                                                                                                                                                    | Supabase → Settings → API                                                 |
+| `SUPABASE_JWT_SECRET`           | Legacy JWT secret — usado por `/api/auth/supabase-token` para firmar JWTs HS256 que el cliente browser pasa a `supabaseRealtime.realtime.setAuth()`. Habilita que las policies RLS de `messages` y `notifications` validen al user. | Supabase → Settings → API → JWT Keys → tab **Legacy JWT Secret** → Reveal |
+| `NEXTAUTH_URL`                  | URL base de la app                                                                                                                                                                                                                  | `http://localhost:3000` en dev, URL de Vercel en prod                     |
+| `NEXTAUTH_SECRET`               | Secreto para firmar tokens                                                                                                                                                                                                          | `openssl rand -base64 32`                                                 |
+| `GOOGLE_CLIENT_ID`              | OAuth Client ID                                                                                                                                                                                                                     | Google Cloud Console → APIs & Services → Credentials                      |
+| `GOOGLE_CLIENT_SECRET`          | OAuth Client Secret                                                                                                                                                                                                                 | Google Cloud Console → APIs & Services → Credentials                      |
+| `HUGGINGFACE_API_KEY`           | Token de HuggingFace                                                                                                                                                                                                                | huggingface.co → Settings → Access Tokens                                 |
+| `BREVO_API_KEY`                 | API Key de Brevo                                                                                                                                                                                                                    | Brevo → Settings → SMTP & API → API Keys                                  |
+| `BREVO_SENDER_EMAIL`            | Email del remitente                                                                                                                                                                                                                 | Email verificado en Brevo                                                 |
+| `NEXT_PUBLIC_SENTRY_DSN`        | DSN de Sentry (opcional)                                                                                                                                                                                                            | sentry.io → Project → Settings → Client Keys                              |
+| `UPSTASH_REDIS_REST_URL`        | URL del Redis serverless para rate limiting distribuido (opcional — sin esta var, la app usa fallback in-memory que NO sirve en serverless multi-instancia)                                                                         | Upstash Console → tu DB Redis → REST API                                  |
+| `UPSTASH_REDIS_REST_TOKEN`      | Token de auth REST del Redis de Upstash (opcional, par del anterior)                                                                                                                                                                | Upstash Console → tu DB Redis → REST API                                  |
 
 ## Deploy en Vercel
 
@@ -120,18 +124,19 @@ pnpm dev
 
 ## API Endpoints
 
-40+ rutas agrupadas por área. Todas las rutas autenticadas pasan por `requireAuth(role?)` (`src/server/lib/auth-guard.ts`); las que aceptan body validan con Zod (`src/server/validators/`); las que mutan datos ajenos verifican ownership en el service (helpers `findOwned*`).
+49 rutas agrupadas por área. Todas las rutas autenticadas pasan por `requireAuth(role?)` (`src/server/lib/auth-guard.ts`); las que aceptan body validan con Zod (`src/server/validators/`); las que mutan datos ajenos verifican ownership en el service (helpers `findOwned*`).
 
 ### Auth
 
-| Método | Ruta                         | Descripción                                 | Auth |
-| ------ | ---------------------------- | ------------------------------------------- | ---- |
-| —      | `/api/auth/[...nextauth]`    | NextAuth (Google OAuth + credentials)       | —    |
-| POST   | `/api/auth/empresa/register` | Registro de empresa con bcrypt + rate limit | No   |
-| POST   | `/api/auth/refresh`          | Refresh token rotation                      | No   |
-| POST   | `/api/auth/logout`           | Logout + revoke refresh token               | Sí   |
-| POST   | `/api/auth/forgot-password`  | Pedido de reset (anti-enumeration)          | No   |
-| POST   | `/api/auth/reset-password`   | Reset con token + bcrypt                    | No   |
+| Método | Ruta                         | Descripción                                               | Auth |
+| ------ | ---------------------------- | --------------------------------------------------------- | ---- |
+| —      | `/api/auth/[...nextauth]`    | NextAuth (Google OAuth + credentials)                     | —    |
+| POST   | `/api/auth/empresa/register` | Registro de empresa con bcrypt + rate limit               | No   |
+| POST   | `/api/auth/refresh`          | Refresh token rotation                                    | No   |
+| POST   | `/api/auth/logout`           | Logout + revoke refresh token                             | Sí   |
+| POST   | `/api/auth/forgot-password`  | Pedido de reset (anti-enumeration)                        | No   |
+| POST   | `/api/auth/reset-password`   | Reset con token + bcrypt                                  | No   |
+| POST   | `/api/auth/supabase-token`   | Firma JWT HS256 (sub=userId) para Supabase Realtime + RLS | Sí   |
 
 ### Users / Profile / Perfil
 
@@ -146,12 +151,12 @@ pnpm dev
 
 ### Internships
 
-| Método          | Ruta                       | Descripción                               | Auth    |
-| --------------- | -------------------------- | ----------------------------------------- | ------- |
-| GET             | `/api/internships`         | Listar (filtros + paginación)             | No      |
-| POST            | `/api/internships`         | Crear (genera embedding HF en background) | COMPANY |
-| GET / PUT / DEL | `/api/internships/:id`     | Detalle / actualizar / soft delete        | varios  |
-| GET             | `/api/company/internships` | Mis prácticas (empresa)                   | COMPANY |
+| Método          | Ruta                       | Descripción                                                                                                                                                                                  | Auth    |
+| --------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| GET             | `/api/internships`         | Listar (filtros + paginación). Filtra `isActive=true` + `deletedAt=null` + empresa APPROVED                                                                                                  | No      |
+| POST            | `/api/internships`         | Crear (genera embedding HF en background)                                                                                                                                                    | COMPANY |
+| GET / PUT / DEL | `/api/internships/:id`     | Detalle / actualizar (bloqueado si hay postulantes — regen embedding si cambia title/desc/skills) / soft delete real (`deletedAt = now()`, distinto de `isActive=false` que es "Finalizada") | varios  |
+| GET             | `/api/company/internships` | Mis prácticas (empresa). Acepta `?includeDeleted=1` para incluir soft-deleted en la tab "Eliminadas"                                                                                         | COMPANY |
 
 ### Applications
 
@@ -181,12 +186,13 @@ pnpm dev
 
 ### Chat
 
-| Método     | Ruta                                   | Descripción                 | Auth |
-| ---------- | -------------------------------------- | --------------------------- | ---- |
-| GET / POST | `/api/chat/conversations`              | Listar / crear conversación | Sí   |
-| GET        | `/api/chat/conversations/:id`          | Metadata de conversación    | Sí   |
-| GET / POST | `/api/chat/conversations/:id/messages` | Mensajes paginados / enviar | Sí   |
-| PATCH      | `/api/chat/conversations/:id/read`     | Marcar como leídos          | Sí   |
+| Método     | Ruta                                   | Descripción                                                                                      | Auth |
+| ---------- | -------------------------------------- | ------------------------------------------------------------------------------------------------ | ---- |
+| GET / POST | `/api/chat/conversations`              | Listar / crear conversación                                                                      | Sí   |
+| GET        | `/api/chat/conversations/:id`          | Metadata de conversación                                                                         | Sí   |
+| GET / POST | `/api/chat/conversations/:id/messages` | Mensajes paginados / enviar                                                                      | Sí   |
+| PATCH      | `/api/chat/conversations/:id/read`     | Marcar como leídos                                                                               | Sí   |
+| GET        | `/api/chat/unread-count`               | `{count}` total de unread — endpoint dedicado para el badge del topbar (vs traer lista completa) | Sí   |
 
 ### Interviews
 
@@ -222,6 +228,8 @@ pnpm dev
 
 - **Tests**: 1097 unit/component + 53 E2E. Coverage thresholds: 100% func / 80% lines-branches.
 - **Seguridad (OWASP Top 10)**: rate limiting distribuido (Upstash Redis), CSP con nonces dinámicos, JWT 15min + refresh token rotation, headers (HSTS, X-Frame-Options, COOP, etc.), audit completo de `/api/*` con anti-enumeration y ownership checks, `pnpm audit --audit-level=moderate` en CI.
+- **RLS en Postgres**: las 14 tablas en schema `public` tienen Row Level Security activado. 12 backend-only sin policies (Prisma service role bypasea automáticamente — la anon key del browser queda 100% bloqueada). `messages`, `notifications` y `conversations` tienen SELECT policies con `auth.jwt() ->> 'sub'` para que Supabase Realtime entregue pushes solo al participante correcto. JWTs custom firmados por `/api/auth/supabase-token` con HS256 + `SUPABASE_JWT_SECRET`.
+- **Realtime híbrido (free tier friendly)**: notificaciones globales y mensajes de chat por Supabase Realtime (push instantáneo). Badge de unread del topbar por polling cada 30s al endpoint barato `/api/chat/unread-count` + pausa con Page Visibility API. Reduce ~89% el tráfico HTTP vs polling tradicional sin perder UX.
 - **Observabilidad**: logger estructurado pino con correlation `x-request-id`, Sentry con releases ligados a commit (`practix@<sha>`), Performance Monitoring (`tracesSampleRate: 0.1`), 3 alertas configuradas, sourcemaps en cada deploy de Vercel, 3 runbooks operacionales en `docs/runbooks/`.
 - **CI/CD**: GitHub Actions con lint + type-check + tests + build + audit. Dependabot agrupado (react, sentry, prisma, testing) para evitar PRs con versiones desincronizadas.
 - **6 ADRs** en `docs/adr/` documentan las decisiones arquitectónicas relevantes.

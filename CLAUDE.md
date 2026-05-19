@@ -57,10 +57,14 @@ Las llamadas fetch del frontend siempre usan URL relativa (`fetch('/api/...')`) 
 
 ## Data Models (Prisma)
 
-5 modelos: `User`, `StudentProfile`, `CompanyProfile`, `Internship`, `Application`
+Modelos principales: `User`, `StudentProfile`, `CompanyProfile`, `Internship`, `Application`, `SavedInternship`, `Conversation`, `Message`, `Interview`, `Notification`, `ATSConfig` / `ATSModule`, `AuditLog`, `RefreshToken`, `PasswordResetToken`.
 
 - `Application` tiene `@@unique([studentId, internshipId])` — un estudiante no puede postularse dos veces
-- Prácticas usan **soft delete** (campo `isActive: Boolean`)
+- `Internship` tiene **dos estados ortogonales** (desde 1.13.0):
+  - `isActive: Boolean` → "Finalizada" (la empresa cerró el reclutamiento, sigue visible en histórico).
+  - `deletedAt: DateTime?` → "Eliminada" (no aparece en listings públicos; el owner sí la ve en tab "Eliminadas" como archivo de postulantes/embedding pasados).
+  - Listings públicos filtran ambos: `isActive: true` + `deletedAt: null`. Owner ve siempre sus propias prácticas (fork `ownedByMe` en `getInternshipById`).
+- `Internship` **edit gateado** (1.13.0): cualquier cambio de contenido bloqueado si hay >=1 `Application`. Service lanza `APPLICATIONS_EXIST_MESSAGE`, route mapea a `409 APPLICATIONS_EXIST`. Toggle solo de `isActive` (finalizar/reactivar) NO entra al gate.
 - Embeddings almacenados como `Float[]` en `StudentProfile` e `Internship` (384 dimensiones, modelo `BAAI/bge-small-en-v1.5`). Decisión y migración desde `sentence-transformers/all-MiniLM-L6-v2` documentadas en ADR 006.
 - Prisma Client singleton en `src/server/lib/db.ts` (patrón `globalThis` para dev)
 
@@ -76,10 +80,21 @@ Las llamadas fetch del frontend siempre usan URL relativa (`fetch('/api/...')`) 
 
 ## Auth
 
-- NextAuth.js con Google OAuth
-- Sesión expone: `session.user.id`, `session.user.role` (`STUDENT` | `COMPANY`), `session.user.email`
+- NextAuth.js con Google OAuth (estudiantes) + credentials (empresas con email/password + bcrypt)
+- JWT 15min + refresh token rotation (ADR 002, `RefreshToken` model)
+- Sesión expone: `session.user.id`, `session.user.role` (`STUDENT` | `COMPANY` | `ADMIN`), `session.user.email`
 - Protección de API routes via `requireAuth(role?)` en `src/server/lib/auth-guard.ts`
 - Dashboard protegido por `(dashboard)/layout.tsx` con `useSession`
+
+### Supabase Realtime auth (desde 1.13.0)
+
+El cliente browser conecta a Supabase Realtime sobre tablas con **RLS activado** (`messages`, `notifications`, `conversations`). Para que las policies dejen pasar el push:
+
+1. `POST /api/auth/supabase-token` (auth: requireAuth) firma un JWT HS256 con `SUPABASE_JWT_SECRET`. Claims: `sub: <userId>` (CUID), `role: "authenticated"`, `aud: "authenticated"`, `exp: 4h`.
+2. El cliente llama `authenticateRealtime()` (`src/lib/client/supabase-auth.ts`) que fetchea el JWT y lo aplica via `supabaseRealtime.realtime.setAuth(token)`.
+3. RLS policies leen `auth.jwt() ->> 'sub'` para validar al user. NO usamos `auth.uid()` porque devuelve UUID y nuestros userIds son CUIDs.
+
+Sin `authenticateRealtime()` antes de `.subscribe()`, los pushes nunca llegan (anon implícito → RLS deny). Ver ADR 007 para la decisión completa.
 
 ---
 
@@ -116,6 +131,16 @@ Nunca acceder `process.env` directamente en el código de la aplicación.
 Ver `.env.example` para la lista completa.  
 Para desarrollo local con Docker: `DATABASE_URL="postgresql://practix:practix@localhost:5433/practix"` (puerto 5433 — el contenedor `db` mapea `5433:5432` para no chocar con un Postgres del SO host)
 
+Vars críticas que tienen que estar SÍ o SÍ en Vercel Preview + Production:
+
+- `DATABASE_URL` + `DIRECT_URL` (Supabase)
+- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_KEY`
+- `SUPABASE_JWT_SECRET` (Legacy JWT Secret de Supabase — `/api/auth/supabase-token` lo usa para firmar HS256; sin esto el build pasa pero Realtime degrada a fetch-only)
+- `NEXTAUTH_URL` + `NEXTAUTH_SECRET` (mín. 32 chars)
+- `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
+- `HUGGINGFACE_API_KEY` (embeddings)
+- `BREVO_API_KEY` + `BREVO_SENDER_EMAIL` (emails transaccionales)
+
 ---
 
 ## Git Conventions
@@ -148,17 +173,22 @@ Cada commit que modifica código debe actualizar `package.json` (semver) y agreg
 | 13  | Testing           | Vitest unit + Playwright E2E                     |
 | 14  | Security          | Rate limiting + headers + OWASP                  |
 
-### Extensiones (7/7 ✅)
+### Extensiones (11/11 ✅)
 
-| Módulo                      | Resultado                                                                                 |
-| --------------------------- | ----------------------------------------------------------------------------------------- |
-| Mejoras estudiante          | Registro guiado + perfil unificado                                                        |
-| Admin panel                 | Aprobación de empresas (`(admin)/admin/empresas`)                                         |
-| Rediseño Stitch (Warm Tech) | Públicas + auth + dashboards (3 oleadas) + admin                                          |
-| ATS para empresas           | Pipeline kanban + scoring engine 5 scorers + ScoreBreakdownModal                          |
-| Chat tiempo real            | Supabase Realtime + conversaciones + mensajes (ver `CHAT_MODULE.md` para setup histórico) |
-| Calendario entrevistas      | CRUD interviews + send-to-chat                                                            |
-| Notificaciones              | Bell + panel + DELETE real + read-all                                                     |
+| Módulo                           | Resultado                                                                                                   |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Mejoras estudiante               | Registro guiado + perfil unificado                                                                          |
+| Admin panel                      | Aprobación de empresas (`(admin)/admin/empresas`)                                                           |
+| Rediseño Stitch (Warm Tech)      | Públicas + auth + dashboards (3 oleadas) + admin                                                            |
+| Rediseño Claude Design           | 12 pantallas pixel-perfect (landing, dashboards, ATS, chat, calendar, admin, perfil empresa, legales)       |
+| ATS para empresas                | Pipeline kanban + scoring engine 5 scorers + ScoreBreakdownModal                                            |
+| Chat tiempo real                 | Supabase Realtime + JWT HS256 + RLS + conversaciones (ver `CHAT_MODULE.md`)                                 |
+| Calendario entrevistas           | CRUD interviews + send-to-chat                                                                              |
+| Notificaciones in-app            | Bell + panel + dedupe global por user + email automático en ACCEPTED/REJECTED                               |
+| Match híbrido                    | Semantic embedding + boost aditivo por skill overlap (nunca penaliza)                                       |
+| Wishlist "Mis guardadas"         | `SavedInternship` toggle + dashboard + página dedicada                                                      |
+| **Soft delete real + edit gate** | `deletedAt` ortogonal a `isActive` + tab "Eliminadas" + edit bloqueado por postulantes (1.13.0)             |
+| **Realtime híbrido + RLS + JWT** | Push para mensajes/notif + polling 30s `unread-count` con Page Visibility + RLS 14 tablas (1.13.0, ADR 007) |
 
 ### Refactor + hardening (Fases 0–6 ✅, ver `context/refactor-plan.md`)
 

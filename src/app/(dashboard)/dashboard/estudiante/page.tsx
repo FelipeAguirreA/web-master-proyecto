@@ -1,710 +1,457 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
-import {
-  Upload,
-  Sparkles,
-  FileText,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  MapPin,
-  Briefcase,
-  Calendar,
-  X,
-  ChevronRight,
-  Star,
-  TrendingUp,
-  Wand2,
-} from "lucide-react";
-import InternshipCard from "@/components/ui/InternshipCard";
-import type { Internship, Application } from "@/types";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
+import { Welcome } from "@/components/dashboard/sections/Welcome";
+import { SectionHead } from "@/components/dashboard/sections/SectionHead";
+import { PracticaCard } from "@/components/dashboard/sections/PracticaCard";
+import { PipelineStrip } from "@/components/dashboard/sections/PipelineStrip";
+import {
+  NextInterview,
+  type InterviewData,
+} from "@/components/dashboard/sections/NextInterview";
+import {
+  InboxPanel,
+  type InboxMessage,
+} from "@/components/dashboard/sections/InboxPanel";
+import { CVPanel, type CVTip } from "@/components/dashboard/sections/CVPanel";
+import { Activity } from "@/components/dashboard/sections/Activity";
+import { ApplicationDetailModal } from "@/components/dashboard/sections/ApplicationDetailModal";
+import {
+  PracticaCardSkeleton,
+  PipelineSkeleton,
+} from "@/components/dashboard/sections/Skeletons";
+import {
+  companyColor,
+  companyInitials,
+} from "@/components/dashboard/companyColors";
+import { useNotifications } from "@/hooks/useNotifications";
+import { computeCvProgress, computeCompleteness } from "@/lib/cv-progress";
+import {
+  toPracticaCard,
+  buildPipeline,
+  notifToActivity,
+  relativeTime,
+} from "./utils";
 
-type InternshipWithCompany = Internship & {
-  company: { companyName: string; logo: string | null };
-  matchScore?: number | null;
-};
+// ─── API Types ────────────────────────────────────────────────────────────────
 
-type InternshipDetail = {
+type ApiInternship = {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   area: string;
   location: string;
   modality: "REMOTE" | "ONSITE" | "HYBRID";
   duration: string;
-  requirements: string[];
-  skills: string[];
+  skills?: string[];
   company: { companyName: string; logo: string | null };
+  matchScore?: number | null;
+  createdAt?: string;
 };
 
-type ApplicationWithInternship = Application & {
-  internship: InternshipDetail;
+type ApiApplication = {
+  id: string;
+  status: "PENDING" | "REVIEWED" | "ACCEPTED" | "REJECTED";
+  pipelineStatus?: "PENDING" | "REVIEWING" | "INTERVIEW" | "REJECTED" | null;
+  matchScore?: number | null;
+  createdAt: string;
+  internship: {
+    id: string;
+    title: string;
+    description?: string | null;
+    area?: string | null;
+    location?: string | null;
+    modality?: string | null;
+    duration?: string | null;
+    requirements?: string[] | null;
+    skills?: string[] | null;
+    company: { companyName: string; logo?: string | null };
+  };
+  interview?: {
+    id: string;
+    scheduledAt: string;
+    durationMins: number;
+    meetingLink: string | null;
+    status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  } | null;
 };
 
-type UserWithProfile = {
+type ApiUser = {
   id: string;
   name: string;
+  lastName: string | null;
   email: string;
-  studentProfile?: { cvUrl?: string | null } | null;
+  phone: string | null;
+  image: string | null;
+  studentProfile?: {
+    bio: string | null;
+    university: string | null;
+    career: string | null;
+    semester: number | null;
+    skills: string[];
+    cvUrl: string | null;
+  } | null;
 };
 
-const STATUS_CONFIG = {
-  PENDING: {
-    label: "Pendiente",
-    icon: Clock,
-    pill: "bg-[#FFF3EC] text-[#C2410C]",
-  },
-  REVIEWED: {
-    label: "En revisión",
-    icon: FileText,
-    pill: "bg-[#EDF4FF] text-[#2E5AAC]",
-  },
-  ACCEPTED: {
-    label: "Aceptada",
-    icon: CheckCircle2,
-    pill: "bg-[#E7F8EA] text-[#1A6E31]",
-  },
-  REJECTED: {
-    label: "Rechazada",
-    icon: XCircle,
-    pill: "bg-[#FFECEC] text-[#A63418]",
-  },
+type ApiConversation = {
+  id: string;
+  company: {
+    id: string;
+    name: string;
+    contactName: string;
+    image: string | null;
+  };
+  internship: { id: string; title: string };
+  lastMessage: {
+    content: string;
+    type: string;
+    createdAt: string;
+    isRead: boolean;
+    senderId: string;
+  } | null;
+  unreadCount: number;
+  updatedAt: string;
 };
 
-const PIPELINE_STATUS_CONFIG = {
-  PENDING: {
-    label: "Pendiente de revisión",
-    pill: "bg-[#F4F3EF] text-[#6D6A63]",
-  },
-  REVIEWING: { label: "En revisión", pill: "bg-[#EDF4FF] text-[#2E5AAC]" },
-  INTERVIEW: {
-    label: "¡Seleccionado para entrevista! 🎉",
-    pill: "bg-[#E7F8EA] text-[#1A6E31]",
-  },
-  REJECTED: { label: "No seleccionado", pill: "bg-[#FFECEC] text-[#A63418]" },
-};
-
-const MODALITY_LABEL: Record<string, string> = {
-  REMOTE: "Remoto",
-  ONSITE: "Presencial",
-  HYBRID: "Híbrido",
-};
-
-type Tab = "recommendations" | "applications";
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function StudentDashboard() {
   const { data: session } = useSession();
+  const { notifications } = useNotifications();
 
-  const [user, setUser] = useState<UserWithProfile | null>(null);
-  const [recommendations, setRecommendations] = useState<
-    InternshipWithCompany[]
-  >([]);
-  const [applications, setApplications] = useState<ApplicationWithInternship[]>(
-    [],
-  );
-  const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [tab, setTab] = useState<Tab>("recommendations");
-  const [selectedApplication, setSelectedApplication] =
-    useState<ApplicationWithInternship | null>(null);
-
-  const loadRecommendations = async () => {
-    try {
-      const res = await fetchWithRefresh("/api/matching/recommendations");
-      if (res.ok) {
-        const data = await res.json();
-        setRecommendations(data ?? []);
-      }
-    } catch {
-      setRecommendations([]);
-    }
-  };
-
-  const loadUser = async () => {
-    try {
-      const res = await fetchWithRefresh("/api/users/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-      }
-    } catch {
-      // silencioso
-    }
-  };
+  const [recs, setRecs] = useState<ApiInternship[]>([]);
+  const [apps, setApps] = useState<ApiApplication[]>([]);
+  const [savedInternships, setSavedInternships] = useState<ApiInternship[]>([]);
+  const [user, setUser] = useState<ApiUser | null>(null);
+  const [conversations, setConversations] = useState<ApiConversation[]>([]);
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [recsLoading, setRecsLoading] = useState(true);
+  const [appsLoading, setAppsLoading] = useState(true);
+  const [recsError, setRecsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session) return;
-    loadUser();
-    fetchWithRefresh("/api/applications/my")
-      .then((r) => r.json())
-      .then((data) => setApplications(data ?? []))
-      .catch(() => setApplications([]));
-    loadRecommendations();
+    setRecsLoading(true);
+    setAppsLoading(true);
+    setRecsError(null);
+    const init: RequestInit = { cache: "no-store" };
+    fetchWithRefresh("/api/matching/recommendations", init)
+      .then(async (r) => {
+        if (r.ok) return (await r.json()) as ApiInternship[];
+        if (r.status === 429) {
+          setRecsError("Demasiadas solicitudes. Esperá un momento y refrescá.");
+        } else {
+          setRecsError("No pudimos cargar tus recomendaciones.");
+        }
+        return [];
+      })
+      .then((d) => setRecs(d ?? []))
+      .catch(() => {
+        setRecs([]);
+        setRecsError("No pudimos conectar con el servidor.");
+      })
+      .finally(() => setRecsLoading(false));
+    fetchWithRefresh("/api/applications/my", init)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setApps(d ?? []))
+      .catch(() => setApps([]))
+      .finally(() => setAppsLoading(false));
+    fetchWithRefresh("/api/users/me", init)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setUser(d))
+      .catch(() => setUser(null));
+    fetchWithRefresh("/api/chat/conversations", init)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: ApiConversation[]) => setConversations(d ?? []))
+      .catch(() => setConversations([]));
+    fetchWithRefresh("/api/internships/saved", init)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: ApiInternship[]) => setSavedInternships(d ?? []))
+      .catch(() => setSavedInternships([]));
   }, [session]);
 
-  const handleCVUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // ─── Derived state ──────────────────────────────────────────────────────────
 
-    setUploading(true);
-    setUploadError("");
-    try {
-      const formData = new FormData();
-      formData.append("cv", file);
-      const res = await fetchWithRefresh("/api/matching/upload-cv", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setUploadError(
-          data.error ?? "Error al procesar el CV. Intentá de nuevo.",
-        );
-        return;
-      }
-      await Promise.all([loadUser(), loadRecommendations()]);
-    } catch {
-      setUploadError("Error de red. Verificá tu conexión e intentá de nuevo.");
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  };
+  const hasCv = Boolean(user?.studentProfile?.cvUrl);
 
-  const handleCVDelete = async () => {
-    setDeleting(true);
-    try {
-      const res = await fetchWithRefresh("/api/matching/upload-cv", {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        await Promise.all([loadUser(), loadRecommendations()]);
-      }
-    } catch {
-      // silencioso
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const savedCards = useMemo(
+    () => savedInternships.slice(0, 6).map(toPracticaCard),
+    [savedInternships],
+  );
 
-  const hasCv = !!user?.studentProfile?.cvUrl;
-  const name = session?.user?.name?.split(" ")[0] ?? "estudiante";
-  const completionPct = hasCv ? 85 : 40;
+  const cards = useMemo(() => recs.slice(0, 6).map(toPracticaCard), [recs]);
+  const featured = cards[0] ?? null;
+  const rest = cards.slice(1);
+  const pipeline = useMemo(() => buildPipeline(apps), [apps]);
 
-  const acceptedCount = applications.filter(
-    (a) => a.status === "ACCEPTED",
+  const highMatches = useMemo(
+    () => recs.filter((r) => (r.matchScore ?? 0) >= 90).length,
+    [recs],
+  );
+  const topMatch = useMemo(() => {
+    if (recs.length === 0) return null;
+    const top = [...recs].sort(
+      (a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0),
+    )[0];
+    return top.matchScore && top.matchScore > 0 ? top : null;
+  }, [recs]);
+
+  // Próxima entrevista: SCHEDULED en el futuro ordenadas por scheduledAt asc.
+  // Si ninguna futura, cae a la más reciente en pipelineStatus INTERVIEW.
+  const interviewApp = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity -- intencional: recalcula con la hora actual en cada render para que las entrevistas que pasaron del momento se filtren correctamente sin esperar un poll.
+    const now = Date.now();
+    const futures = apps
+      .filter(
+        (a) =>
+          a.interview &&
+          a.interview.status === "SCHEDULED" &&
+          new Date(a.interview.scheduledAt).getTime() >= now,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.interview!.scheduledAt).getTime() -
+          new Date(b.interview!.scheduledAt).getTime(),
+      );
+    if (futures.length > 0) return futures[0];
+    return apps.find((a) => a.pipelineStatus === "INTERVIEW") ?? null;
+  }, [apps]);
+
+  const interview: InterviewData | null = interviewApp
+    ? (() => {
+        const co = interviewApp.internship.company.companyName;
+        const color = companyColor(co);
+        const iv = interviewApp.interview;
+        const whenLabel = iv
+          ? new Date(iv.scheduledAt)
+              .toLocaleDateString("es-CL", {
+                weekday: "short",
+                day: "2-digit",
+                month: "short",
+              })
+              .toUpperCase()
+          : "POR AGENDAR";
+        const timeLabel = iv
+          ? new Date(iv.scheduledAt).toLocaleTimeString("es-CL", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) + (iv.durationMins ? ` · ${iv.durationMins} min` : "")
+          : null;
+        const channelLabel = iv?.meetingLink ? "Videollamada" : null;
+        return {
+          applicationId: interviewApp.id,
+          internshipId: interviewApp.internship.id,
+          co,
+          logo: companyInitials(co),
+          logoUrl: interviewApp.internship.company.logo ?? null,
+          logoBg: color.bg,
+          logoFg: color.fg,
+          role: interviewApp.internship.title,
+          duration: interviewApp.internship.duration ?? null,
+          whenLabel,
+          timeLabel,
+          channelLabel,
+          meetingLink: iv?.meetingLink ?? null,
+        };
+      })()
+    : null;
+
+  const inboxMessages: InboxMessage[] = useMemo(() => {
+    return conversations.slice(0, 4).map((c) => {
+      const color = companyColor(c.company.name);
+      return {
+        id: c.id,
+        co: c.company.name,
+        logo: companyInitials(c.company.name),
+        logoUrl: c.company.image ?? null,
+        logoBg: color.bg,
+        logoFg: color.fg,
+        sender: c.company.contactName || null,
+        preview: c.lastMessage
+          ? c.lastMessage.type === "INTERVIEW"
+            ? "📅 Entrevista propuesta"
+            : c.lastMessage.content
+          : "Conversación iniciada",
+        when: relativeTime(c.lastMessage?.createdAt ?? c.updatedAt),
+        unread: c.unreadCount > 0,
+      };
+    });
+  }, [conversations]);
+
+  const cvPct = computeCvProgress(user);
+  const cvTips: CVTip[] = useMemo(() => {
+    const items = computeCompleteness(user);
+    const sorted = [...items].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return b.pts - a.pts;
+    });
+    return sorted.slice(0, 4).map((it) => ({
+      title: it.title,
+      body: it.body ?? "",
+      pts: `+${it.pts}`,
+      done: it.done,
+    }));
+  }, [user]);
+
+  const activityItems = notifications.slice(0, 6).map(notifToActivity);
+
+  const firstName = session?.user?.name?.split(" ")[0] ?? "estudiante";
+  const applicationsCount = apps.filter((a) => a.status !== "REJECTED").length;
+  const interviewsCount = apps.filter(
+    (a) => a.pipelineStatus === "INTERVIEW",
   ).length;
 
-  const visibleRecommendations = recommendations.slice(0, 6);
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <>
-      {/* Modal detalle postulación */}
-      {selectedApplication && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#0A0909]/50 backdrop-blur-sm"
-          onClick={() => setSelectedApplication(null)}
-        >
-          <div
-            className="bg-white rounded-t-[24px] sm:rounded-[24px] rounded-b-none sm:rounded-b-[24px] shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)] w-full sm:max-w-2xl max-h-[calc(100dvh-80px)] sm:max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-4 sm:px-6 py-3 sm:py-4 flex items-start justify-between gap-4 rounded-t-[24px] z-10">
-              <div className="min-w-0">
-                <h2 className="text-[16px] sm:text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight truncate">
-                  {selectedApplication.internship.title}
-                </h2>
-                <p className="text-[12.5px] sm:text-[13px] text-[#6D6A63] mt-0.5 truncate">
-                  {selectedApplication.internship.company.companyName}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedApplication(null)}
-                className="shrink-0 w-11 h-11 -mr-2 rounded-full hover:bg-[#FAFAF8] active:bg-[#F0EDE4] flex items-center justify-center transition-colors"
-                aria-label="Cerrar"
-              >
-                <X className="w-5 h-5 text-[#6D6A63]" />
-              </button>
-            </div>
+    <div className="px-4 py-[18px] sm:px-7 sm:py-6 max-w-[1280px] mx-auto w-full">
+      <Welcome
+        firstName={firstName}
+        highMatches={highMatches}
+        topMatchCompany={topMatch?.company.companyName ?? null}
+        topMatchScore={
+          topMatch?.matchScore ? Math.round(topMatch.matchScore) : null
+        }
+        daysLeft={null}
+        cvPct={cvPct}
+        applicationsCount={applicationsCount}
+        interviewsCount={interviewsCount}
+      />
 
-            <div className="px-4 sm:px-6 py-5 space-y-5">
-              <div className="flex flex-wrap gap-2">
-                {(() => {
-                  const st = STATUS_CONFIG[selectedApplication.status];
-                  const Icon = st.icon;
-                  return (
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full ${st.pill}`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      {st.label}
-                    </span>
-                  );
-                })()}
-                {selectedApplication.matchScore != null &&
-                  selectedApplication.matchScore > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 text-[#C2410C] px-3 py-1.5 rounded-full border border-[#FF6A3D]/15">
-                      <Sparkles className="w-3 h-3" />
-                      {Math.round(selectedApplication.matchScore)}%
-                      compatibilidad
-                    </span>
-                  )}
-                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-[#6D6A63] bg-[#FAFAF8] px-3 py-1.5 rounded-full">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Postulado el{" "}
-                  {new Date(selectedApplication.createdAt).toLocaleDateString(
-                    "es-CL",
-                    { day: "numeric", month: "long", year: "numeric" },
-                  )}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  [MapPin, selectedApplication.internship.location],
-                  [
-                    Briefcase,
-                    MODALITY_LABEL[selectedApplication.internship.modality],
-                  ],
-                  [FileText, selectedApplication.internship.area],
-                  [Clock, selectedApplication.internship.duration],
-                ].map(([Icon, label], i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 text-[13px] text-[#4A4843]"
-                  >
-                    <Icon className="w-4 h-4 text-[#FF6A3D]/70 shrink-0" />
-                    {label as string}
-                  </div>
+      {/* Main grid: content izq + rail der */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        {/* Left column */}
+        <div className="flex flex-col gap-7 min-w-0">
+          {/* Recomendadas */}
+          <section>
+            <SectionHead
+              title="Recomendadas para ti"
+              sub={
+                recsLoading
+                  ? "Buscando matches para tu perfil…"
+                  : cards.length > 0
+                    ? `${recs.length} prácticas activas · ordenadas por match`
+                    : hasCv
+                      ? "Aún no encontramos matches. Probá actualizar tu CV o esperá a que se publiquen nuevas."
+                      : "Subí tu CV para empezar a recibir recomendaciones"
+              }
+              action={{ label: "Ver todas", href: "/practicas" }}
+            />
+            {recsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <PracticaCardSkeleton key={i} />
                 ))}
               </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                  <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                    Descripción
-                  </h3>
-                </div>
-                <p className="text-[13px] text-[#4A4843] leading-[1.65] whitespace-pre-line">
-                  {selectedApplication.internship.description}
+            ) : recsError ? (
+              <div className="bg-surface border border-rose/20 rounded-[16px] p-6 text-center text-rose text-[13px] leading-[1.6]">
+                <p className="font-bold mb-1">
+                  No pudimos cargar recomendaciones
                 </p>
+                <p className="text-muted font-medium">{recsError}</p>
               </div>
-
-              {selectedApplication.internship.requirements.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                    <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                      Requisitos
-                    </h3>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {selectedApplication.internship.requirements.map(
-                      (req, i) => (
-                        <li
-                          key={i}
-                          className="flex items-start gap-2 text-[13px] text-[#4A4843]"
-                        >
-                          <span className="w-1 h-1 rounded-full bg-[#FF6A3D] mt-2 shrink-0" />
-                          {req}
-                        </li>
-                      ),
-                    )}
-                  </ul>
-                </div>
-              )}
-
-              {selectedApplication.internship.skills.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                    <h3 className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                      Habilidades requeridas
-                    </h3>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedApplication.internship.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="text-[11.5px] font-medium bg-[#F4F3EF] text-[#4A4843] px-2.5 py-1 rounded-lg"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="pt-6 sm:pt-8 pb-12 sm:pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-6 sm:gap-8">
-        {/* Hero bienvenida */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-5">
-          <div>
-            <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
-              Tu panel ·{" "}
-              {new Date().toLocaleDateString("es-CL", { weekday: "long" })}
-            </p>
-            <h1 className="text-[28px] sm:text-[36px] md:text-[44px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
-              Hola,{" "}
-              <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
-                {name}
-              </span>{" "}
-              👋
-            </h1>
-            <p className="text-[13px] sm:text-[14.5px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
-              {visibleRecommendations.length > 0
-                ? `Tenemos ${visibleRecommendations.length} recomendaciones alineadas a tu perfil. Revisalas cuanto antes — las buenas vuelan.`
-                : "Subí tu CV para activar el matching IA y recibir recomendaciones personalizadas."}
-            </p>
-          </div>
-
-          {/* Mini stats */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex-1 sm:flex-none bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:min-w-[120px]">
-              <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-                Postulaciones
-              </p>
-              <p className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1 leading-none">
-                {applications.length}
-              </p>
-              {acceptedCount > 0 && (
-                <p className="text-[11px] font-medium text-[#1A8F3C] mt-1 inline-flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" strokeWidth={2.4} />
-                  {acceptedCount} aceptada{acceptedCount > 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
-            <div className="flex-1 sm:flex-none bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:min-w-[140px]">
-              <p className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-                Perfil
-              </p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <p className="text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none">
-                  {completionPct}
-                </p>
-                <span className="text-[12px] font-medium text-[#9B9891]">
-                  %
-                </span>
-              </div>
-              <div className="w-full h-1 bg-[#F4F3EF] rounded-full overflow-hidden mt-2">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A]"
-                  style={{ width: `${completionPct}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Banner CV */}
-        {!hasCv ? (
-          <section className="relative overflow-hidden rounded-[20px] sm:rounded-[24px] border border-[#FF6A3D]/15 bg-gradient-to-br from-[#FFF7F2] via-white to-[#FFEDE0] p-5 sm:p-7 md:p-8">
-            <div className="pointer-events-none absolute inset-0" aria-hidden>
-              <div className="absolute -top-20 -right-20 w-[360px] h-[360px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[50px]" />
-              <div className="absolute -bottom-16 -left-12 w-[280px] h-[280px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.5),transparent_70%)] blur-[40px]" />
-            </div>
-            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
-              <div className="flex items-start gap-4 sm:gap-5 min-w-0">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shrink-0 shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)]">
-                  <Wand2
-                    className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                    strokeWidth={2.2}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10.5px] sm:text-[11px] font-semibold tracking-[0.1em] uppercase text-[#FF6A3D] mb-1">
-                    Activá el matching IA
-                  </p>
-                  <h3 className="text-[16px] sm:text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-tight">
-                    Subí tu CV y dejá que la IA encuentre tus prácticas ideales
-                  </h3>
-                  <p className="text-[12.5px] sm:text-[13px] text-[#6D6A63] mt-1.5 max-w-[480px] leading-[1.55]">
-                    Analizamos tus habilidades y experiencia para conectarte con
-                    las vacantes que mejor calzan con tu perfil.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-stretch md:items-end gap-2 w-full md:w-auto shrink-0">
-                <label className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold text-[13px] sm:text-[13.5px] cursor-pointer shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all">
-                  <Upload className="w-4 h-4" strokeWidth={2.3} />
-                  {uploading ? "Procesando…" : "Subir CV (PDF o DOCX)"}
-                  <input
-                    id="cv-upload"
-                    name="cv"
-                    type="file"
-                    accept=".pdf,.docx"
-                    onChange={handleCVUpload}
-                    aria-label="Subir CV"
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                </label>
-                {uploadError && (
-                  <p className="text-[11.5px] text-[#A63418] font-medium text-center md:text-right">
-                    {uploadError}
-                  </p>
+            ) : cards.length === 0 ? (
+              <div className="bg-surface border border-dashed border-border rounded-[16px] p-8 text-center text-muted text-[13px] leading-[1.6]">
+                {hasCv ? (
+                  <>
+                    <p className="text-text font-semibold mb-1.5">
+                      Sin matches por ahora
+                    </p>
+                    Tu CV ya está procesado. Esto puede ser porque hay pocas
+                    prácticas activas, o porque las que hay todavía no se
+                    indexaron. Probá{" "}
+                    <Link href="/practicas" className="text-accent font-bold">
+                      ver todas las prácticas
+                    </Link>{" "}
+                    o actualizar tu CV en{" "}
+                    <Link href="/perfil" className="text-accent font-bold">
+                      tu perfil
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  <>
+                    <p className="text-text font-semibold mb-1.5">
+                      Aún no subís tu CV
+                    </p>
+                    Cuando lo subas, vas a ver acá las prácticas que mejor
+                    calzan con tu perfil.{" "}
+                    <a href="/perfil" className="text-accent font-bold">
+                      Ir al perfil
+                    </a>
+                  </>
                 )}
               </div>
-            </div>
-          </section>
-        ) : (
-          <section className="rounded-2xl bg-white border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#D3E9C7] to-[#6BB85A] flex items-center justify-center shrink-0 shadow-[0_4px_12px_-2px_rgba(107,184,90,0.35)]">
-              <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={2.4} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                CV procesado · matching IA activo
-              </p>
-              <p className="text-[12px] text-[#6D6A63] mt-0.5">
-                Tus recomendaciones se actualizan automáticamente según nuevas
-                vacantes.
-              </p>
-            </div>
-            <div className="flex items-center flex-wrap gap-1 sm:gap-2 text-[12px] font-semibold shrink-0">
-              <label className="text-[#FF6A3D] hover:text-[#FF5A28] cursor-pointer transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF3EC]">
-                Actualizar CV
-                <input
-                  id="cv-upload-replace"
-                  name="cv"
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleCVUpload}
-                  aria-label="Actualizar CV"
-                  className="hidden"
-                  disabled={uploading || deleting}
-                />
-              </label>
-              <span className="hidden sm:block w-px h-4 bg-black/[0.08]" />
-              <button
-                onClick={handleCVDelete}
-                disabled={deleting || uploading}
-                className="text-[#6D6A63] hover:text-[#C2410C] transition-colors px-3 py-1.5 rounded-lg hover:bg-[#FFF0ED] disabled:opacity-50"
-              >
-                {deleting ? "Eliminando…" : "Eliminar"}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {/* Tabs + contenido */}
-        <section>
-          <div className="flex items-center gap-1 bg-black/[0.03] rounded-2xl p-1 w-fit max-w-full overflow-x-auto mb-5 sm:mb-7">
-            <button
-              onClick={() => setTab("recommendations")}
-              className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all ${
-                tab === "recommendations"
-                  ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                  : "text-[#6D6A63] hover:text-[#0A0909]"
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" strokeWidth={2.2} />
-              Recomendadas
-              <span
-                className={`text-[10.5px] px-1.5 py-0.5 rounded-md ${
-                  tab === "recommendations"
-                    ? "bg-[#FFF3EC] text-[#FF6A3D]"
-                    : "bg-white/60 text-[#9B9891]"
-                }`}
-              >
-                {visibleRecommendations.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setTab("applications")}
-              className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-xl transition-all ${
-                tab === "applications"
-                  ? "bg-white text-[#0A0909] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                  : "text-[#6D6A63] hover:text-[#0A0909]"
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" strokeWidth={2.2} />
-              Mis postulaciones
-              <span
-                className={`text-[10.5px] px-1.5 py-0.5 rounded-md ${
-                  tab === "applications"
-                    ? "bg-[#FFF3EC] text-[#FF6A3D]"
-                    : "bg-white/60 text-[#9B9891]"
-                }`}
-              >
-                {applications.length}
-              </span>
-            </button>
-          </div>
-
-          {tab === "recommendations" && (
-            <>
-              {visibleRecommendations.length > 0 ? (
-                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-                  {visibleRecommendations.map((internship) => (
-                    <InternshipCard
-                      key={internship.id}
-                      internship={internship}
-                    />
+            ) : (
+              <>
+                {featured && (
+                  <div className="mb-3.5">
+                    <PracticaCard p={featured} featured />
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {rest.map((p) => (
+                    <PracticaCard key={p.id} p={p} />
                   ))}
                 </div>
-              ) : (
-                <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
-                  <div className="w-14 h-14 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-6 h-6 text-[#C9C6BF]" />
-                  </div>
-                  <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                    Todavía no hay recomendaciones
-                  </p>
-                  <p className="text-[13px] text-[#6D6A63] mt-1 max-w-[340px] mx-auto">
-                    Subí tu CV y la IA encontrará las mejores prácticas para tu
-                    perfil.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {tab === "applications" && applications.length > 0 && (
-            <ApplicationList
-              items={applications}
-              onSelect={setSelectedApplication}
-            />
-          )}
-
-          {tab === "applications" && applications.length === 0 && (
-            <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
-              <div className="w-14 h-14 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-6 h-6 text-[#C9C6BF]" />
-              </div>
-              <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                Aún no tenés postulaciones
-              </p>
-              <p className="text-[13px] text-[#6D6A63] mt-1">
-                Explorá las prácticas disponibles y postulate a las que te
-                interesen.
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Actividad reciente */}
-        {tab === "recommendations" && applications.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-[#9B9891] mb-1">
-                  Historial
-                </p>
-                <h2 className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909]">
-                  Actividad reciente
-                </h2>
-              </div>
-              <button
-                onClick={() => setTab("applications")}
-                className="text-[12px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors inline-flex items-center gap-1"
-              >
-                Ver todo
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <ApplicationList
-              items={applications.slice(0, 3)}
-              onSelect={setSelectedApplication}
-            />
+              </>
+            )}
           </section>
-        )}
+
+          {/* Guardadas */}
+          {savedCards.length > 0 && (
+            <section>
+              <SectionHead
+                title="Mis guardadas"
+                sub={`${savedInternships.length} práctica${savedInternships.length === 1 ? "" : "s"} que marcaste para revisar después`}
+                action={{ label: "Ver todas", href: "/practicas/guardadas" }}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {savedCards.map((p) => (
+                  <PracticaCard key={p.id} p={p} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Pipeline */}
+          {appsLoading ? (
+            <PipelineSkeleton />
+          ) : (
+            <PipelineStrip
+              columns={pipeline}
+              onItemClick={(id) => setSelectedAppId(id)}
+            />
+          )}
+        </div>
+
+        {/* Right rail — sticky en desktop, fluido en mobile */}
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
+          <NextInterview interview={interview} />
+          <InboxPanel
+            messages={inboxMessages}
+            inboxHref="/dashboard/estudiante/inbox"
+          />
+          <CVPanel cvPct={cvPct} tips={cvTips} />
+          <Activity items={activityItems} />
+        </aside>
       </div>
-    </>
-  );
-}
 
-function ApplicationList({
-  items,
-  onSelect,
-}: {
-  items: ApplicationWithInternship[];
-  onSelect: (a: ApplicationWithInternship) => void;
-}) {
-  return (
-    <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-      {items.map((application, i) => {
-        const status =
-          STATUS_CONFIG[application.status as keyof typeof STATUS_CONFIG];
-        const StatusIcon = status.icon;
-        const companyName = application.internship.company.companyName;
-        const initial = companyName.charAt(0).toUpperCase();
-        const pipeline =
-          application.pipelineStatus && application.pipelineStatus !== "PENDING"
-            ? PIPELINE_STATUS_CONFIG[
-                application.pipelineStatus as keyof typeof PIPELINE_STATUS_CONFIG
-              ]
-            : null;
-
-        return (
-          <button
-            key={application.id}
-            onClick={() => onSelect(application)}
-            className={`w-full px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-[#FAFAF8] transition-colors text-left ${
-              i < items.length - 1 ? "border-b border-black/[0.04]" : ""
-            }`}
-          >
-            <div className="flex items-center gap-3.5 flex-1 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFE9B3] to-[#FFC84A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.3)]">
-                {initial}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13.5px] font-semibold tracking-[-0.01em] text-[#0A0909] truncate">
-                  {application.internship.title}
-                </p>
-                <p className="text-[12px] text-[#6D6A63] truncate mt-0.5">
-                  {companyName}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 w-full sm:w-auto">
-              {application.matchScore != null && application.matchScore > 0 && (
-                <div className="hidden lg:flex flex-col items-end">
-                  <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891]">
-                    Match
-                  </span>
-                  <span className="text-[12.5px] font-bold text-[#FF6A3D] inline-flex items-center gap-1 mt-0.5">
-                    <Star className="w-3 h-3 fill-[#FFC84A] text-[#FFC84A]" />
-                    {Math.round(application.matchScore)}%
-                  </span>
-                </div>
-              )}
-
-              <div className="flex flex-col items-start sm:items-end sm:min-w-[140px]">
-                <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9B9891] mb-1">
-                  Estado
-                </span>
-                {pipeline ? (
-                  <span
-                    className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${pipeline.pill}`}
-                  >
-                    {pipeline.label}
-                  </span>
-                ) : (
-                  <span
-                    className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${status.pill}`}
-                  >
-                    <StatusIcon className="w-3 h-3" />
-                    {status.label}
-                  </span>
-                )}
-              </div>
-
-              <ChevronRight className="w-4 h-4 text-[#C9C6BF] shrink-0" />
-            </div>
-          </button>
-        );
-      })}
+      {/* Modal de detalle de postulación */}
+      {selectedAppId &&
+        (() => {
+          const selected = apps.find((a) => a.id === selectedAppId);
+          if (!selected) return null;
+          return (
+            <ApplicationDetailModal
+              application={selected}
+              onClose={() => setSelectedAppId(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

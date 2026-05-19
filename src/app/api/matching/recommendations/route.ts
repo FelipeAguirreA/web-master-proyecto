@@ -12,7 +12,9 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const rl = await rateLimit(`recommendations:${auth.user.id}`, 20, HOUR_MS);
+  // 120/hora: el endpoint solo lee de DB y calcula cosine similarity (barato).
+  // Antes era 20 cuando regeneraba embeddings; ahora no llama APIs externas.
+  const rl = await rateLimit(`recommendations:${auth.user.id}`, 120, HOUR_MS);
   if (!rl.success) return rateLimitResponse(rl.resetAt);
 
   try {

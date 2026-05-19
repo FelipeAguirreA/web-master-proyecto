@@ -31,14 +31,47 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Rutas API que una empresa SUSPENDED no puede usar para escribir/cambiar
+  // estado. Solo bloqueamos métodos de mutación — los GET de su propio dashboard
+  // siguen pasando (igual el dashboard mismo redirige a /empresa/suspendida).
+  // El bloqueo es por token: la session trae companyStatus desde el JWT y se
+  // refresca dentro del ACCESS_TOKEN_MAX_AGE (15 min). Aceptamos ese delay de
+  // propagación post-suspensión a cambio de no pegarle a DB en cada request.
+  const isMutatingMethod = ["POST", "PATCH", "PUT", "DELETE"].includes(
+    request.method,
+  );
+  const isCompanyMutationRoute =
+    pathname.startsWith("/api/internships") ||
+    pathname.startsWith("/api/applications") ||
+    pathname.startsWith("/api/chat");
+
   if (pathname.startsWith("/api/")) {
+    if (isMutatingMethod && isCompanyMutationRoute) {
+      const apiToken = await getToken({ req: request });
+      if (
+        apiToken &&
+        apiToken.role === "COMPANY" &&
+        apiToken.companyStatus === "SUSPENDED"
+      ) {
+        return withSecurity(
+          NextResponse.json(
+            { error: "Cuenta suspendida — contactá al administrador" },
+            { status: 403 },
+          ),
+        );
+      }
+    }
     return passthrough();
   }
 
   const token = await getToken({ req: request });
 
   if (!token) {
-    if (pathname.startsWith("/dashboard") || pathname.startsWith("/registro")) {
+    if (
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/registro") ||
+      pathname.startsWith("/empresa/suspendida")
+    ) {
       return redirect("/login");
     }
     return passthrough();
@@ -47,6 +80,32 @@ export async function proxy(request: NextRequest) {
   const role = token.role as string;
   const registrationCompleted =
     (token.registrationCompleted as boolean) ?? true;
+  const companyStatus = token.companyStatus as string | undefined;
+
+  // Empresa suspendida: solo puede ver /empresa/suspendida + cerrar sesión.
+  // Cualquier intento de entrar a dashboard/registro la rebota.
+  if (role === "COMPANY" && companyStatus === "SUSPENDED") {
+    if (pathname.startsWith("/empresa/suspendida")) {
+      return passthrough();
+    }
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/registro")) {
+      return redirect("/empresa/suspendida");
+    }
+  }
+
+  // Empresa no-suspendida no debería ver la pantalla de suspensión.
+  if (
+    role === "COMPANY" &&
+    companyStatus !== "SUSPENDED" &&
+    pathname.startsWith("/empresa/suspendida")
+  ) {
+    return redirect("/dashboard/empresa");
+  }
+
+  // Estudiante o cualquier rol ≠ COMPANY no debería ver la pantalla.
+  if (role !== "COMPANY" && pathname.startsWith("/empresa/suspendida")) {
+    return redirect("/dashboard/estudiante");
+  }
 
   if (role === "STUDENT") {
     if (!registrationCompleted && !pathname.startsWith("/registro")) {

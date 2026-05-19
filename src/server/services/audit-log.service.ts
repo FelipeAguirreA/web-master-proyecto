@@ -28,7 +28,7 @@ export const AuditAction = {
   COMPANY_REJECTED: "COMPANY_REJECTED",
 } as const;
 
-export type AuditActionValue = (typeof AuditAction)[keyof typeof AuditAction];
+type AuditActionValue = (typeof AuditAction)[keyof typeof AuditAction];
 
 interface LogEventInput {
   userId: string | null;

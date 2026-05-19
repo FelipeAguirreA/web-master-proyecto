@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const { mockSentryCaptureException } = vi.hoisted(() => ({
   mockSentryCaptureException: vi.fn(),
@@ -64,7 +58,7 @@ describe("InterviewFormModal", () => {
       render(<InterviewFormModal {...baseProps} />);
       expect(screen.getByText("Nueva entrevista")).toBeInTheDocument();
       expect(
-        screen.getByText("Completá los campos para agendar"),
+        screen.getByText("Completa los campos para agendar"),
       ).toBeInTheDocument();
     });
 
@@ -127,7 +121,7 @@ describe("InterviewFormModal", () => {
       );
       expect(screen.getByText("Editar entrevista")).toBeInTheDocument();
       expect(
-        screen.getByText("Actualizá los datos y guardá"),
+        screen.getByText("Actualiza los datos y guarda"),
       ).toBeInTheDocument();
     });
 
@@ -350,7 +344,7 @@ describe("InterviewFormModal", () => {
       fireEvent.click(screen.getByText(/Guardar/));
 
       await waitFor(() => {
-        expect(screen.getByText("Seleccioná una práctica")).toBeInTheDocument();
+        expect(screen.getByText("Selecciona una práctica")).toBeInTheDocument();
       });
     });
 
@@ -370,7 +364,7 @@ describe("InterviewFormModal", () => {
       fireEvent.click(screen.getByText(/Guardar/));
 
       await waitFor(() => {
-        expect(screen.getByText("Seleccioná un candidato")).toBeInTheDocument();
+        expect(screen.getByText("Selecciona un candidato")).toBeInTheDocument();
       });
     });
 
@@ -703,7 +697,7 @@ describe("InterviewFormModal", () => {
         "zoom.us/j/... o meet.google.com/...",
       ) as HTMLInputElement;
       const notesInput = screen.getByPlaceholderText(
-        "Ej: Por favor traé tu portafolio...",
+        "Ej: Por favor trae tu portafolio...",
       ) as HTMLTextAreaElement;
       expect(linkInput.value).toBe("");
       expect(notesInput.value).toBe("");
@@ -717,7 +711,7 @@ describe("InterviewFormModal", () => {
         "zoom.us/j/... o meet.google.com/...",
       ) as HTMLInputElement;
       const notesInput = screen.getByPlaceholderText(
-        "Ej: Por favor traé tu portafolio...",
+        "Ej: Por favor trae tu portafolio...",
       ) as HTMLTextAreaElement;
 
       fireEvent.change(linkInput, { target: { value: "https://meet/x" } });

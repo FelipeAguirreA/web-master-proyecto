@@ -2,14 +2,22 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 
-const mockJsonResponse = (data: unknown) =>
+const mockJsonResponse = (data: unknown, ok = true) =>
   ({
-    ok: true,
+    ok,
     json: () => Promise.resolve(data),
   }) as Response;
 
+// El hook ahora vive con visibilitychange + interval. Usamos fake timers para
+// avanzar el interval y un mock sobre `document.visibilityState` cuando hace
+// falta verificar la pausa por tab oculto.
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
+  // Por defecto la tab arranca visible. Cada test puede sobreescribir.
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => "visible",
+  });
 });
 
 afterEach(() => {
@@ -18,25 +26,21 @@ afterEach(() => {
 });
 
 describe("useUnreadCount", () => {
-  it("hace fetch inicial al endpoint /api/chat/conversations", async () => {
+  it("hace fetch inicial al endpoint /api/chat/unread-count", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(mockJsonResponse([]));
+      .mockResolvedValue(mockJsonResponse({ count: 0 }));
 
     renderHook(() => useUnreadCount());
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith("/api/chat/conversations");
+      expect(fetchSpy).toHaveBeenCalledWith("/api/chat/unread-count");
     });
   });
 
-  it("suma el unreadCount de todas las conversaciones", async () => {
+  it("lee el count del response y lo expone como state", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      mockJsonResponse([
-        { unreadCount: 3 },
-        { unreadCount: 5 },
-        { unreadCount: 0 },
-      ]),
+      mockJsonResponse({ count: 8 }),
     );
 
     const { result } = renderHook(() => useUnreadCount());
@@ -46,21 +50,37 @@ describe("useUnreadCount", () => {
     });
   });
 
-  it("trata unreadCount undefined como 0", async () => {
+  it("mantiene unread en 0 si count viene undefined", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      mockJsonResponse([{ unreadCount: 2 }, {}, { unreadCount: 1 }]),
+      mockJsonResponse({ other: "field" }),
     );
 
     const { result } = renderHook(() => useUnreadCount());
 
-    await waitFor(() => {
-      expect(result.current).toBe(3);
+    await act(async () => {
+      await Promise.resolve();
     });
+    // count missing → no se setea, queda en 0 inicial.
+    expect(result.current).toBe(0);
   });
 
-  it("queda en 0 si data no es array", async () => {
+  it("mantiene unread en 0 si count NO es number", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      mockJsonResponse({ error: "boom" }),
+      mockJsonResponse({ count: "8" }),
+    );
+
+    const { result } = renderHook(() => useUnreadCount());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // typeof check rechaza string.
+    expect(result.current).toBe(0);
+  });
+
+  it("ignora la respuesta si ok=false", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      mockJsonResponse({ count: 99 }, false),
     );
 
     const { result } = renderHook(() => useUnreadCount());
@@ -82,22 +102,22 @@ describe("useUnreadCount", () => {
     expect(result.current).toBe(0);
   });
 
-  it("hace polling cada 5s", async () => {
+  it("hace polling cada 30s mientras la tab esta visible", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(mockJsonResponse([]));
+      .mockResolvedValue(mockJsonResponse({ count: 0 }));
 
     renderHook(() => useUnreadCount());
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(30_000);
     });
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
 
     await act(async () => {
-      vi.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(30_000);
     });
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
   });
@@ -105,15 +125,16 @@ describe("useUnreadCount", () => {
   it("limpia el interval al desmontar", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(mockJsonResponse([]));
+      .mockResolvedValue(mockJsonResponse({ count: 0 }));
 
     const { unmount } = renderHook(() => useUnreadCount());
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
 
     unmount();
     await act(async () => {
-      vi.advanceTimersByTime(30_000);
+      vi.advanceTimersByTime(60_000);
     });
+    // Sin nuevo fetch despues del unmount, ni siquiera tras avanzar 60s.
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

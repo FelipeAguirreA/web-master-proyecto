@@ -9,3 +9,4 @@ process.env.NEXTAUTH_URL = "http://localhost:3000";
 process.env.NEXTAUTH_SECRET = "test-secret-32-characters-minimum!!";
 process.env.GOOGLE_CLIENT_ID = "test-client-id";
 process.env.GOOGLE_CLIENT_SECRET = "test-client-secret";
+process.env.SUPABASE_JWT_SECRET = "test-jwt-secret-32-characters-min!!";

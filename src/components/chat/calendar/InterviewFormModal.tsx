@@ -61,7 +61,7 @@ type InterviewFormModalProps = {
 const DURATION_OPTIONS = [30, 60, 90, 120];
 
 const fieldClass =
-  "w-full rounded-xl border border-black/[0.08] bg-white px-3.5 py-2.5 text-[13px] text-[#0A0909] placeholder:text-[#9B9891] focus:outline-none focus:border-[#FF6A3D]/40 focus:ring-2 focus:ring-[#FF6A3D]/10 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  "w-full rounded-xl border border-black/[0.08] bg-white px-3.5 py-2.5 text-[13px] text-[#0A0909] placeholder:text-[#9B9891] focus:outline-none focus:border-[#2C5CFA]/40 focus:ring-2 focus:ring-[#2C5CFA]/10 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
 const labelClass =
   "block text-[10.5px] font-semibold text-[#4A4843] uppercase tracking-[0.08em] mb-2";
@@ -145,16 +145,16 @@ export default function InterviewFormModal({
     setError(null);
 
     if (!form.internshipId) {
-      setError("Seleccioná una práctica");
+      setError("Selecciona una práctica");
       return;
     }
     if (!form.applicationId) {
-      setError("Seleccioná un candidato");
+      setError("Selecciona un candidato");
       return;
     }
     if (!form.conversationId) {
       setError(
-        "El candidato no tiene una conversación activa. Iniciá el chat primero.",
+        "El candidato no tiene una conversación activa. Inicia el chat primero.",
       );
       return;
     }
@@ -189,10 +189,7 @@ export default function InterviewFormModal({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-    >
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [font-family:var(--font-onest),system-ui,sans-serif]">
       <div
         className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
         onClick={onClose}
@@ -202,7 +199,7 @@ export default function InterviewFormModal({
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl flex items-center justify-between px-6 py-4 border-b border-black/[0.05]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center shadow-[0_4px_12px_-3px_rgba(255,106,61,0.45)]">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2C5CFA] to-[#4A78FF] text-white flex items-center justify-center shadow-[0_4px_12px_-3px_rgba(44,92,250,0.45)]">
               <HeaderIcon className="w-4 h-4" strokeWidth={2.2} />
             </div>
             <div>
@@ -211,8 +208,8 @@ export default function InterviewFormModal({
               </h2>
               <p className="text-[11px] text-[#9B9891] mt-1">
                 {isEditing
-                  ? "Actualizá los datos y guardá"
-                  : "Completá los campos para agendar"}
+                  ? "Actualiza los datos y guarda"
+                  : "Completa los campos para agendar"}
               </p>
             </div>
           </div>
@@ -271,7 +268,7 @@ export default function InterviewFormModal({
                 {loadingCandidates
                   ? "Cargando candidatos..."
                   : !form.internshipId
-                    ? "Seleccioná una práctica primero"
+                    ? "Selecciona una práctica primero"
                     : "Seleccionar candidato"}
               </option>
               {isEditing &&
@@ -413,7 +410,7 @@ export default function InterviewFormModal({
               className={fieldClass}
             />
             <p className="text-[11px] text-[#9B9891] mt-1.5">
-              Podés usar Zoom, Meet, Teams o cualquier plataforma.
+              Puedes usar Zoom, Meet, Teams o cualquier plataforma.
             </p>
           </div>
 
@@ -432,24 +429,24 @@ export default function InterviewFormModal({
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, notes: e.target.value }))
               }
-              placeholder="Ej: Por favor traé tu portafolio..."
+              placeholder="Ej: Por favor trae tu portafolio..."
               rows={3}
               className={`${fieldClass} resize-none`}
             />
           </div>
 
           {/* Aviso envío manual */}
-          <div className="flex items-start gap-2.5 p-3 bg-[#FFF7F2] border border-[#FFD6B8] rounded-xl">
+          <div className="flex items-start gap-2.5 p-3 bg-[#EEF2FF] border border-[#2C5CFA]/20 rounded-xl">
             <Info
-              className="w-4 h-4 text-[#FF6A3D] flex-shrink-0 mt-0.5"
+              className="w-4 h-4 text-[#2C5CFA] flex-shrink-0 mt-0.5"
               strokeWidth={2.2}
             />
-            <p className="text-[11.5px] text-[#7A3B1F] leading-relaxed">
+            <p className="text-[11.5px] text-[#0B1B3F] leading-relaxed">
               La cita{" "}
               <strong className="font-semibold">
                 no se enviará al candidato
               </strong>{" "}
-              hasta que presionés{" "}
+              hasta que presiones{" "}
               <em className="not-italic font-semibold">
                 &ldquo;Enviar al chat&rdquo;
               </em>{" "}
@@ -482,7 +479,7 @@ export default function InterviewFormModal({
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold text-white bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.5)] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.35)] rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold text-white bg-gradient-to-r from-[#2C5CFA] to-[#4A78FF] hover:shadow-[0_8px_24px_-6px_rgba(44,92,250,0.5)] shadow-[0_4px_12px_-2px_rgba(44,92,250,0.35)] rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>

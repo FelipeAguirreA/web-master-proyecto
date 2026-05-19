@@ -12,9 +12,10 @@ function AmbientMesh() {
       className="pointer-events-none fixed inset-0 overflow-hidden"
       aria-hidden
     >
-      <div className="absolute -top-32 -left-24 w-[560px] h-[560px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.38),transparent_72%)] blur-[60px]" />
-      <div className="absolute top-1/3 -right-24 w-[520px] h-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[60px]" />
-      <div className="absolute -bottom-32 left-1/3 w-[500px] h-[500px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.28),transparent_72%)] blur-[70px]" />
+      <div className="absolute -top-32 -left-24 h-[560px] w-[560px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.38),transparent_72%)] blur-[60px]" />
+      <div className="absolute top-1/3 -right-24 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[60px]" />
+      <div className="absolute -bottom-32 left-1/3 h-[500px] w-[500px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.28),transparent_72%)] blur-[70px]" />
+      {/* dot grid — static pattern, no token equivalent */}
       <div
         className="absolute inset-0 opacity-[0.04] mix-blend-multiply"
         style={{
@@ -59,58 +60,55 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#FAFAF8] text-[#0A0909] relative overflow-hidden"
-      style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-    >
+    <div className="relative min-h-screen overflow-hidden bg-bg text-text">
       <AmbientMesh />
 
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-10">
+      <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
         {/* Logo */}
         <Link
           href="/"
-          className="mb-8 inline-flex items-center gap-2 text-[17px] font-bold tracking-[-0.02em] text-[#0A0909] hover:opacity-80 transition-opacity"
+          className="mb-8 inline-flex items-center gap-2 text-[17px] font-bold tracking-[-0.02em] text-text no-underline transition-opacity hover:opacity-80"
         >
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center text-white text-[13px] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-hi text-[13px] text-white shadow-[0_4px_12px_-2px_var(--color-accent)/0.4]">
             P
           </span>
           Practi
-          <span className="bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-accent to-accent-hi bg-clip-text text-transparent">
             X
           </span>
         </Link>
 
         <div className="w-full max-w-[440px]">
-          <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] p-5 sm:p-8">
+          <div className="rounded-[20px] border border-border bg-surface p-5 shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] sm:rounded-[24px] sm:p-8">
             {status === "sent" ? (
-              <div className="text-center space-y-5 py-2">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#FFE9B3] to-[#FFC84A] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(255,180,74,0.5)]">
-                  <Mail className="w-8 h-8 text-white" strokeWidth={2.2} />
+              <div className="space-y-5 py-2 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-bg to-amber shadow-[0_8px_20px_-6px_var(--color-amber)/0.5]">
+                  <Mail className="h-8 w-8 text-white" strokeWidth={2.2} />
                 </div>
                 <div className="space-y-2">
-                  <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909]">
+                  <h1 className="text-[22px] font-bold tracking-[-0.02em] text-text">
                     Revisá tu correo
                   </h1>
-                  <p className="text-[13.5px] text-[#6D6A63] leading-[1.6] max-w-[340px] mx-auto">
+                  <p className="mx-auto max-w-[340px] text-[13.5px] leading-[1.6] text-muted">
                     Si el correo está registrado como cuenta empresa, recibirás
                     las instrucciones para restablecer tu contraseña en los
                     próximos minutos.
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/40 border border-[#FF6A3D]/15 p-4 text-left">
+                <div className="rounded-2xl border border-accent-bdr bg-gradient-to-br from-accent-bg to-accent-lo/40 p-4 text-left">
                   <div className="flex items-start gap-2.5">
-                    <div className="w-6 h-6 rounded-lg bg-white flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-surface">
                       <Sparkles
-                        className="w-3.5 h-3.5 text-[#FF6A3D]"
+                        className="h-3.5 w-3.5 text-accent"
                         strokeWidth={2.4}
                       />
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#FF6A3D] mb-1">
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-accent">
                         Tip PractiX
                       </p>
-                      <p className="text-[12.5px] text-[#4A4843] leading-[1.55]">
+                      <p className="text-[12.5px] leading-[1.55] text-text">
                         El enlace expira en 1 hora. Si no lo ves en la bandeja
                         de entrada, revisá la carpeta de spam.
                       </p>
@@ -120,25 +118,25 @@ export default function ForgotPasswordPage() {
 
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#4A4843] hover:text-[#FF6A3D] transition-colors pt-2"
+                  className="inline-flex items-center gap-1.5 pt-2 text-[13px] font-semibold text-muted no-underline transition-colors hover:text-accent"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="h-4 w-4" />
                   Volver al login
                 </Link>
               </div>
             ) : (
               <>
                 <div className="mb-6 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(255,106,61,0.45)] mb-4">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-hi shadow-[0_8px_20px_-6px_var(--color-accent)/0.45]">
                     <KeyRound
-                      className="w-7 h-7 text-white"
+                      className="h-7 w-7 text-white"
                       strokeWidth={2.2}
                     />
                   </div>
-                  <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909]">
+                  <h1 className="text-[22px] font-bold tracking-[-0.02em] text-text">
                     Olvidé mi contraseña
                   </h1>
-                  <p className="text-[13.5px] text-[#6D6A63] mt-1.5 leading-[1.55] max-w-[340px] mx-auto">
+                  <p className="mx-auto mt-1.5 max-w-[340px] text-[13.5px] leading-[1.55] text-muted">
                     Ingresá el correo de tu cuenta empresa y te enviamos un
                     enlace para crear una nueva contraseña.
                   </p>
@@ -148,7 +146,7 @@ export default function ForgotPasswordPage() {
                   <div>
                     <label
                       htmlFor="forgot-password-email"
-                      className="block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2"
+                      className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted"
                     >
                       Correo corporativo
                     </label>
@@ -161,14 +159,19 @@ export default function ForgotPasswordPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="empresa@correo.com"
                       disabled={status === "loading"}
+                      aria-invalid={!!error}
+                      aria-describedby={error ? "fp-email-error" : undefined}
                       className={
                         error
-                          ? "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
-                          : "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
+                          ? "w-full rounded-xl border border-rose/30 bg-rose-bg/50 px-4 py-3 text-base text-text placeholder:text-subtle focus:border-rose focus:outline-none focus:shadow-[0_0_0_4px_var(--color-rose)/0.08] sm:text-[14px] transition-all"
+                          : "w-full rounded-xl border border-transparent bg-bg px-4 py-3 text-base text-text placeholder:text-subtle hover:border-border focus:border-accent/40 focus:bg-surface focus:outline-none focus:shadow-[0_0_0_4px_var(--color-accent)/0.08] sm:text-[14px] transition-all"
                       }
                     />
                     {error && (
-                      <p className="mt-1.5 text-[12px] text-[#E24B2C] font-medium">
+                      <p
+                        id="fp-email-error"
+                        className="mt-1.5 text-[12px] font-medium text-rose"
+                      >
                         {error}
                       </p>
                     )}
@@ -177,30 +180,25 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={status === "loading"}
-                    className="group w-full bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white py-3.5 rounded-xl font-semibold text-[14px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-accent to-accent-hi px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_var(--color-accent)/0.5] transition-all hover:shadow-[0_12px_28px_-8px_var(--color-accent)/0.6] hover:from-accent hover:to-accent disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {status === "loading" ? (
                       <>
-                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span className="h-4 w-4 animate-[auth-spin_0.9s_linear_infinite] rounded-full border-2 border-white/40 border-t-white" />
                         Enviando…
                       </>
                     ) : (
-                      <>
-                        Enviar instrucciones
-                        <span className="transition-transform group-hover:translate-x-0.5">
-                          →
-                        </span>
-                      </>
+                      <>Enviar instrucciones</>
                     )}
                   </button>
                 </form>
 
-                <div className="mt-6 pt-5 border-t border-black/[0.05] text-center">
+                <div className="mt-6 border-t border-border pt-5 text-center">
                   <Link
                     href="/login"
-                    className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#FF6A3D] transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted no-underline transition-colors hover:text-accent"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <ArrowLeft className="h-3.5 w-3.5" />
                     Volver al login
                   </Link>
                 </div>
@@ -208,7 +206,7 @@ export default function ForgotPasswordPage() {
             )}
           </div>
 
-          <p className="mt-6 text-center text-[11.5px] text-[#9B9891]">
+          <p className="mt-6 text-center text-[11.5px] text-subtle">
             © {new Date().getFullYear()} PractiX · Hecho con cuidado en Chile
           </p>
         </div>

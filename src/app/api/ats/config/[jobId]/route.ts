@@ -29,6 +29,10 @@ export async function GET(
       );
     }
 
+    // No filtramos deletedAt acá: la empresa debe poder ver la config con la
+    // que se scoreó a los postulantes históricos de una práctica eliminada.
+    // Las acciones destructivas (POST en /api/ats/config y recalculo de score
+    // en /api/ats/score/job/[jobId]) SÍ filtran deletedAt en sus rutas.
     const internship = await prisma.internship.findFirst({
       where: { id: jobId, companyId: company.id },
     });

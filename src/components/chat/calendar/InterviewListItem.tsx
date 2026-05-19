@@ -193,10 +193,7 @@ export default function InterviewListItem({
       {showDeleteModal &&
         typeof document !== "undefined" &&
         createPortal(
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-          >
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 [font-family:var(--font-onest),system-ui,sans-serif]">
             <div
               className="absolute inset-0 bg-[#0A0909]/50 backdrop-blur-md"
               onClick={() => setShowDeleteModal(false)}

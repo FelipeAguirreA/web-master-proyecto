@@ -82,8 +82,8 @@ export default function ModuleCard({
 
       <div className="flex items-center gap-2 mt-3 sm:mt-2.5 sm:pl-[52px]">
         <input
-          id={`module-weight-range-${module.type}`}
-          name={`weight-${module.type}`}
+          id={`module-weight-range-${module.type}-${module.order}`}
+          name={`weight-${module.type}-${module.order}`}
           type="range"
           min={0}
           max={100}
@@ -93,8 +93,8 @@ export default function ModuleCard({
           className="flex-1 min-w-0 h-1.5 accent-[#FF6A3D]"
         />
         <input
-          id={`module-weight-number-${module.type}`}
-          name={`weight-number-${module.type}`}
+          id={`module-weight-number-${module.type}-${module.order}`}
+          name={`weight-number-${module.type}-${module.order}`}
           type="number"
           min={0}
           max={100}

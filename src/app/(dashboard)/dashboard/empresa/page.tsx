@@ -1,941 +1,491 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
-import {
-  Plus,
-  Users,
-  Briefcase,
-  X,
-  XCircle,
-  MapPin,
-  Calendar,
-  Layers,
-  Tag,
-  ClipboardList,
-  CheckCircle2,
-  Trash2,
-  AlertTriangle,
-  Bot,
-  TrendingUp,
-} from "lucide-react";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 
-type Internship = {
-  id: string;
-  title: string;
-  description: string;
-  area: string;
-  location: string;
-  modality: string;
-  duration: string;
-  skills: string[];
-  requirements: string[];
-  isActive: boolean;
-  createdAt: string;
-};
+/* ── Tipos compartidos ── */
+import type {
+  Internship,
+  Applicant,
+  Interview,
+  Conversation,
+  StageCounts,
+} from "@/components/dashboard/sections/empresa/types";
+import {
+  EMPTY_FORM,
+  type EmpForm,
+} from "@/components/dashboard/sections/empresa/types";
 
-type Applicant = {
-  id: string;
-  student: {
-    name: string;
-    email: string;
-    image?: string | null;
-  };
-};
+/* ── Helpers ── */
+import { startOfDay } from "@/components/dashboard/sections/empresa/utils";
 
-const AREAS = [
-  "Ingeniería",
-  "Marketing",
-  "Diseño",
-  "Datos",
-  "Finanzas",
-  "RRHH",
-  "Legal",
-];
+/* ── Sub-componentes ── */
+import { StatusBanner } from "@/components/dashboard/sections/empresa/StatusBanner";
+import { HeroEmp } from "@/components/dashboard/sections/empresa/HeroEmp";
+import { PracticasActivas } from "@/components/dashboard/sections/empresa/PracticasActivas";
+import { PostulantesNuevos } from "@/components/dashboard/sections/empresa/PostulantesNuevos";
+import { ProximasEntrevistas } from "@/components/dashboard/sections/empresa/ProximasEntrevistas";
+import { InboxMini } from "@/components/dashboard/sections/empresa/InboxMini";
+import { CalendarMini } from "@/components/dashboard/sections/empresa/CalendarMini";
+import { PublishModal } from "@/components/dashboard/sections/empresa/PublishModal";
+import { ConfirmActionModal } from "@/components/dashboard/sections/empresa/ConfirmActionModal";
 
-const MODALITIES = [
-  { value: "REMOTE", label: "Remoto" },
-  { value: "ONSITE", label: "Presencial" },
-  { value: "HYBRID", label: "Híbrido" },
-];
-
-const EMPTY_FORM = {
-  title: "",
-  description: "",
-  area: AREAS[0],
-  location: "",
-  modality: "REMOTE",
-  duration: "",
-  skills: "",
-  requirements: "",
-};
-
-const MODALITY_LABEL: Record<string, string> = {
-  REMOTE: "Remoto",
-  ONSITE: "Presencial",
-  HYBRID: "Híbrido",
-};
-
-const INPUT_CLS = (hasError?: boolean) =>
-  hasError
-    ? "w-full rounded-xl px-4 py-2.5 text-[13.5px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
-    : "w-full rounded-xl px-4 py-2.5 text-[13.5px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
-
-const LABEL_CLS =
-  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-1.5";
+/* Re-exportamos tipos para mantener compatibilidad con cualquier importador externo. */
+export type { Internship, Applicant, Interview, Conversation };
 
 export default function CompanyDashboard() {
   const { data: session } = useSession();
 
   const [internships, setInternships] = useState<Internship[]>([]);
   const [companyStatus, setCompanyStatus] = useState<string | null>(null);
+  const [applicantsByInt, setApplicantsByInt] = useState<
+    Record<string, Applicant[]>
+  >({});
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [showForm, setShowForm] = useState(false);
-  const [detailInternship, setDetailInternship] = useState<Internship | null>(
-    null,
-  );
-  const [selectedInternship, setSelectedInternship] = useState<string | null>(
-    null,
-  );
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState<EmpForm>({ ...EMPTY_FORM });
   const [formErrors, setFormErrors] = useState<
-    Partial<Record<keyof typeof EMPTY_FORM, string>>
+    Partial<Record<keyof EmpForm, string>>
   >({});
   const [submitting, setSubmitting] = useState(false);
-  const [processing, setProcessing] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    id: string;
+    type: "finalize" | "delete";
+  } | null>(null);
+  // Edición: editingId !== null → modal en modo "edit". Cuando es null y
+  // showForm es true → modo "create".
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [globalFormError, setGlobalFormError] = useState<string | null>(null);
 
-  const loadInternships = async () => {
+  /* ── API handlers ── */
+
+  const handleToggleActive = async (id: string, nextActive: boolean) => {
+    setProcessingId(id);
     try {
-      const res = await fetchWithRefresh("/api/company/internships");
-      const data = await res.json();
-      setInternships(data.internships ?? []);
-      if (data.companyStatus) setCompanyStatus(data.companyStatus);
-    } catch {
-      setInternships([]);
+      const res = await fetchWithRefresh(`/api/internships/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      if (res.ok) {
+        setInternships((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, isActive: nextActive } : i)),
+        );
+      }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setProcessingId(id);
+    try {
+      const res = await fetchWithRefresh(`/api/internships/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        // Soft delete: la práctica NO desaparece del state — pasa a la tab
+        // "Eliminadas" con deletedAt seteado. Preserva info histórica.
+        const nowIso = new Date().toISOString();
+        setInternships((prev) =>
+          prev.map((i) => (i.id === id ? { ...i, deletedAt: nowIso } : i)),
+        );
+      }
+    } finally {
+      setProcessingId(null);
+      setConfirmAction(null);
+    }
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
+    try {
+      const [intsRes, intvRes, convRes] = await Promise.all([
+        fetchWithRefresh("/api/company/internships?includeDeleted=1", {
+          cache: "no-store",
+        }),
+        fetchWithRefresh("/api/interviews?status=SCHEDULED", {
+          cache: "no-store",
+        }),
+        fetchWithRefresh("/api/chat/conversations", { cache: "no-store" }),
+      ]);
+
+      const intsData = intsRes.ok ? await intsRes.json() : { internships: [] };
+      const ints: Internship[] = intsData.internships ?? [];
+      setInternships(ints);
+      if (intsData.companyStatus) setCompanyStatus(intsData.companyStatus);
+
+      if (intvRes.ok) {
+        const intv = await intvRes.json();
+        setInterviews(Array.isArray(intv) ? intv : []);
+      }
+      if (convRes.ok) {
+        const conv = await convRes.json();
+        setConversations(Array.isArray(conv) ? conv : []);
+      }
+
+      // "active" para el bulk fetch de postulantes: solo prácticas vivas
+      // (no eliminadas y aún abiertas). Las eliminadas mantienen su lista
+      // de aplicantes histórica accesible desde el ATS, pero no inflamos
+      // el dashboard con sus postulantes "nuevos".
+      const active = ints.filter((i) => i.isActive && !i.deletedAt);
+      const applicantsArr: Array<[string, Applicant[]]> = await Promise.all(
+        active.map(async (i): Promise<[string, Applicant[]]> => {
+          try {
+            const r = await fetchWithRefresh(
+              `/api/applications/internship/${i.id}`,
+              {
+                cache: "no-store",
+              },
+            );
+            if (!r.ok) return [i.id, []];
+            const data = (await r.json()) as Applicant[];
+            return [i.id, data.map((a) => ({ ...a, internshipId: i.id }))];
+          } catch {
+            return [i.id, []];
+          }
+        }),
+      );
+      const map: Record<string, Applicant[]> = {};
+      for (const [id, list] of applicantsArr) map[id] = list;
+      setApplicantsByInt(map);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (session) loadInternships();
+    if (session) loadAll();
   }, [session]);
 
-  const validateForm = (): Partial<Record<keyof typeof EMPTY_FORM, string>> => {
-    const errs: Partial<Record<keyof typeof EMPTY_FORM, string>> = {};
+  /* ── Derived state ── */
+
+  const activeInternships = useMemo(
+    () => internships.filter((i) => i.isActive && !i.deletedAt),
+    [internships],
+  );
+
+  const stageCounts = useMemo(() => {
+    const counts: Record<string, StageCounts> = {};
+    for (const i of internships) {
+      const list = applicantsByInt[i.id] ?? [];
+      counts[i.id] = {
+        nuevos: list.filter(
+          (a) =>
+            a.pipelineStatus === "PENDING" ||
+            (!a.pipelineStatus && a.status === "PENDING"),
+        ).length,
+        screening: list.filter(
+          (a) =>
+            a.pipelineStatus === "REVIEWING" ||
+            (!a.pipelineStatus && a.status === "REVIEWED"),
+        ).length,
+        entrev: list.filter((a) => a.pipelineStatus === "INTERVIEW").length,
+        ofertas: list.filter((a) => a.status === "ACCEPTED").length,
+        total: list.length,
+      };
+    }
+    return counts;
+  }, [internships, applicantsByInt]);
+
+  const newApplicants = useMemo(() => {
+    const all: Applicant[] = [];
+    for (const list of Object.values(applicantsByInt)) {
+      for (const a of list) if (a.status === "PENDING") all.push(a);
+    }
+    return all.sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0));
+  }, [applicantsByInt]);
+
+  const kpis = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+    const interviewsToday = interviews.filter((i) => {
+      const t = new Date(i.scheduledAt);
+      return t >= todayStart && t < todayEnd;
+    }).length;
+    const accepted = Object.values(applicantsByInt)
+      .flat()
+      .filter((a) => a.status !== "PENDING").length;
+    const total = Object.values(applicantsByInt).flat().length;
+    const responseRate =
+      total > 0 ? Math.round((accepted / total) * 100) : null;
+    return {
+      nuevos: newApplicants.length,
+      activas: activeInternships.length,
+      hoy: interviewsToday,
+      tasa: responseRate,
+    };
+  }, [newApplicants, activeInternships, interviews, applicantsByInt]);
+
+  const interviewsHoy = useMemo(() => {
+    const todayStart = startOfDay(new Date());
+    return interviews
+      .filter((i) => new Date(i.scheduledAt) >= todayStart)
+      .slice(0, 4);
+  }, [interviews]);
+
+  const inboxTop = useMemo(
+    () =>
+      [...conversations]
+        .sort((a, b) => {
+          const ta = a.lastMessage
+            ? new Date(a.lastMessage.createdAt).getTime()
+            : 0;
+          const tb = b.lastMessage
+            ? new Date(b.lastMessage.createdAt).getTime()
+            : 0;
+          return tb - ta;
+        })
+        .slice(0, 4),
+    [conversations],
+  );
+
+  /* ── Form handlers ── */
+
+  const recruiterName = session?.user?.name?.split(" ")[0] ?? "Reclutador";
+
+  const today = new Date().toLocaleDateString("es-CL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  const validateForm = (): Partial<Record<keyof EmpForm, string>> => {
+    const errs: Partial<Record<keyof EmpForm, string>> = {};
     if (!form.title.trim() || form.title.trim().length < 3)
       errs.title = "El título debe tener al menos 3 caracteres";
     if (!form.description.trim() || form.description.trim().length < 20)
       errs.description = "La descripción debe tener al menos 20 caracteres";
     if (!form.location.trim()) errs.location = "La ubicación es obligatoria";
     if (!form.duration.trim()) errs.duration = "La duración es obligatoria";
-    if (!form.skills.trim()) errs.skills = "Ingresá al menos una skill";
+    if (!form.skills.trim()) errs.skills = "Ingresa al menos una skill";
     if (!form.requirements.trim())
-      errs.requirements = "Ingresá al menos un requisito";
+      errs.requirements = "Ingresa al menos un requisito";
     return errs;
   };
 
-  const handleCreate = async (e: FormEvent) => {
+  // GET práctica completa → llena el form para editar. Reusa el endpoint
+  // existente (que ya pasa owner via session) y mapea al shape del form.
+  const handleOpenEdit = async (id: string) => {
+    setProcessingId(id);
+    setGlobalFormError(null);
+    try {
+      const res = await fetchWithRefresh(`/api/internships/${id}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setForm({
+        title: data.title ?? "",
+        description: data.description ?? "",
+        area: data.area ?? EMPTY_FORM.area,
+        location: data.location ?? "",
+        modality: data.modality ?? EMPTY_FORM.modality,
+        duration: data.duration ?? "",
+        skills: Array.isArray(data.skills) ? data.skills.join(", ") : "",
+        responsibilities: Array.isArray(data.responsibilities)
+          ? data.responsibilities.join("\n")
+          : "",
+        requirements: Array.isArray(data.requirements)
+          ? data.requirements.join(", ")
+          : "",
+      });
+      setFormErrors({});
+      setEditingId(id);
+      setShowForm(true);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm({ ...EMPTY_FORM });
+    setFormErrors({});
+    setGlobalFormError(null);
+  };
+
+  // Abre el modal en modo CREATE: limpia cualquier residuo de edición previa
+  // antes de mostrar. Necesario porque setShowForm(true) directo no resetea
+  // editingId si la última interacción había sido un edit.
+  const handleOpenCreate = () => {
+    setEditingId(null);
+    setForm({ ...EMPTY_FORM });
+    setFormErrors({});
+    setGlobalFormError(null);
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setGlobalFormError(null);
     const errs = validateForm();
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
       return;
     }
     setSubmitting(true);
-    const toArray = (str: string) =>
-      str
+    const toArray = (s: string) =>
+      s
         .split(",")
-        .map((s) => s.trim())
+        .map((x) => x.trim())
         .filter(Boolean);
+    const payload = {
+      ...form,
+      skills: toArray(form.skills),
+      requirements: toArray(form.requirements),
+      responsibilities: form.responsibilities
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    };
     try {
-      const res = await fetchWithRefresh("/api/internships", {
-        method: "POST",
+      const isEdit = editingId !== null;
+      const url = isEdit ? `/api/internships/${editingId}` : "/api/internships";
+      const res = await fetchWithRefresh(url, {
+        method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          skills: toArray(form.skills),
-          requirements: toArray(form.requirements),
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        setShowForm(false);
-        setForm(EMPTY_FORM);
-        setFormErrors({});
-        await loadInternships();
+        closeForm();
+        await loadAll();
+        return;
       }
+      // 409 = ya hay postulantes (race condition: alguien postuló entre el
+      // open del modal y el submit, o el botón se forzó vía DevTools).
+      if (res.status === 409) {
+        const body = await res.json().catch(() => null);
+        setGlobalFormError(
+          body?.error ??
+            "No podés editar esta práctica porque ya tiene postulantes.",
+        );
+        return;
+      }
+      // 400 con field errors del backend
+      if (res.status === 400) {
+        const body = await res.json().catch(() => null);
+        setGlobalFormError(body?.error ?? "Datos inválidos.");
+        return;
+      }
+      setGlobalFormError("No se pudo guardar. Intentá de nuevo.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleComplete = async (internshipId: string) => {
-    setProcessing(internshipId);
-    try {
-      const res = await fetchWithRefresh(`/api/internships/${internshipId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: false }),
-      });
-      if (res.ok) {
-        setInternships((prev) =>
-          prev.map((i) =>
-            i.id === internshipId ? { ...i, isActive: false } : i,
-          ),
-        );
-        if (detailInternship?.id === internshipId)
-          setDetailInternship((d) => (d ? { ...d, isActive: false } : null));
-      }
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirmDeleteId) return;
-    setProcessing(confirmDeleteId);
-    try {
-      const res = await fetchWithRefresh(
-        `/api/internships/${confirmDeleteId}`,
-        {
-          method: "DELETE",
-        },
-      );
-      if (res.ok) {
-        setInternships((prev) => prev.filter((i) => i.id !== confirmDeleteId));
-        if (detailInternship?.id === confirmDeleteId) setDetailInternship(null);
-        if (selectedInternship === confirmDeleteId) setSelectedInternship(null);
-      }
-    } finally {
-      setProcessing(null);
-      setConfirmDeleteId(null);
-    }
-  };
-
-  const viewApplicants = async (internshipId: string) => {
-    setSelectedInternship(internshipId);
-    try {
-      const res = await fetchWithRefresh(
-        `/api/applications/internship/${internshipId}`,
-      );
-      const data = await res.json();
-      setApplicants(data ?? []);
-    } catch {
-      setApplicants([]);
-    }
-  };
-
-  const field = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >,
-    ) => {
-      setForm((f) => ({ ...f, [key]: e.target.value }));
-      setFormErrors((errs) => ({ ...errs, [key]: undefined }));
-    },
-  });
-
-  const selectedName = selectedInternship
-    ? internships.find((i) => i.id === selectedInternship)?.title
-    : null;
-
-  const activeCount = internships.filter((i) => i.isActive).length;
-  const completedCount = internships.length - activeCount;
+  /* ── Render ── */
 
   return (
-    <div className="pt-6 sm:pt-8 pb-12 sm:pb-20 px-4 md:px-8 max-w-screen-2xl mx-auto flex flex-col gap-5 sm:gap-6">
-      {/* Status banners */}
-      {companyStatus === "PENDING" && (
-        <div className="relative overflow-hidden rounded-2xl border border-[#FFBD2E]/25 bg-gradient-to-r from-[#FFF8E6] to-[#FFF3EC] px-5 py-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFE9B3] to-[#FFBD2E] flex items-center justify-center shrink-0 shadow-[0_4px_10px_-2px_rgba(255,189,46,0.35)]">
-            <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2.4} />
-          </div>
-          <div>
-            <p className="text-[13.5px] font-semibold text-[#0A0909]">
-              Cuenta en revisión
-            </p>
-            <p className="text-[12.5px] text-[#6D6A63] mt-0.5">
-              Tus prácticas no serán visibles para estudiantes hasta que
-              aprobemos tu empresa.
-            </p>
-          </div>
-        </div>
-      )}
-      {companyStatus === "REJECTED" && (
-        <div className="relative overflow-hidden rounded-2xl border border-[#FF6A3D]/25 bg-gradient-to-r from-[#FFECEC] to-[#FFF0ED] px-5 py-4 flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFCDCD] to-[#FF6B6B] flex items-center justify-center shrink-0 shadow-[0_4px_10px_-2px_rgba(255,107,107,0.4)]">
-            <XCircle className="w-4 h-4 text-white" strokeWidth={2.4} />
-          </div>
-          <div>
-            <p className="text-[13.5px] font-semibold text-[#0A0909]">
-              Cuenta rechazada
-            </p>
-            <p className="text-[12.5px] text-[#6D6A63] mt-0.5">
-              Contactá a{" "}
-              <a
-                href="mailto:soporte@practix.cl"
-                className="text-[#FF6A3D] font-semibold hover:underline"
-              >
-                soporte@practix.cl
-              </a>{" "}
-              para más información.
-            </p>
-          </div>
-        </div>
-      )}
+    <div className="bg-bg min-h-full px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 pb-16 [font-family:var(--font-onest),ui-sans-serif,system-ui]">
+      <div className="max-w-[1400px] mx-auto">
+        {/* Status banners (empresa en revisión / rechazada) */}
+        {companyStatus === "PENDING" && (
+          <StatusBanner
+            tone="amber"
+            title="Cuenta en revisión"
+            body="Tus prácticas no serán visibles para estudiantes hasta que aprobemos tu empresa."
+            icon="alert"
+          />
+        )}
+        {companyStatus === "REJECTED" && (
+          <StatusBanner
+            tone="rose"
+            title="Cuenta rechazada"
+            body="Contacta a soporte@practix.cl para más información."
+            icon="x"
+          />
+        )}
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-5">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D] mb-2">
-            Panel empresa
-          </p>
-          <h1 className="text-[26px] sm:text-[34px] md:text-[40px] font-bold tracking-[-0.03em] text-[#0A0909] leading-[1.05]">
-            Gestioná tu{" "}
-            <span className="bg-gradient-to-r from-[#FFB17A] via-[#FF8A52] to-[#FF5A28] bg-clip-text text-transparent">
-              talento
-            </span>
-          </h1>
-          <p className="text-[13px] sm:text-[14px] text-[#6D6A63] mt-2 max-w-[520px] leading-[1.55]">
-            Publicá vacantes, revisá postulaciones rankeadas por IA y encontrá
-            al candidato ideal para tu equipo.
-          </p>
-        </div>
+        {/* Hero con KPIs */}
+        <HeroEmp
+          today={today.charAt(0).toUpperCase() + today.slice(1)}
+          recruiterName={recruiterName}
+          kpis={kpis}
+          onPublish={handleOpenCreate}
+        />
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <p className="text-[9.5px] sm:text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-                Activas
-              </p>
-              <p className="text-[17px] sm:text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
-                {activeCount}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-black/[0.06] px-3 sm:px-4 py-2 sm:py-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <p className="text-[9.5px] sm:text-[10px] font-semibold tracking-[0.08em] uppercase text-[#9B9891]">
-                Completadas
-              </p>
-              <p className="text-[17px] sm:text-[20px] font-bold tracking-[-0.02em] text-[#0A0909] leading-none mt-0.5">
-                {completedCount}
-              </p>
-            </div>
+        {/*
+          Layout principal: columna izquierda (prácticas + postulantes)
+          + rail derecho (entrevistas, inbox, calendar).
+          Mobile: 1 columna. lg+: split [1fr 340px].
+        */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-3.5 items-start">
+          {/* Columna principal */}
+          <div className="flex flex-col gap-3.5 min-w-0">
+            <PracticasActivas
+              internships={internships}
+              stageCounts={stageCounts}
+              loading={loading}
+              onPublish={handleOpenCreate}
+              onAskFinalize={(id) => setConfirmAction({ id, type: "finalize" })}
+              onAskDelete={(id) => setConfirmAction({ id, type: "delete" })}
+              onEdit={handleOpenEdit}
+              processingId={processingId}
+            />
+            <PostulantesNuevos
+              applicants={newApplicants}
+              internships={internships}
+              loading={loading}
+              onRefresh={loadAll}
+            />
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="group inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white text-[12.5px] sm:text-[13px] font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all w-full sm:w-auto justify-center"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2.4} />
-            Nueva práctica
-          </button>
+
+          {/* Rail lateral — sticky en desktop, fluye en mobile */}
+          <aside className="flex flex-col gap-3.5 lg:sticky lg:top-[76px]">
+            <ProximasEntrevistas interviews={interviewsHoy} loading={loading} />
+            <InboxMini conversations={inboxTop} loading={loading} />
+            <CalendarMini interviews={interviews} />
+          </aside>
         </div>
       </div>
 
-      {/* Split layout */}
-      <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
-        {/* Lista prácticas */}
-        <div className="md:col-span-2">
-          {internships.length === 0 ? (
-            <div className="bg-white rounded-[24px] border border-black/[0.06] text-center py-16 px-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/60 flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="w-6 h-6 text-[#FF6A3D]" />
-              </div>
-              <p className="text-[15px] font-semibold text-[#0A0909] tracking-[-0.01em]">
-                Aún no publicaste prácticas
-              </p>
-              <p className="text-[13px] text-[#6D6A63] mt-1 max-w-[360px] mx-auto">
-                Creá tu primera oferta y empezá a recibir candidatos rankeados
-                por la IA.
-              </p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" strokeWidth={2.4} />
-                Crear primera práctica
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-              {internships.map((internship, idx) => (
-                <div
-                  key={internship.id}
-                  onClick={() => setDetailInternship(internship)}
-                  className={`relative px-5 py-4 flex flex-col md:flex-row md:items-center gap-4 cursor-pointer hover:bg-[#FAFAF8] transition-colors ${
-                    idx < internships.length - 1
-                      ? "border-b border-black/[0.04]"
-                      : ""
-                  } ${selectedInternship === internship.id ? "bg-[#FFF7F2]" : ""}`}
-                >
-                  {selectedInternship === internship.id && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A]" />
-                  )}
-
-                  <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                    <div
-                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                        internship.isActive
-                          ? "bg-gradient-to-br from-[#FFF3EC] to-[#FFE9B3]/50"
-                          : "bg-[#F4F3EF]"
-                      }`}
-                    >
-                      <Briefcase
-                        className={`w-5 h-5 ${
-                          internship.isActive
-                            ? "text-[#FF6A3D]"
-                            : "text-[#9B9891]"
-                        }`}
-                        strokeWidth={2.2}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[13.5px] font-semibold tracking-[-0.01em] text-[#0A0909] truncate">
-                          {internship.title}
-                        </p>
-                        {!internship.isActive && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-[#E7F8EA] text-[#1A6E31] px-2 py-0.5 rounded-full shrink-0">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
-                            Completada
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[11.5px] text-[#6D6A63] mt-0.5 flex-wrap">
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {MODALITY_LABEL[internship.modality]}
-                        </span>
-                        <span className="w-px h-3 bg-black/[0.08]" />
-                        <span>{internship.area}</span>
-                        <span className="w-px h-3 bg-black/[0.08]" />
-                        <span>{internship.duration}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-center gap-1.5 shrink-0 flex-wrap"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => viewApplicants(internship.id)}
-                      className={`inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg transition-all ${
-                        selectedInternship === internship.id
-                          ? "bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]"
-                          : "text-[#FF6A3D] hover:bg-[#FFF3EC]"
-                      }`}
-                    >
-                      <Users className="w-3.5 h-3.5" strokeWidth={2.4} />
-                      Postulantes
-                    </button>
-                    <Link
-                      href={`/dashboard/empresa/ats/${internship.id}`}
-                      className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#5B2FA6] bg-[#F3EEFF] hover:bg-[#E7DEFF] px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      <Bot className="w-3.5 h-3.5" strokeWidth={2.4} />
-                      ATS
-                    </Link>
-                    {internship.isActive && (
-                      <button
-                        onClick={() => handleComplete(internship.id)}
-                        disabled={processing === internship.id}
-                        className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#1A6E31] hover:bg-[#E7F8EA] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <CheckCircle2
-                          className="w-3.5 h-3.5"
-                          strokeWidth={2.4}
-                        />
-                        Cerrar
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setConfirmDeleteId(internship.id)}
-                      disabled={processing === internship.id}
-                      className="w-8 h-8 inline-flex items-center justify-center text-[#9B9891] hover:text-[#C2410C] hover:bg-[#FFF0ED] rounded-lg transition-colors"
-                      aria-label="Eliminar"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Panel postulantes */}
-        <div className="bg-white rounded-[20px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col max-h-[720px]">
-          <div className="px-5 py-4 border-b border-black/[0.05] flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold tracking-[0.1em] uppercase text-[#9B9891]">
-                Postulantes
-              </p>
-              <p className="text-[13.5px] font-semibold text-[#0A0909] tracking-[-0.01em] mt-0.5 truncate">
-                {selectedName ?? "Seleccioná una práctica"}
-              </p>
-            </div>
-            {applicants.length > 0 && (
-              <span className="text-[11px] font-bold bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white px-2.5 py-1 rounded-full shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)] shrink-0">
-                {applicants.length} total
-              </span>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {!selectedInternship ? (
-              <div className="text-center py-16 px-5">
-                <div className="w-12 h-12 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-5 h-5 text-[#C9C6BF]" />
-                </div>
-                <p className="text-[12.5px] text-[#6D6A63] leading-[1.5]">
-                  Hacé click en <b>&quot;Postulantes&quot;</b> de una práctica
-                  para ver los candidatos.
-                </p>
-              </div>
-            ) : applicants.length === 0 ? (
-              <div className="text-center py-16 px-5">
-                <div className="w-12 h-12 rounded-2xl bg-[#FAFAF8] flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-5 h-5 text-[#C9C6BF]" />
-                </div>
-                <p className="text-[12.5px] text-[#6D6A63]">
-                  Sin postulaciones aún
-                </p>
-              </div>
-            ) : (
-              applicants.map((app, i) => {
-                const initial = app.student.name.charAt(0).toUpperCase();
-
-                return (
-                  <div
-                    key={app.id}
-                    className={`px-5 py-4 flex items-center gap-3 ${
-                      i < applicants.length - 1
-                        ? "border-b border-black/[0.04]"
-                        : ""
-                    }`}
-                  >
-                    {app.student.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={app.student.image}
-                        alt={app.student.name}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-[0_2px_6px_-1px_rgba(20,15,10,0.12)] shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[13px] font-bold shrink-0 shadow-[0_2px_6px_-1px_rgba(255,106,61,0.4)]">
-                        {initial}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#0A0909] tracking-[-0.01em] truncate">
-                        {app.student.name}
-                      </p>
-                      <p className="text-[11.5px] text-[#6D6A63] truncate">
-                        {app.student.email}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {applicants.length > 0 && (
-            <div className="px-5 py-3 border-t border-black/[0.05]">
-              <Link
-                href={`/dashboard/empresa/candidatos/${selectedInternship}`}
-                className="w-full inline-flex items-center justify-center gap-1.5 text-[12.5px] font-semibold text-white bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] hover:shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45)] px-3.5 py-2 rounded-xl transition-all"
-              >
-                Gestionar candidatos
-                <TrendingUp className="w-3.5 h-3.5" strokeWidth={2.4} />
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Modal detalle práctica */}
-      {detailInternship && (
-        <div
-          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setDetailInternship(null)}
-        >
-          <div
-            className="bg-white rounded-[24px] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between p-6 border-b border-black/[0.05]">
-              <div className="flex-1 min-w-0 pr-4">
-                <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D] mb-1">
-                  {detailInternship.area}
-                </p>
-                <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#0A0909] leading-snug">
-                  {detailInternship.title}
-                </h2>
-              </div>
-              <button
-                onClick={() => setDetailInternship(null)}
-                className="w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
-                aria-label="Cerrar"
-              >
-                <X className="w-4 h-4 text-[#6D6A63]" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
-                  <MapPin className="w-3 h-3" />
-                  {detailInternship.location}
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
-                  <Layers className="w-3 h-3" />
-                  {MODALITY_LABEL[detailInternship.modality]}
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-[11.5px] font-medium bg-[#FAFAF8] text-[#4A4843] px-3 py-1.5 rounded-full">
-                  <Calendar className="w-3 h-3" />
-                  {detailInternship.duration}
-                </span>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                  <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63]">
-                    Descripción
-                  </p>
-                </div>
-                <p className="text-[13px] text-[#4A4843] leading-[1.65] whitespace-pre-line">
-                  {detailInternship.description}
-                </p>
-              </div>
-
-              {detailInternship.skills?.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] flex items-center gap-1.5">
-                      <Tag className="w-3 h-3" />
-                      Skills
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {detailInternship.skills.map((s) => (
-                      <span
-                        key={s}
-                        className="text-[11.5px] font-medium bg-[#F4F3EF] text-[#4A4843] px-2.5 py-1 rounded-lg"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {detailInternship.requirements?.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-0.5 h-4 bg-gradient-to-b from-[#FF6A3D] to-[#FF9B6A] rounded-full" />
-                    <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] flex items-center gap-1.5">
-                      <ClipboardList className="w-3 h-3" />
-                      Requisitos
-                    </p>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {detailInternship.requirements.map((r) => (
-                      <li
-                        key={r}
-                        className="text-[13px] text-[#4A4843] flex items-start gap-2"
-                      >
-                        <span className="w-1 h-1 rounded-full bg-[#FF6A3D] mt-2 shrink-0" />
-                        {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <p className="text-[11.5px] text-[#9B9891]">
-                Publicada el{" "}
-                {new Date(detailInternship.createdAt).toLocaleDateString(
-                  "es-CL",
-                  { day: "numeric", month: "long", year: "numeric" },
-                )}
-              </p>
-            </div>
-
-            <div className="px-6 pb-6">
-              <button
-                onClick={() => {
-                  setDetailInternship(null);
-                  viewApplicants(detailInternship.id);
-                }}
-                className="group w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white font-semibold py-3 rounded-xl text-[13.5px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all"
-              >
-                <Users className="w-4 h-4" strokeWidth={2.3} />
-                Ver postulantes
-                <span className="transition-transform group-hover:translate-x-0.5">
-                  →
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal crear */}
+      {/* Modal: publicar / editar práctica (mismo componente, modo distinto) */}
       {showForm && (
-        <div
-          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => {
-            setShowForm(false);
-            setFormErrors({});
+        <PublishModal
+          form={form}
+          formErrors={formErrors}
+          submitting={submitting}
+          mode={editingId ? "edit" : "create"}
+          globalError={globalFormError}
+          onChange={(key, value) => {
+            setForm((f) => ({ ...f, [key]: value }));
+            setFormErrors((errs) => ({ ...errs, [key]: undefined }));
           }}
-        >
-          <div
-            className="bg-white rounded-[24px] max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-black/[0.05] px-6 py-4 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D]">
-                  Nueva práctica
-                </p>
-                <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] mt-0.5">
-                  Publicá una vacante
-                </h2>
-              </div>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setFormErrors({});
-                }}
-                className="w-8 h-8 rounded-full hover:bg-[#FAFAF8] flex items-center justify-center transition-colors"
-                aria-label="Cerrar"
-              >
-                <X className="w-4 h-4 text-[#6D6A63]" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleCreate}
-              className="px-6 py-5 space-y-4"
-              noValidate
-            >
-              <div>
-                <label htmlFor="form-title" className={LABEL_CLS}>
-                  Título *
-                </label>
-                <input
-                  id="form-title"
-                  name="title"
-                  type="text"
-                  placeholder="Ej: Pasantía Frontend Developer"
-                  className={INPUT_CLS(!!formErrors.title)}
-                  {...field("title")}
-                />
-                {formErrors.title && (
-                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                    {formErrors.title}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="form-description" className={LABEL_CLS}>
-                  Descripción *
-                </label>
-                <textarea
-                  id="form-description"
-                  name="description"
-                  rows={4}
-                  placeholder="Describí las tareas y el contexto del puesto"
-                  className={INPUT_CLS(!!formErrors.description)}
-                  {...field("description")}
-                />
-                {formErrors.description && (
-                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                    {formErrors.description}
-                  </p>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="form-area" className={LABEL_CLS}>
-                    Área
-                  </label>
-                  <select
-                    id="form-area"
-                    name="area"
-                    className={INPUT_CLS()}
-                    {...field("area")}
-                  >
-                    {AREAS.map((a) => (
-                      <option key={a} value={a}>
-                        {a}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="form-modality" className={LABEL_CLS}>
-                    Modalidad
-                  </label>
-                  <select
-                    id="form-modality"
-                    name="modality"
-                    className={INPUT_CLS()}
-                    {...field("modality")}
-                  >
-                    {MODALITIES.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="form-location" className={LABEL_CLS}>
-                    Ubicación *
-                  </label>
-                  <input
-                    id="form-location"
-                    name="location"
-                    type="text"
-                    placeholder="Ej: Santiago"
-                    className={INPUT_CLS(!!formErrors.location)}
-                    {...field("location")}
-                  />
-                  {formErrors.location && (
-                    <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                      {formErrors.location}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="form-duration" className={LABEL_CLS}>
-                    Duración *
-                  </label>
-                  <input
-                    id="form-duration"
-                    name="duration"
-                    type="text"
-                    placeholder="3 meses"
-                    className={INPUT_CLS(!!formErrors.duration)}
-                    {...field("duration")}
-                  />
-                  {formErrors.duration && (
-                    <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                      {formErrors.duration}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="form-skills" className={LABEL_CLS}>
-                  Skills requeridas *
-                </label>
-                <input
-                  id="form-skills"
-                  name="skills"
-                  type="text"
-                  placeholder="React, TypeScript, Node.js"
-                  className={INPUT_CLS(!!formErrors.skills)}
-                  {...field("skills")}
-                />
-                <p className="text-[10.5px] text-[#9B9891] mt-1">
-                  Separá con comas
-                </p>
-                {formErrors.skills && (
-                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                    {formErrors.skills}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="form-requirements" className={LABEL_CLS}>
-                  Requisitos *
-                </label>
-                <input
-                  id="form-requirements"
-                  name="requirements"
-                  type="text"
-                  placeholder="Estudiante Ing. Informática, 4to año+"
-                  className={INPUT_CLS(!!formErrors.requirements)}
-                  {...field("requirements")}
-                />
-                {formErrors.requirements && (
-                  <p className="text-[11.5px] text-[#A63418] mt-1 font-medium">
-                    {formErrors.requirements}
-                  </p>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="group w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white font-semibold py-3 rounded-xl text-[13.5px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    Publicando…
-                  </>
-                ) : (
-                  <>
-                    Publicar práctica
-                    <span className="transition-transform group-hover:translate-x-0.5">
-                      →
-                    </span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
+          onClose={closeForm}
+          onSubmit={handleSubmit}
+        />
       )}
 
-      {/* Modal confirmar eliminación */}
-      {confirmDeleteId && (
-        <div
-          className="fixed inset-0 bg-[#0A0909]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setConfirmDeleteId(null)}
-        >
-          <div
-            className="bg-white rounded-[24px] max-w-sm w-full p-7 shadow-[0_24px_64px_-12px_rgba(20,15,10,0.35)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FFCDCD] to-[#FF6B6B] mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(255,107,107,0.45)]">
-              <Trash2 className="w-6 h-6 text-white" strokeWidth={2.2} />
-            </div>
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-[#0A0909] text-center">
-              Eliminar práctica
-            </h2>
-            <p className="text-[13px] text-[#6D6A63] text-center mt-2 leading-[1.55]">
-              ¿Seguro? Se borrarán también todas las postulaciones asociadas.
-              Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-2.5 mt-6">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 text-[13px] font-semibold text-[#4A4843] bg-[#FAFAF8] hover:bg-black/[0.05] py-2.5 rounded-xl transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={processing === confirmDeleteId}
-                className="flex-1 text-[13px] font-semibold bg-[#C2410C] hover:bg-[#A63418] text-white py-2.5 rounded-xl transition-colors disabled:opacity-60"
-              >
-                {processing === confirmDeleteId ? "Eliminando…" : "Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal: confirmar finalizar / eliminar */}
+      {confirmAction &&
+        (() => {
+          const target = internships.find((i) => i.id === confirmAction.id);
+          if (!target) return null;
+          return (
+            <ConfirmActionModal
+              type={confirmAction.type}
+              busy={processingId === confirmAction.id}
+              internshipTitle={target.title}
+              onCancel={() => setConfirmAction(null)}
+              onConfirm={async () => {
+                if (confirmAction.type === "finalize") {
+                  await handleToggleActive(confirmAction.id, false);
+                  setConfirmAction(null);
+                } else {
+                  await handleDelete(confirmAction.id);
+                }
+              }}
+            />
+          );
+        })()}
     </div>
   );
 }

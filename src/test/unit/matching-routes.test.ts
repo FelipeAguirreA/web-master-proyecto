@@ -118,7 +118,7 @@ describe("GET /api/matching/recommendations", () => {
     await recommendationsGet();
     expect(mockRateLimit).toHaveBeenCalledWith(
       expect.stringContaining("stu-1"),
-      20,
+      120,
       3_600_000,
     );
   });

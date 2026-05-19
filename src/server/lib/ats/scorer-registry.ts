@@ -20,6 +20,7 @@ import {
   scorePortfolio,
   type PortfolioParams,
 } from "./scorers/portfolio.scorer";
+import { scoreCustom, type CustomParams } from "./scorers/custom.scorer";
 
 // Mapping discriminado type → params shape. Un scorer nuevo se agrega acá +
 // en el registry de abajo, sin tocar el engine. El cast de runtime queda
@@ -30,6 +31,7 @@ type ScorerParamsMap = {
   EDUCATION: EducationParams;
   LANGUAGES: LanguagesParams;
   PORTFOLIO: PortfolioParams;
+  CUSTOM: CustomParams;
 };
 
 export type ScorerType = keyof ScorerParamsMap;
@@ -45,6 +47,7 @@ export const SCORER_REGISTRY: { [K in ScorerType]: ScorerFn<K> } = {
   EDUCATION: scoreEducation,
   LANGUAGES: scoreLanguages,
   PORTFOLIO: scorePortfolio,
+  CUSTOM: scoreCustom,
 };
 
 export type { ScorerResult };

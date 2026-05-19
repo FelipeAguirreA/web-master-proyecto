@@ -1,418 +1,404 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import {
-  Camera,
-  CheckCircle2,
-  AlertTriangle,
-  Loader2,
-  ArrowLeft,
-  Lock,
-} from "lucide-react";
-import Link from "next/link";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
+import { PerfilHero } from "@/components/perfil/PerfilHero";
+import { AboutBlock } from "@/components/perfil/AboutBlock";
+import { EducationBlock } from "@/components/perfil/EducationBlock";
+import { SkillsBlock } from "@/components/perfil/SkillsBlock";
+import { CVUploadCard } from "@/components/perfil/CVUploadCard";
+import { CompletenessCard } from "@/components/perfil/CompletenessCard";
+import { computeCompleteness, computeCvProgress } from "@/lib/cv-progress";
+import { ContactCard } from "@/components/perfil/ContactCard";
+import { Block } from "@/components/perfil/Block";
 import MyRightsCard from "@/components/MyRightsCard";
 
 type ProfileData = {
   id: string;
   name: string;
-  lastName: string;
+  lastName: string | null;
   email: string;
   phone: string | null;
   rut: string | null;
   role: string;
   image: string | null;
-  companyProfile?: { companyName: string; companyStatus: string } | null;
+  studentProfile: {
+    bio: string | null;
+    university: string | null;
+    career: string | null;
+    semester: number | null;
+    skills: string[];
+    cvUrl: string | null;
+  } | null;
 };
 
-const INPUT_CLS =
-  "w-full rounded-xl px-4 py-2.5 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
-const INPUT_READONLY =
-  "w-full rounded-xl px-4 py-2.5 text-[14px] bg-[#F4F3EF] text-[#9B9891] border border-transparent cursor-not-allowed select-all";
-const LABEL_CLS =
-  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2";
-
 export default function PerfilPage() {
-  const { data: session, update } = useSession();
+  const { update } = useSession();
   const router = useRouter();
-
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const isCompany = profile != null && profile.role !== "STUDENT";
+
+  // /perfil sólo aplica al estudiante. Si entra una empresa (link viejo,
+  // bookmark, redirect interno residual), la redirigimos a su propia pantalla
+  // en /dashboard/empresa/perfil. El redirect tiene que vivir en un effect —
+  // llamar router.replace durante el render dispara el warning de React
+  // "Cannot update a component while rendering a different one".
+  useEffect(() => {
+    if (isCompany) router.replace("/dashboard/empresa/perfil");
+  }, [isCompany, router]);
+
   const [loading, setLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [nameEditing, setNameEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [lastNameDraft, setLastNameDraft] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+  const [toast, setToast] = useState<{
+    type: "ok" | "err";
+    msg: string;
+  } | null>(null);
 
-  const [name, setName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+  const showToast = (type: "ok" | "err", msg: string) => {
+    setToast({ type, msg });
+    window.setTimeout(() => setToast(null), 3500);
+  };
 
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadProfile = async () => {
+    const res = await fetchWithRefresh("/api/perfil");
+    if (!res.ok) return null;
+    const data: ProfileData = await res.json();
+    setProfile(data);
+    return data;
+  };
 
-  const [saving, setSaving] = useState(false);
-  const [savingAvatar, setSavingAvatar] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [imageBroken, setImageBroken] = useState(false);
+  const loadSuggestions = async () => {
+    try {
+      const res = await fetchWithRefresh("/api/perfil/skill-suggestions");
+      if (!res.ok) return;
+      const data = await res.json();
+      setSuggestions(data.suggestions ?? []);
+    } catch {
+      // silencioso
+    }
+  };
 
   useEffect(() => {
-    fetchWithRefresh("/api/perfil")
-      .then((r) => r.json())
-      .then((data: ProfileData) => {
-        setProfile(data);
-        setName(data.name ?? "");
-        setLastName(data.lastName ?? "");
-        setPhone(data.phone ?? "");
-      })
-      .finally(() => setLoading(false));
+    loadProfile().finally(() => setLoading(false));
+    loadSuggestions();
   }, []);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const savePartial = async (
+    patch: Partial<{
+      name: string;
+      lastName: string;
+      phone: string;
+      studentProfile: Partial<NonNullable<ProfileData["studentProfile"]>>;
+    }>,
+  ) => {
+    if (!profile) return;
+    const body = {
+      name: patch.name ?? profile.name,
+      lastName: patch.lastName ?? profile.lastName ?? "",
+      phone: patch.phone ?? profile.phone ?? undefined,
+      studentProfile: patch.studentProfile,
+    };
+    const res = await fetchWithRefresh("/api/perfil", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? "Error al guardar.");
+    }
+    const updated = await res.json();
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: updated.name ?? prev.name,
+            lastName: updated.lastName ?? prev.lastName,
+            phone: updated.phone ?? prev.phone,
+            studentProfile: updated.studentProfile ?? prev.studentProfile,
+          }
+        : prev,
+    );
+    if (patch.name !== undefined) {
+      await update({ name: updated.name });
+    }
+    showToast("ok", "Guardado");
+  };
 
+  const handleAvatar = async (file: File) => {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setError("Solo se permiten imágenes JPG, PNG o WebP.");
+      showToast("err", "Solo JPG, PNG o WebP.");
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setError("El archivo no puede superar los 2 MB.");
+      showToast("err", "Máximo 2 MB.");
       return;
     }
-
-    setError(null);
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    const form = new FormData();
+    form.append("avatar", file);
+    const res = await fetchWithRefresh("/api/perfil/avatar", {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast("err", err.error ?? "Error al subir la imagen.");
+      return;
+    }
+    const { url } = await res.json();
+    setProfile((prev) => (prev ? { ...prev, image: url } : prev));
+    await update({ image: url });
+    showToast("ok", "Foto actualizada");
   };
 
-  const handleSave = async () => {
-    setError(null);
-    setSuccess(false);
-    setSaving(true);
+  const handleCVUpload = async (file: File) => {
+    const form = new FormData();
+    form.append("cv", file);
+    const res = await fetchWithRefresh("/api/matching/upload-cv", {
+      method: "POST",
+      body: form,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? "Error al procesar el CV.");
+    }
+    await loadProfile();
+    await loadSuggestions();
+    showToast("ok", "CV procesado");
+  };
 
+  const handleCVDelete = async () => {
+    const res = await fetchWithRefresh("/api/matching/upload-cv", {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? "Error al eliminar el CV.");
+    }
+    await loadProfile();
+    setSuggestions([]);
+    showToast("ok", "CV eliminado");
+  };
+
+  const startEditName = () => {
+    if (!profile) return;
+    setNameDraft(profile.name ?? "");
+    setLastNameDraft(profile.lastName ?? "");
+    setNameEditing(true);
+  };
+
+  const saveName = async () => {
+    setNameSaving(true);
     try {
-      let newImageUrl: string | null = null;
-      if (avatarFile) {
-        setSavingAvatar(true);
-        const form = new FormData();
-        form.append("avatar", avatarFile);
-        const avatarRes = await fetchWithRefresh("/api/perfil/avatar", {
-          method: "POST",
-          body: form,
-        });
-        setSavingAvatar(false);
-        if (!avatarRes.ok) {
-          const err = await avatarRes.json();
-          throw new Error(err.error ?? "Error al subir la imagen.");
-        }
-        const { url } = await avatarRes.json();
-        newImageUrl = url;
-      }
-
-      const dataRes = await fetchWithRefresh("/api/perfil", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          lastName: lastName.trim(),
-          phone: phone.trim() || undefined,
-        }),
+      await savePartial({
+        name: nameDraft.trim(),
+        lastName: lastNameDraft.trim(),
       });
-
-      if (!dataRes.ok) {
-        const err = await dataRes.json();
-        throw new Error(err.error ?? "Error al guardar el perfil.");
-      }
-
-      const updated = await dataRes.json();
-
-      await update({
-        name: updated.name,
-        ...(newImageUrl ? { image: newImageUrl } : {}),
-      });
-
-      setProfile((prev) =>
-        prev
-          ? {
-              ...prev,
-              name: updated.name,
-              lastName: updated.lastName,
-              phone: updated.phone,
-              ...(newImageUrl ? { image: newImageUrl } : {}),
-            }
-          : prev,
-      );
-      if (newImageUrl) setImageBroken(false);
-      setAvatarFile(null);
-      router.push("/dashboard");
+      setNameEditing(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Ocurrió un error inesperado.",
+      showToast(
+        "err",
+        err instanceof Error ? err.message : "Error al guardar.",
       );
     } finally {
-      setSaving(false);
+      setNameSaving(false);
     }
   };
+
+  // Fuente única (cv-progress.ts) compartida con el dashboard estudiante.
+  const completeness = useMemo(() => computeCompleteness(profile), [profile]);
+  const cvPct = useMemo(() => computeCvProgress(profile), [profile]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-2 border-[#FF6A3D]/25 border-t-[#FF6A3D] rounded-full animate-spin" />
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-accent/15 border-t-accent animate-spin" />
       </div>
     );
   }
 
   if (!profile) return null;
 
-  const isCompany = profile.role === "COMPANY";
-  const sessionImage = (session?.user as { image?: string } | undefined)?.image;
-  const rawImage = avatarPreview ?? profile.image ?? sessionImage ?? null;
-  const currentImage =
-    avatarPreview ?? (imageBroken ? (sessionImage ?? null) : rawImage);
-  const displayInitial = (profile.name || session?.user?.name || "U")
-    .charAt(0)
-    .toUpperCase();
+  // Mientras el effect arriba dispara el router.replace, devolvemos null para
+  // no pintar nada del shell de estudiante a la empresa.
+  if (isCompany) return null;
+
+  const sp = profile.studentProfile;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 sm:py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[#FF6A3D]">
-            Tu cuenta
-          </p>
-          <h1 className="text-[24px] sm:text-[28px] md:text-[32px] font-bold tracking-[-0.02em] text-[#0A0909] mt-1">
-            Editar perfil
-          </h1>
-          <p className="text-[13.5px] text-[#6D6A63] mt-1">
-            Mantené tu información al día para mejorar tu match y tu presencia.
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="hidden sm:inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#FF6A3D] transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Volver
-        </Link>
-      </div>
+    <div className="px-4 sm:px-6 md:px-8 py-5 md:py-6 max-w-[1300px] mx-auto w-full">
+      <PerfilHero
+        name={profile.name}
+        lastName={profile.lastName}
+        image={profile.image}
+        university={sp?.university}
+        career={sp?.career}
+        semester={sp?.semester}
+        city={null}
+        cvPct={cvPct}
+        hasCv={!!sp?.cvUrl}
+        onPickAvatar={handleAvatar}
+      />
 
-      <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_8px_32px_-12px_rgba(20,15,10,0.08)] overflow-hidden">
-        {/* Avatar header */}
-        <div className="relative px-5 sm:px-8 py-6 sm:py-9 border-b border-black/[0.05] overflow-hidden">
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
-            <div className="absolute -top-20 -left-20 w-[360px] h-[360px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.35),transparent_70%)] blur-[50px]" />
-            <div className="absolute -bottom-24 -right-16 w-[320px] h-[320px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.22),transparent_70%)] blur-[50px]" />
-          </div>
-
-          <div className="relative flex flex-col items-center gap-3">
-            <div className="relative">
-              {currentImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={currentImage}
-                  src={currentImage}
-                  alt={profile.name}
-                  onError={() => setImageBroken(true)}
-                  className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-[0_12px_32px_-8px_rgba(20,15,10,0.18)] bg-[#F5F4F1]"
-                />
-              ) : (
-                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] text-white flex items-center justify-center text-[36px] font-bold border-4 border-white shadow-[0_12px_32px_-8px_rgba(255,106,61,0.45)]">
-                  {displayInitial}
-                </div>
-              )}
-
-              {avatarFile && (
-                <span className="absolute -top-1 left-1/2 -translate-x-1/2 bg-[#0A0909] text-white text-[9.5px] font-bold px-2 py-0.5 rounded-full shadow tracking-[0.06em] uppercase">
-                  Preview
-                </span>
-              )}
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 w-9 h-9 bg-white border border-black/[0.06] rounded-full flex items-center justify-center shadow-[0_4px_12px_-2px_rgba(20,15,10,0.15)] hover:bg-[#FFF3EC] hover:border-[#FF6A3D]/30 transition-all"
-                aria-label="Cambiar foto"
-              >
-                <Camera className="w-4 h-4 text-[#FF6A3D]" strokeWidth={2.2} />
-              </button>
-            </div>
-
-            <input
-              id="profile-avatar-upload"
-              name="avatar"
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              aria-label="Subir foto de perfil"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-
-            <div className="text-center mt-1">
-              <p className="text-[15px] font-semibold tracking-[-0.01em] text-[#0A0909]">
-                {profile.name} {profile.lastName}
-              </p>
-              <p className="text-[12px] text-[#6D6A63] mt-0.5">
-                {isCompany
-                  ? (profile.companyProfile?.companyName ?? "Empresa")
-                  : "Estudiante · PractiX"}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
-              >
-                <Camera className="w-3.5 h-3.5" strokeWidth={2.2} />
-                {isCompany ? "Cambiar logo" : "Cambiar foto"}
-              </button>
-              {avatarFile && (
-                <>
-                  <span className="w-px h-3 bg-black/[0.08]" />
-                  <button
-                    onClick={() => {
-                      setAvatarFile(null);
-                      setAvatarPreview(null);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }}
-                    className="text-[11.5px] font-semibold text-[#6D6A63] hover:text-[#C2410C] transition-colors"
+      {/* Two-column grid: main + sidebar. Single column on mobile. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3.5 items-start">
+        {/* Main column */}
+        <div className="flex flex-col gap-3.5 min-w-0">
+          <Block
+            title="Datos personales"
+            editing={nameEditing}
+            onEdit={startEditName}
+            onCancel={() => setNameEditing(false)}
+            onSave={saveName}
+            saving={nameSaving}
+          >
+            {nameEditing ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="perfil-nombre"
+                    className="block text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-1.5"
                   >
-                    Descartar
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="px-5 sm:px-8 py-6 sm:py-7 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="profile-name" className={LABEL_CLS}>
-                Nombre
-              </label>
-              <input
-                id="profile-name"
-                name="name"
-                type="text"
-                autoComplete="given-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="Tu nombre"
-              />
-            </div>
-            <div>
-              <label htmlFor="profile-lastname" className={LABEL_CLS}>
-                Apellido
-              </label>
-              <input
-                id="profile-lastname"
-                name="lastName"
-                type="text"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className={INPUT_CLS}
-                placeholder="Tu apellido"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="profile-phone" className={LABEL_CLS}>
-              Teléfono
-            </label>
-            <input
-              id="profile-phone"
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+56 9 1234 5678"
-              className={INPUT_CLS}
-            />
-          </div>
-
-          <div className="pt-2">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em] uppercase text-[#9B9891] mb-3">
-              <Lock className="w-3 h-3" strokeWidth={2.4} />
-              Datos no editables
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                {/* <span> en vez de <label>: estos son textos descriptivos
-                    sobre un <div> de solo lectura, NO etiquetas de form
-                    controls. Usar <label> sin asociación a un <input>
-                    dispara el warning "label without form field" de Chrome. */}
-                <span className={LABEL_CLS}>Email</span>
-                <div className={INPUT_READONLY}>{profile.email}</div>
+                    Nombre
+                  </label>
+                  <input
+                    id="perfil-nombre"
+                    name="given-name"
+                    type="text"
+                    autoComplete="given-name"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    maxLength={80}
+                    className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="perfil-apellido"
+                    className="block text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-1.5"
+                  >
+                    Apellido
+                  </label>
+                  <input
+                    id="perfil-apellido"
+                    name="family-name"
+                    type="text"
+                    autoComplete="family-name"
+                    value={lastNameDraft}
+                    onChange={(e) => setLastNameDraft(e.target.value)}
+                    maxLength={80}
+                    className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
+                  />
+                </div>
               </div>
-              {profile.rut && (
-                <div>
-                  <span className={LABEL_CLS}>RUT</span>
-                  <div className={INPUT_READONLY}>{profile.rut}</div>
-                </div>
-              )}
-              {isCompany && profile.companyProfile?.companyName && (
-                <div>
-                  <span className={LABEL_CLS}>Empresa</span>
-                  <div className={INPUT_READONLY}>
-                    {profile.companyProfile.companyName}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+            ) : (
+              <div className="flex flex-col gap-1 text-[13.5px]">
+                <span className="text-text font-semibold">
+                  {[profile.name, profile.lastName].filter(Boolean).join(" ") ||
+                    "Sin nombre"}
+                </span>
+                <span className="text-muted text-[12.5px]">
+                  {profile.email}
+                </span>
+              </div>
+            )}
+          </Block>
 
-          {error && (
-            <div className="rounded-xl bg-[#FFF0ED] border border-[#FF6A3D]/20 px-4 py-3 text-[13px] text-[#A63418] flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6A3D]" />
-              <span>{error}</span>
-            </div>
-          )}
-          {success && (
-            <div className="rounded-xl bg-[#E7F8EA] border border-[#1A8F3C]/20 px-4 py-3 text-[13px] text-[#1A6E31] flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#1A8F3C]" />
-              Perfil actualizado. Te llevamos al dashboard…
-            </div>
-          )}
+          <AboutBlock
+            bio={sp?.bio ?? null}
+            onSave={async (bio) => {
+              try {
+                await savePartial({ studentProfile: { bio } });
+              } catch (err) {
+                showToast(
+                  "err",
+                  err instanceof Error ? err.message : "Error al guardar.",
+                );
+                throw err;
+              }
+            }}
+          />
 
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              href="/dashboard"
-              className="text-[13px] font-semibold text-[#6D6A63] hover:text-[#0A0909] transition-colors px-4 py-2.5"
-            >
-              Cancelar
-            </Link>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="group inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white font-semibold px-6 py-2.5 rounded-xl text-[13.5px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {savingAvatar ? "Subiendo imagen…" : "Guardando…"}
-                </>
-              ) : (
-                <>
-                  Guardar cambios
-                  <span className="transition-transform group-hover:translate-x-0.5">
-                    →
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
+          <EducationBlock
+            university={sp?.university ?? null}
+            career={sp?.career ?? null}
+            semester={sp?.semester ?? null}
+            onSave={async (data) => {
+              try {
+                await savePartial({ studentProfile: data });
+              } catch (err) {
+                showToast(
+                  "err",
+                  err instanceof Error ? err.message : "Error al guardar.",
+                );
+                throw err;
+              }
+            }}
+          />
+
+          <SkillsBlock
+            skills={sp?.skills ?? []}
+            suggestions={suggestions}
+            onSave={async (skills) => {
+              try {
+                await savePartial({ studentProfile: { skills } });
+                await loadSuggestions();
+              } catch (err) {
+                showToast(
+                  "err",
+                  err instanceof Error ? err.message : "Error al guardar.",
+                );
+                throw err;
+              }
+            }}
+          />
         </div>
 
-        <div className="px-5 sm:px-8 pb-8">
+        {/* Sidebar — sticky on lg+ */}
+        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24">
+          <CVUploadCard
+            cvUrl={sp?.cvUrl ?? null}
+            cvPct={cvPct}
+            onUpload={handleCVUpload}
+            onDelete={handleCVDelete}
+          />
+          <CompletenessCard items={completeness} />
+          <ContactCard
+            email={profile.email}
+            phone={profile.phone}
+            onSavePhone={async (phone) => {
+              try {
+                await savePartial({ phone });
+              } catch (err) {
+                showToast(
+                  "err",
+                  err instanceof Error ? err.message : "Error al guardar.",
+                );
+                throw err;
+              }
+            }}
+          />
           <MyRightsCard />
-        </div>
+        </aside>
       </div>
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={[
+            "fixed bottom-6 left-1/2 -translate-x-1/2 px-[18px] py-2.5 text-white text-[13px] font-bold rounded-xl shadow-[0_12px_28px_-8px_rgba(0,0,0,.25)] z-[200]",
+            toast.type === "ok" ? "bg-green" : "bg-rose",
+          ].join(" ")}
+        >
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 }

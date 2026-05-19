@@ -133,7 +133,7 @@ describe("PATCH /api/admin/empresas/[id] — body validation (#B1)", () => {
 });
 
 describe("PATCH /api/admin/empresas/[id] — happy paths", () => {
-  it("approve → update con APPROVED + email APPROVED + 200", async () => {
+  it("approve → update con APPROVED + limpia reason/suspendedAt + email APPROVED + 200", async () => {
     prismaMock.companyProfile.update.mockResolvedValue(sampleCompany);
 
     const res = await PATCH(
@@ -145,13 +145,18 @@ describe("PATCH /api/admin/empresas/[id] — happy paths", () => {
     expect(prismaMock.companyProfile.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "co-1" },
-        data: { companyStatus: "APPROVED" },
+        data: {
+          companyStatus: "APPROVED",
+          suspensionReason: null,
+          suspendedAt: null,
+        },
       }),
     );
     expect(mockSendCompanyStatusEmail).toHaveBeenCalledWith(
       "owner@acme.com",
       "ACME SA",
       "APPROVED",
+      null,
     );
   });
 
@@ -176,7 +181,128 @@ describe("PATCH /api/admin/empresas/[id] — happy paths", () => {
       "owner@acme.com",
       "ACME SA",
       "REJECTED",
+      null,
     );
+  });
+
+  it("suspend con reason → SUSPENDED + reason + suspendedAt + email SUSPENDED con reason", async () => {
+    prismaMock.companyProfile.update.mockResolvedValue({
+      ...sampleCompany,
+      companyStatus: "SUSPENDED",
+    });
+
+    const res = await PATCH(
+      fakeRequest({
+        body: { action: "suspend", reason: "Publicaciones inapropiadas" },
+      }),
+      paramsOf("co-1"),
+    );
+
+    expect(res.status).toBe(200);
+    const call = prismaMock.companyProfile.update.mock.calls[0]![0]!;
+    const data = (call as { data: Record<string, unknown> }).data;
+    expect(data.companyStatus).toBe("SUSPENDED");
+    expect(data.suspensionReason).toBe("Publicaciones inapropiadas");
+    expect(data.suspendedAt).toBeInstanceOf(Date);
+
+    expect(mockSendCompanyStatusEmail).toHaveBeenCalledWith(
+      "owner@acme.com",
+      "ACME SA",
+      "SUSPENDED",
+      "Publicaciones inapropiadas",
+    );
+  });
+
+  it("suspend sin reason → SUSPENDED con reason null + email con reason null", async () => {
+    prismaMock.companyProfile.update.mockResolvedValue({
+      ...sampleCompany,
+      companyStatus: "SUSPENDED",
+    });
+
+    const res = await PATCH(
+      fakeRequest({ body: { action: "suspend" } }),
+      paramsOf("co-1"),
+    );
+
+    expect(res.status).toBe(200);
+    const data = prismaMock.companyProfile.update.mock.calls[0]![0]!.data as {
+      companyStatus: string;
+      suspensionReason: string | null;
+      suspendedAt: Date;
+    };
+    expect(data.companyStatus).toBe("SUSPENDED");
+    expect(data.suspensionReason).toBeNull();
+    expect(data.suspendedAt).toBeInstanceOf(Date);
+
+    expect(mockSendCompanyStatusEmail).toHaveBeenCalledWith(
+      "owner@acme.com",
+      "ACME SA",
+      "SUSPENDED",
+      null,
+    );
+  });
+
+  it("unsuspend → APPROVED + limpia reason+suspendedAt + email APPROVED", async () => {
+    prismaMock.companyProfile.update.mockResolvedValue(sampleCompany);
+
+    const res = await PATCH(
+      fakeRequest({ body: { action: "unsuspend" } }),
+      paramsOf("co-1"),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.companyProfile.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          companyStatus: "APPROVED",
+          suspensionReason: null,
+          suspendedAt: null,
+        },
+      }),
+    );
+    expect(mockSendCompanyStatusEmail).toHaveBeenCalledWith(
+      "owner@acme.com",
+      "ACME SA",
+      "APPROVED",
+      null,
+    );
+  });
+
+  it("reopen → PENDING + limpia reason/suspendedAt + SIN email", async () => {
+    prismaMock.companyProfile.update.mockResolvedValue({
+      ...sampleCompany,
+      companyStatus: "PENDING",
+    });
+
+    const res = await PATCH(
+      fakeRequest({ body: { action: "reopen" } }),
+      paramsOf("co-1"),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.companyProfile.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          companyStatus: "PENDING",
+          suspensionReason: null,
+          suspendedAt: null,
+        },
+      }),
+    );
+    // reopen no manda email: status PENDING no tiene plantilla.
+    expect(mockSendCompanyStatusEmail).not.toHaveBeenCalled();
+  });
+
+  it("suspend con reason demasiado largo (>500) → 400", async () => {
+    const res = await PATCH(
+      fakeRequest({
+        body: { action: "suspend", reason: "x".repeat(501) },
+      }),
+      paramsOf("co-1"),
+    );
+
+    expect(res.status).toBe(400);
+    expect(prismaMock.companyProfile.update).not.toHaveBeenCalled();
   });
 });
 
@@ -196,16 +322,24 @@ describe("PATCH /api/admin/empresas/[id] — error handling (#B2)", () => {
     expect(mockSendCompanyStatusEmail).not.toHaveBeenCalled();
   });
 
-  it("otro error de DB → 500 + NO email + NO Sentry mail-tagged", async () => {
-    prismaMock.companyProfile.update.mockRejectedValue(
-      new Error("connection lost"),
-    );
+  it("otro error de DB → 500 + NO email + Sentry tagged como route, no mail", async () => {
+    const dbErr = new Error("connection lost");
+    prismaMock.companyProfile.update.mockRejectedValue(dbErr);
 
     const res = await PATCH(fakeRequest(), paramsOf("co-1"));
 
     expect(res.status).toBe(500);
     expect(mockSendCompanyStatusEmail).not.toHaveBeenCalled();
-    expect(mockSentryCaptureException).not.toHaveBeenCalled();
+    // El catch outer reporta el error a Sentry con tag route (no mail) para
+    // que los 500 del endpoint queden observables, sin confundirse con fallas
+    // de email.
+    expect(mockSentryCaptureException).toHaveBeenCalledWith(dbErr, {
+      tags: { route: "admin.empresas.PATCH" },
+    });
+    expect(mockSentryCaptureException).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ tags: { mail: "company_status" } }),
+    );
   });
 });
 

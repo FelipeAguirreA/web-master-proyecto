@@ -1,12 +1,16 @@
 /**
- * Script de migración: regenera embeddings de prácticas y CVs de estudiantes
- * usando el modelo actual (paraphrase-multilingual-MiniLM-L12-v2).
+ * Script de re-indexación de embeddings con HuggingFace.
  *
- * Necesario cuando se cambia el modelo de embeddings, ya que los vectores
- * de distintos modelos son incompatibles aunque tengan las mismas dimensiones.
+ * Por defecto solo procesa registros con `embedding = []` (prácticas o CVs sin
+ * indexar). Con `--all` regenera TODOS los embeddings — útil cuando se cambia
+ * el modelo y los vectores existentes son incompatibles.
+ *
+ * Modelo actual: BAAI/bge-small-en-v1.5 — 384 dims, multilingüe efectivo,
+ * disponible vía feature-extraction nativa en el free tier de HuggingFace.
  *
  * Uso:
- *   pnpm tsx prisma/regen-embeddings.ts
+ *   pnpm db:reindex            # solo los que faltan (embedding vacío)
+ *   pnpm db:reindex -- --all   # todos
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -14,7 +18,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { config } from "dotenv";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 
 const rawUrl = new URL(process.env.DATABASE_URL!);
 rawUrl.searchParams.delete("sslmode");
@@ -28,6 +32,14 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const HUGGINGFACE_URL =
   "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5";
+
+// Delay entre llamadas para no triggerar rate limit del free tier de HF.
+const HF_DELAY_MS = 250;
+
+const ALL_MODE = process.argv.includes("--all");
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function generateEmbedding(text: string): Promise<number[]> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
@@ -44,7 +56,7 @@ async function generateEmbedding(text: string): Promise<number[]> {
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(`HuggingFace API error: ${error}`);
+    throw new Error(`HF ${res.status}: ${error.slice(0, 200)}`);
   }
 
   const result = await res.json();
@@ -53,14 +65,32 @@ async function generateEmbedding(text: string): Promise<number[]> {
     : (result as number[]);
 }
 
-async function regenInternships() {
+async function reindexInternships() {
   const internships = await prisma.internship.findMany({
-    select: { id: true, title: true, description: true, skills: true },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      skills: true,
+      embedding: true,
+    },
   });
 
-  console.log(`\nRegenerando embeddings de ${internships.length} prácticas...`);
+  const targets = ALL_MODE
+    ? internships
+    : internships.filter((i) => i.embedding.length === 0);
 
-  for (const internship of internships) {
+  const skipped = internships.length - targets.length;
+
+  console.log(
+    `\nPrácticas: ${internships.length} total, ${targets.length} a procesar${
+      skipped > 0 ? `, ${skipped} omitidas (ya indexadas)` : ""
+    }`,
+  );
+
+  let ok = 0;
+  let fail = 0;
+  for (const internship of targets) {
     const text = `${internship.title} ${internship.description} ${internship.skills.join(" ")}`;
     try {
       const embedding = await generateEmbedding(text);
@@ -68,50 +98,92 @@ async function regenInternships() {
         where: { id: internship.id },
         data: { embedding },
       });
-      console.log(`  ✓ "${internship.title}" — ${embedding.length} dims`);
+      ok++;
+      console.log(
+        `  ✓ "${internship.title.slice(0, 50)}" — ${embedding.length} dims`,
+      );
     } catch (error) {
-      console.error(`  ✗ "${internship.title}":`, error);
+      fail++;
+      console.error(
+        `  ✗ "${internship.title.slice(0, 50)}":`,
+        error instanceof Error ? error.message : error,
+      );
     }
+    await sleep(HF_DELAY_MS);
   }
+  return { ok, fail };
 }
 
-async function regenStudentCVs() {
+async function reindexStudentCVs() {
   const profiles = await prisma.studentProfile.findMany({
     where: { cvText: { not: null } },
-    select: { id: true, userId: true, cvText: true },
+    select: { id: true, userId: true, cvText: true, embedding: true },
   });
 
+  const targets = ALL_MODE
+    ? profiles
+    : profiles.filter((p) => p.embedding.length === 0);
+
+  const skipped = profiles.length - targets.length;
+
   console.log(
-    `\nRegenerando embeddings de ${profiles.length} CVs de estudiantes...`,
+    `\nCVs de estudiantes: ${profiles.length} total, ${targets.length} a procesar${
+      skipped > 0 ? `, ${skipped} omitidos (ya indexados)` : ""
+    }`,
   );
 
-  for (const profile of profiles) {
+  let ok = 0;
+  let fail = 0;
+  for (const profile of targets) {
     try {
       const embedding = await generateEmbedding(profile.cvText!);
       await prisma.studentProfile.update({
         where: { id: profile.id },
         data: { embedding },
       });
+      ok++;
       console.log(`  ✓ userId=${profile.userId} — ${embedding.length} dims`);
     } catch (error) {
-      console.error(`  ✗ userId=${profile.userId}:`, error);
+      fail++;
+      console.error(
+        `  ✗ userId=${profile.userId}:`,
+        error instanceof Error ? error.message : error,
+      );
     }
+    await sleep(HF_DELAY_MS);
   }
+  return { ok, fail };
 }
 
 async function main() {
-  console.log("=== Regeneración de embeddings ===");
-  console.log(`Modelo: paraphrase-multilingual-MiniLM-L12-v2`);
+  console.log("=== Re-indexación de embeddings ===");
+  console.log(`Modo: ${ALL_MODE ? "TODOS los registros" : "solo faltantes"}`);
+  console.log("Modelo: BAAI/bge-small-en-v1.5 (384 dims)");
 
-  await regenInternships();
-  await regenStudentCVs();
+  const startedAt = Date.now();
+  const intRes = await reindexInternships();
+  const cvRes = await reindexStudentCVs();
+  const tookS = ((Date.now() - startedAt) / 1000).toFixed(1);
 
-  console.log("\n✓ Regeneración completa.");
+  console.log(`\n=== Resumen (${tookS}s) ===`);
+  console.log(
+    `Prácticas: ${intRes.ok} OK${intRes.fail > 0 ? `, ${intRes.fail} fallidas` : ""}`,
+  );
+  console.log(
+    `CVs:        ${cvRes.ok} OK${cvRes.fail > 0 ? `, ${cvRes.fail} fallidos` : ""}`,
+  );
+
+  if (intRes.fail > 0 || cvRes.fail > 0) {
+    console.log(
+      "\nAlgunas fallaron. Probá de nuevo en 1 minuto (rate limit HF) o revisá el error.",
+    );
+    process.exit(1);
+  }
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("Error fatal:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());

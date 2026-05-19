@@ -14,6 +14,7 @@ export async function listInternships(filters: ListFilters) {
 
   const where: Record<string, unknown> = {
     isActive: true,
+    deletedAt: null,
     company: { companyStatus: "APPROVED" },
   };
 
@@ -63,15 +64,29 @@ export async function listInternships(filters: ListFilters) {
   };
 }
 
-export async function getInternshipById(id: string) {
+export async function getInternshipById(id: string, ownerUserId?: string) {
   // #E1 — espejo del filtro del listado: una práctica soft-deleted o de empresa
-  // PENDING/REJECTED debe ser invisible incluso accediendo por ID directo.
+  // PENDING/REJECTED debe ser invisible incluso accediendo por ID directo
+  // PARA EL PÚBLICO. El owner sí puede ver siempre su propia práctica
+  // (ej. empresa PENDING navegando al ATS de una práctica que publicó).
+  const publicVisible = {
+    id,
+    isActive: true,
+    deletedAt: null,
+    company: { is: { companyStatus: "APPROVED" as const } },
+  };
+  // El owner ve SIEMPRE sus prácticas — incluso eliminadas (deletedAt!=null) y
+  // pendientes (companyStatus PENDING). Esto habilita la tab "Eliminadas" del
+  // dashboard como archivo histórico: la empresa puede entrar al detalle y al
+  // ATS de una práctica borrada para revisar postulantes pasados, descripción,
+  // skills, etc. Las acciones destructivas (update/apply/score) sí filtran
+  // deletedAt en sus propios services.
+  const ownedByMe = ownerUserId
+    ? { id, company: { is: { userId: ownerUserId } } }
+    : null;
+
   return prisma.internship.findFirst({
-    where: {
-      id,
-      isActive: true,
-      company: { is: { companyStatus: "APPROVED" } },
-    },
+    where: ownedByMe ? { OR: [publicVisible, ownedByMe] } : publicVisible,
     include: {
       company: {
         select: {
@@ -79,6 +94,7 @@ export async function getInternshipById(id: string) {
           logo: true,
           industry: true,
           website: true,
+          description: true,
         },
       },
     },
@@ -115,6 +131,10 @@ export async function createInternship(
   });
 }
 
+// Mensaje literal que el route mapea a 409. Igual que NOT_FOUND_MESSAGE en
+// route.ts, es la ÚNICA cadena segura para propagar al cliente.
+export const APPLICATIONS_EXIST_MESSAGE = "Cannot edit: applications exist";
+
 export async function updateInternship(
   internshipId: string,
   companyUserId: string,
@@ -127,14 +147,59 @@ export async function updateInternship(
   if (!company) throw new Error("Not found or not authorized");
 
   const existing = await prisma.internship.findFirst({
-    where: { id: internshipId, companyId: company.id },
+    where: { id: internshipId, companyId: company.id, deletedAt: null },
   });
 
   if (!existing) throw new Error("Not found or not authorized");
 
+  // Gate: solo permitimos editar contenido (no toggles isActive solos) si NO
+  // hay postulantes. Cualquier postulante ya fue scoreado contra el embedding
+  // actual y leyó la descripción/skills actuales — cambiarlas ahora es injusto.
+  // El toggle de isActive (finalizar/reactivar) NO entra en este gate: es una
+  // acción de gestión, no edita la práctica en sí.
+  const isContentEdit = Object.keys(data).some((k) => k !== "isActive");
+  if (isContentEdit) {
+    const applicationsCount = await prisma.application.count({
+      where: { internshipId },
+    });
+    if (applicationsCount > 0) {
+      throw new Error(APPLICATIONS_EXIST_MESSAGE);
+    }
+  }
+
+  // Si cambiaron title/description/skills hay que regenerar el embedding —
+  // sino los nuevos postulantes se scorean contra el vector viejo (que ya no
+  // refleja la práctica real).
+  //
+  // Diff REAL contra `existing`: el frontend manda todos los campos del form
+  // en cada PUT (no solo los modificados), así que un `!== undefined` no
+  // alcanza — comparamos valor contra el actual en DB. Para skills usamos
+  // JSON.stringify porque el embedding text incluye `skills.join(" ")`, así
+  // que un reorder también cuenta como cambio real.
+  const titleChanged =
+    data.title !== undefined && data.title !== existing.title;
+  const descriptionChanged =
+    data.description !== undefined && data.description !== existing.description;
+  const skillsChanged =
+    data.skills !== undefined &&
+    JSON.stringify(data.skills) !== JSON.stringify(existing.skills);
+
+  const needsReembed =
+    isContentEdit && (titleChanged || descriptionChanged || skillsChanged);
+
+  let embedding: number[] | undefined;
+  if (needsReembed) {
+    const title = data.title ?? existing.title;
+    const description = data.description ?? existing.description;
+    const skills = data.skills ?? existing.skills;
+    embedding = await generateEmbedding(
+      `${title} ${description} ${skills.join(" ")}`,
+    );
+  }
+
   return prisma.internship.update({
     where: { id: internshipId },
-    data,
+    data: embedding ? { ...data, embedding } : data,
   });
 }
 
@@ -149,14 +214,18 @@ export async function deleteInternship(
   if (!company) throw new Error("Not found or not authorized");
 
   const existing = await prisma.internship.findFirst({
-    where: { id: internshipId, companyId: company.id },
+    where: { id: internshipId, companyId: company.id, deletedAt: null },
   });
 
   if (!existing) throw new Error("Not found or not authorized");
 
+  // Soft delete real: setea deletedAt para distinguir "eliminada" de "finalizada"
+  // (isActive=false). Las cascadas FK siguen intactas — el día que querramos
+  // purge físico, basta con un cron que haga prisma.internship.deleteMany sobre
+  // deletedAt < now() - 90d.
   await prisma.internship.update({
     where: { id: internshipId },
-    data: { isActive: false },
+    data: { deletedAt: new Date() },
   });
 
   return { success: true };
