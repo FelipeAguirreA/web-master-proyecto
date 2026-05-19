@@ -173,6 +173,7 @@ model Internship {
   skills       String[]
   embedding    Float[]
   isActive     Boolean   @default(true)
+  deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -183,6 +184,7 @@ model Internship {
 
   @@index([isActive, createdAt(sort: Desc)])
   @@index([companyId])
+  @@index([deletedAt])
   @@map("internships")
 }
 
