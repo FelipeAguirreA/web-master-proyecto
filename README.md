@@ -10,7 +10,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-100%25%20func%20%2F%2080%25%20lines-success)](#5--seguridad-y-calidad)
 [![License](https://img.shields.io/badge/license-MIT-green)](#licencia)
 
-PractiX es un **Trabajo Final de Máster en Desarrollo con IA** que resuelve un problema real del mercado laboral chileno: la asimetría entre estudiantes que buscan prácticas profesionales y empresas que reclutan talento joven sin herramientas adecuadas. La solución aplica **embeddings semánticos de NLP** para hacer matching entre el CV del estudiante y la descripción de cada práctica, complementado con un **scoring ponderado tipo ATS** que las empresas configuran por puesto.
+PractiX es un **Trabajo Final de Máster en Desarrollo con IA** que resuelve un problema real del mercado laboral chileno: la asimetría entre estudiantes que buscan prácticas profesionales y empresas que reclutan talento joven sin herramientas adecuadas. La solución aplica **embeddings semánticos de NLP** _(Natural Language Processing — Procesamiento de Lenguaje Natural)_ para hacer matching entre el CV del estudiante y la descripción de cada práctica, complementado con un **scoring ponderado tipo ATS** _(Applicant Tracking System — sistema de seguimiento de candidatos)_ que las empresas configuran por puesto.
 
 > Versión actual: **1.13.0** · Stack: **Next.js 16 + React 19 + TypeScript + Prisma 7 + Supabase + HuggingFace** · Deploy: **Vercel** + **PostgreSQL gestionado**.
 
@@ -65,7 +65,7 @@ Construir un **portal vertical de prácticas con IA como diferenciador core** �
 
 ## 2. Qué construí (alcance del MVP)
 
-PractiX es un **SaaS B2B2C en producción** con dos productos cara al usuario y un panel admin:
+PractiX es un **SaaS B2B2C** _(Business-to-Business-to-Consumer: las empresas pagan la suscripción, los estudiantes usan el producto gratis — mismo modelo que LinkedIn Recruiter, Uber Eats o Shopify)_ **en producción**, con dos productos cara al usuario y un panel admin:
 
 ### Para estudiantes
 
