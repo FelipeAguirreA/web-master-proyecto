@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Tests](https://img.shields.io/badge/tests-1126%20passing-success)](#5--seguridad-y-calidad)
 [![Coverage](https://img.shields.io/badge/coverage-100%25%20func%20%2F%2080%25%20lines-success)](#5--seguridad-y-calidad)
-[![License](https://img.shields.io/badge/license-MIT-green)](#licencia)
+[![License](https://img.shields.io/badge/license-All%20rights%20reserved-red)](#licencia)
 
 PractiX es un **Trabajo Final de Máster en Desarrollo con IA** que resuelve un problema real del mercado laboral chileno: la asimetría entre estudiantes que buscan prácticas profesionales y empresas que reclutan talento joven sin herramientas adecuadas. La solución aplica **embeddings semánticos de NLP** _(Natural Language Processing — Procesamiento de Lenguaje Natural)_ para hacer matching entre el CV del estudiante y la descripción de cada práctica, complementado con un **scoring ponderado tipo ATS** _(Applicant Tracking System — sistema de seguimiento de candidatos)_ que las empresas configuran por puesto.
 
@@ -418,7 +418,7 @@ Schema versionado en `prisma/migrations/<timestamp>_<descripcion>/migration.sql`
 
 ## 5. 🔒 Seguridad y calidad
 
-> _"Antes de mostrar features, mostrale al jurado QUE FUNCIONA y QUE NO SE ROMPE."_
+La calidad del código es la primera promesa que cumple PractiX: **cero vulnerabilidades activas, 100% de cobertura funcional, 1.126 tests verde en cada commit a master, y auditoría OWASP Top 10 completa** con sus 31 findings críticos resueltos. Las decisiones de seguridad están documentadas en ADRs y verificadas por CI en cada PR.
 
 ### Métricas de calidad
 
@@ -701,70 +701,36 @@ pnpm docker:dev                         # PostgreSQL local (puerto 5433)
 
 ## 8. 📡 API y endpoints
 
-49 rutas agrupadas por área. Todas las rutas autenticadas pasan por `requireAuth(role?)`; las que aceptan body validan con Zod; las que mutan datos ajenos verifican ownership en el service.
+PractiX expone **49 rutas REST agrupadas en 8 áreas funcionales**. Por seguridad, esta sección no enumera los paths exactos — el detalle completo está en las specs por service (ver [§10 Documentación adicional](#10--documentación-adicional)).
 
-### Auth
+### Resumen por área
 
-| Método | Ruta                         | Descripción                                  | Auth |
-| ------ | ---------------------------- | -------------------------------------------- | ---- |
-| —      | `/api/auth/[...nextauth]`    | NextAuth (Google + credentials)              | —    |
-| POST   | `/api/auth/empresa/register` | Registro empresa con bcrypt + rate limit     | No   |
-| POST   | `/api/auth/refresh`          | Refresh token rotation                       | No   |
-| POST   | `/api/auth/logout`           | Logout + revoke refresh token                | Sí   |
-| POST   | `/api/auth/forgot-password`  | Reset password (anti-enumeration)            | No   |
-| POST   | `/api/auth/reset-password`   | Aplicar reset + revoke all sessions          | No   |
-| POST   | `/api/auth/supabase-token`   | Firma JWT HS256 para Supabase Realtime + RLS | Sí   |
+| Área                                  | Cantidad | Responsabilidad                                                                                       |
+| ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| **Auth**                              | 7        | Login Google/credentials, refresh tokens, forgot/reset password, firma JWT HS256 para Realtime        |
+| **Users / Profile / Perfil**          | 6        | CRUD perfil estudiante/empresa, avatar, perfil unificado                                              |
+| **Internships**                       | 4        | CRUD prácticas, soft delete con `deletedAt`, edit gateado por postulantes, ?includeDeleted para owner |
+| **Applications**                      | 5        | Postular, listar postulaciones, ver postulantes, cambiar estado                                       |
+| **ATS**                               | 4        | Config scorers por puesto, pipeline kanban, ranking de candidatos, score breakdown                    |
+| **Matching IA**                       | 2        | Subir CV + generar embedding, recomendaciones rankeadas por cosine similarity                         |
+| **Chat / Interviews / Notifications** | 10       | Conversaciones, mensajes paginados, unread count, calendario entrevistas, send-to-chat, bell          |
+| **Admin**                             | 2        | Aprobación / rechazo / suspensión de empresas                                                         |
+| **Health**                            | 1        | Estado del servidor + ping a DB                                                                       |
 
-### Internships
+### Garantías transversales
 
-| Método          | Ruta                       | Descripción                                                           | Auth    |
-| --------------- | -------------------------- | --------------------------------------------------------------------- | ------- |
-| GET             | `/api/internships`         | Listar (filtros + paginación, filtra activas + APPROVED + no deleted) | No      |
-| POST            | `/api/internships`         | Crear (genera embedding HF en background)                             | COMPANY |
-| GET / PUT / DEL | `/api/internships/:id`     | Detalle / update (gated por postulantes) / soft delete (deletedAt)    | varios  |
-| GET             | `/api/company/internships` | Mis prácticas (acepta `?includeDeleted=1`)                            | COMPANY |
+Todas las rutas comparten estas capas de defensa:
 
-### Applications + ATS
+1. **Middleware** `proxy.ts` aplica rate limiting (Upstash Redis) y CSP con nonces dinámicos antes que cualquier handler.
+2. **Auth guard**: las rutas autenticadas pasan por `requireAuth(role?)` — devuelve `401` si no hay sesión válida o `403` si el rol no matchea.
+3. **Validación de body**: las rutas que aceptan payload validan con **schemas Zod estrictos** (`src/server/validators/`). Errores devuelven `400` con detalles tipados, sin exponer info de Prisma.
+4. **Ownership**: las rutas que mutan datos ajenos verifican propiedad en el service (helpers `findOwned*`). Devuelven `404` anti-enumeration en lugar de `403` cuando el recurso no pertenece al user.
+5. **Manejo de errores**: errores de negocio mapeados a códigos HTTP específicos (`APPLICATIONS_EXIST` → `409`); errores inesperados → `500` genérico + Sentry capture con sanitización de PII.
+6. **Rate limiting**: rutas sensibles (login, reset password, registro) tienen límites estrictos via Upstash distribuido.
 
-| Método      | Ruta                               | Descripción                     | Auth    |
-| ----------- | ---------------------------------- | ------------------------------- | ------- |
-| POST        | `/api/applications`                | Postularse                      | STUDENT |
-| GET         | `/api/applications/my`             | Mis postulaciones               | STUDENT |
-| GET         | `/api/applications/internship/:id` | Postulantes de una práctica     | COMPANY |
-| PATCH       | `/api/applications/:id`            | Cambiar estado                  | COMPANY |
-| GET / POST  | `/api/ats/config/:jobId`           | Config scorers por puesto       | COMPANY |
-| GET / PATCH | `/api/ats/pipeline/:applicationId` | Pipeline kanban                 | COMPANY |
-| GET         | `/api/ats/score/job/:jobId`        | Ranking de todos los candidatos | COMPANY |
+### Acceso al detalle de cada endpoint
 
-### Matching IA
-
-| Método | Ruta                            | Descripción                               | Auth    |
-| ------ | ------------------------------- | ----------------------------------------- | ------- |
-| POST   | `/api/matching/upload-cv`       | Subir CV + generar embedding              | STUDENT |
-| GET    | `/api/matching/recommendations` | Prácticas rankeadas por cosine similarity | STUDENT |
-
-### Chat + Interviews + Notifications
-
-| Método               | Ruta                                   | Descripción                                      | Auth    |
-| -------------------- | -------------------------------------- | ------------------------------------------------ | ------- |
-| GET / POST           | `/api/chat/conversations`              | Listar / crear conversación                      | Sí      |
-| GET / POST           | `/api/chat/conversations/:id/messages` | Mensajes paginados / enviar                      | Sí      |
-| GET                  | `/api/chat/unread-count`               | `{count}` para el badge del topbar (polling 30s) | Sí      |
-| GET / POST           | `/api/interviews`                      | Listar / crear entrevista                        | COMPANY |
-| POST                 | `/api/interviews/:id/send-to-chat`     | Enviar entrevista al chat del estudiante         | COMPANY |
-| GET / DELETE / PATCH | `/api/notifications`                   | Listar / borrar / marcar leídas                  | Sí      |
-
-### Admin
-
-| Método      | Ruta                      | Descripción                                      | Auth  |
-| ----------- | ------------------------- | ------------------------------------------------ | ----- |
-| GET / PATCH | `/api/admin/empresas/:id` | Listar / aprobar / rechazar / suspender empresas | ADMIN |
-
-### Health
-
-| Método | Ruta          | Descripción                     | Auth |
-| ------ | ------------- | ------------------------------- | ---- |
-| GET    | `/api/health` | Estado del servidor + ping a DB | No   |
+Cada service tiene su **spec SDD** en `docs/specs/` que documenta input/output, casos de error, reglas de negocio y casos borde de **cada función** del service. La spec es el contrato — el código la cumple, los tests la verifican. Esto reemplaza una enumeración pública de paths con documentación contextual mucho más rica.
 
 ---
 
@@ -929,6 +895,26 @@ El código completo está en este repositorio bajo licencia MIT. Las decisiones 
 
 ## Licencia
 
-MIT © 2026 Felipe Aguirre.
+**All rights reserved — Source-available for academic evaluation only.**
+
+© 2026 Felipe Aguirre.
+
+El código de este repositorio está disponible públicamente con un único propósito: **permitir la lectura, revisión y evaluación académica de este Trabajo Final de Máster**. No constituye software de código abierto.
+
+### Permitido
+
+- ✅ Leer, clonar y revisar el código para evaluación académica del TFM.
+- ✅ Usar fragmentos puntuales como referencia educativa con cita explícita al autor.
+- ✅ Estudiar las decisiones arquitectónicas documentadas en los ADRs.
+
+### Prohibido sin autorización escrita del autor
+
+- ❌ Uso comercial total o parcial del código, diseño, marca o estrategia.
+- ❌ Despliegue como producto propio o derivado (incluso modificado).
+- ❌ Redistribución del código fuente bajo cualquier licencia.
+- ❌ Forks públicos con intención de continuación o competencia.
+- ❌ Uso del nombre **PractiX**, su logo o marca asociada.
+
+Para licenciamiento comercial, partnerships o cualquier uso fuera del alcance estrictamente académico, contactar al autor.
 
 > _Para preguntas durante la evaluación del TFM, ver la sección [§10 Documentación adicional](#10--documentación-adicional) para enlaces a las specs, ADRs y runbooks que profundizan en cualquier área específica._
