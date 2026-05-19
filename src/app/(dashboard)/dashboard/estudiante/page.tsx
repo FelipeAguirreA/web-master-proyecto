@@ -336,7 +336,7 @@ export default function StudentDashboard() {
                     ? `${recs.length} prácticas activas · ordenadas por match`
                     : hasCv
                       ? "Aún no encontramos matches. Probá actualizar tu CV o esperá a que se publiquen nuevas."
-                      : "Subí tu CV para empezar a recibir recomendaciones"
+                      : "Sube tu CV para empezar a recibir recomendaciones"
               }
               action={{ label: "Ver todas", href: "/practicas" }}
             />

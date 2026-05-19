@@ -101,7 +101,7 @@ export function sendCompanyStatusEmail(
       </p>
       ${reasonBlock}
       <p style="font-size:16px;color:#374151;margin-top:18px">
-        Si crees que es un error o quieres apelar, contactá al administrador escribiendo a
+        Si crees que es un error o quieres apelar, contacta al administrador escribiendo a
         <a href="mailto:soporte@practix.cl">soporte@practix.cl</a>.
       </p>
       <p style="margin-top:32px;color:#9ca3af;font-size:14px">— Equipo PractiX</p>

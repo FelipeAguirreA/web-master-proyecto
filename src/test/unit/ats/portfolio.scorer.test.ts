@@ -106,7 +106,7 @@ describe("scorePortfolio — con portafolio", () => {
   });
 
   it("keyword case-insensitive", () => {
-    const cv = buildCV({ rawText: "revisá mi BEHANCE" });
+    const cv = buildCV({ rawText: "revisa mi BEHANCE" });
     const result = scorePortfolio(cv, {
       required: true,
       keywords: ["behance"],

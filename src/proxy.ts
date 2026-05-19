@@ -55,7 +55,7 @@ export async function proxy(request: NextRequest) {
       ) {
         return withSecurity(
           NextResponse.json(
-            { error: "Cuenta suspendida — contactá al administrador" },
+            { error: "Cuenta suspendida — contacta al administrador" },
             { status: 403 },
           ),
         );

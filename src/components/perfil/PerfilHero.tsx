@@ -144,7 +144,7 @@ export function PerfilHero({
             <StatPill
               k="Estado"
               v={hasCv ? "Activo" : "Sin CV"}
-              sub={hasCv ? "Recibiendo matches" : "Subí tu CV"}
+              sub={hasCv ? "Recibiendo matches" : "Sube tu CV"}
             />
           </div>
         </div>

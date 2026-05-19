@@ -224,10 +224,10 @@ export default function PracticasPage() {
                 Match con IA
               </p>
               <h2 className="text-[clamp(1.05rem,1.8vw,1.3rem)] font-extrabold tracking-[-0.4px] leading-[1.25] mb-1">
-                Encontrá las prácticas que mejor calzan con vos
+                Encuentra las prácticas que mejor te calzan
               </h2>
               <p className="text-[12.5px] text-white/70 leading-[1.55] max-w-[520px]">
-                Iniciá sesión o creá tu cuenta. Subí tu CV y declarás tus
+                Inicia sesión o crea tu cuenta. Sube tu CV y declaras tus
                 skills, y te mostramos cada práctica con un % de match real.
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function PracticasPage() {
                 </>
               ) : session ? (
                 <>
-                  Subí tu CV en{" "}
+                  Sube tu CV en{" "}
                   <a href="/perfil" className="text-accent font-bold">
                     tu perfil
                   </a>{" "}
@@ -270,12 +270,12 @@ export default function PracticasPage() {
                 </>
               ) : (
                 <>
-                  Explorá todas las prácticas activas en Chile.{" "}
+                  Explora todas las prácticas activas en Chile.{" "}
                   <a
                     href="/login?role=student"
                     className="text-accent font-bold"
                   >
-                    Iniciá sesión
+                    Inicia sesión
                   </a>{" "}
                   para ver tu match personalizado.
                 </>

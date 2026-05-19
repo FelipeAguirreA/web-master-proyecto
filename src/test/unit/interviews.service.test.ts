@@ -471,7 +471,7 @@ describe("updateInterview", () => {
         }),
       ).rejects.toMatchObject({
         message:
-          "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
+          "El nuevo candidato no tiene una conversación activa. Inicia el chat primero.",
         code: "NEW_CANDIDATE_NO_CONVERSATION",
       });
     });
