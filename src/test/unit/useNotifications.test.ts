@@ -1,5 +1,32 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
+
+// El hook ahora usa useSession (NextAuth) para obtener el userId y dispara
+// `authenticateRealtime` + suscripción a Supabase Realtime. Sin mockear esos
+// 3 módulos, los tests revientan con "useSession must be wrapped in a
+// SessionProvider" y con errores de WebSocket. Mocks aislados al test:
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({
+    data: { user: { id: "user-1" } },
+    status: "authenticated",
+  })),
+}));
+
+vi.mock("@/lib/client/supabase-auth", () => ({
+  authenticateRealtime: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@/lib/client/supabase", () => ({
+  supabaseRealtime: {
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
+    })),
+    removeChannel: vi.fn(),
+  },
+}));
+
 import { useNotifications } from "@/hooks/useNotifications";
 
 const buildNotif = (
@@ -90,40 +117,12 @@ describe("useNotifications", () => {
     expect(result.current.notifications).toEqual([]);
   });
 
-  it("hace polling cada 10s", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(mockJsonResponse([]));
-
-    renderHook(() => useNotifications());
-
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
-
-    await act(async () => {
-      vi.advanceTimersByTime(10_000);
-    });
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
-
-    await act(async () => {
-      vi.advanceTimersByTime(10_000);
-    });
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
-  });
-
-  it("limpia el interval al desmontar", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(mockJsonResponse([]));
-
-    const { unmount } = renderHook(() => useNotifications());
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
-
-    unmount();
-    await act(async () => {
-      vi.advanceTimersByTime(30_000);
-    });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
+  // NOTA: los tests "hace polling cada 10s" y "limpia el interval al desmontar"
+  // fueron REMOVIDOS porque el hook ya no hace polling. Migró a estrategia
+  // event-driven con Supabase Realtime: fetch inicial + suscripción al canal
+  // `notifications:<userId>:<ts>`. Ver useNotifications.ts líneas 24-40 para
+  // la documentación de la decisión. Los tests obsoletos verificaban una
+  // implementación que ya no existe.
 
   it("markAllRead hace PATCH y marca todas como leídas", async () => {
     const initial = [

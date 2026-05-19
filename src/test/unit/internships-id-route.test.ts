@@ -2,12 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { NextRequest } from "next/server";
 import { prismaMock, resetPrismaMock } from "../mocks/prisma";
 
-const { mockRequireAuth, mockSentryCaptureException, mockGenerateEmbedding } =
-  vi.hoisted(() => ({
-    mockRequireAuth: vi.fn(),
-    mockSentryCaptureException: vi.fn(),
-    mockGenerateEmbedding: vi.fn(),
-  }));
+const {
+  mockRequireAuth,
+  mockSentryCaptureException,
+  mockGenerateEmbedding,
+  mockGetAuthSession,
+} = vi.hoisted(() => ({
+  mockRequireAuth: vi.fn(),
+  mockSentryCaptureException: vi.fn(),
+  mockGenerateEmbedding: vi.fn(),
+  mockGetAuthSession: vi.fn(),
+}));
 
 vi.mock("@/server/lib/auth-guard", () => ({
   requireAuth: mockRequireAuth,
@@ -19,6 +24,14 @@ vi.mock("@sentry/nextjs", () => ({
 
 vi.mock("@/server/lib/embeddings", () => ({
   generateEmbedding: mockGenerateEmbedding,
+}));
+
+// GET ahora consulta la sesión opcionalmente para activar la rama `ownedByMe`
+// del service (empresa dueña puede ver sus prácticas eliminadas/pendientes).
+// Sin mock, getAuthSession() falla (NextAuth no configurado en test) y el GET
+// devuelve 500. Mock por defecto: sin sesión (modo visitante público).
+vi.mock("@/server/lib/auth", () => ({
+  getAuthSession: mockGetAuthSession,
 }));
 
 import { GET, PUT, PATCH, DELETE } from "@/app/api/internships/[id]/route";
@@ -54,9 +67,12 @@ beforeEach(() => {
   mockRequireAuth.mockReset();
   mockSentryCaptureException.mockReset();
   mockGenerateEmbedding.mockReset();
+  mockGetAuthSession.mockReset();
 
   mockRequireAuth.mockResolvedValue(companyAuth);
   mockGenerateEmbedding.mockResolvedValue([]);
+  // Default: visitante público (sin sesión) → GET sigue la rama pública.
+  mockGetAuthSession.mockResolvedValue(null);
 });
 
 // ---------------------------------------------------------------------------
@@ -224,7 +240,18 @@ describe("PUT /api/internships/[id] — error mapping (#E3)", () => {
       id: "cp-1",
       userId: "user-1",
     });
-    prismaMock.internship.findFirst.mockResolvedValue({ id: "int-1" });
+    // Mock COMPLETO del findFirst — el update con título nuevo regenera el
+    // embedding, que internamente accede a existing.skills.join(" "). Sin
+    // skills definido, crashea con TypeError ANTES de llegar al update y el
+    // test atrapaba ese error en vez del pg pool error esperado.
+    prismaMock.internship.findFirst.mockResolvedValue({
+      id: "int-1",
+      title: "Título viejo",
+      description: "Descripción vieja",
+      skills: [],
+    });
+    // Sin postulantes → gate de edit pasa, llega al update.
+    prismaMock.application.count.mockResolvedValue(0);
     const dbErr = new Error("internal pg pool exhausted");
     prismaMock.internship.update.mockRejectedValue(dbErr);
 
