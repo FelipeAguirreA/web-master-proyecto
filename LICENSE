@@ -1,0 +1,111 @@
+PractiX — Licencia Propietaria
+Todos los Derechos Reservados
+Derechos de Autor © 2026 Felipe Aguirre
+
+================================================================================
+
+Este software y su código fuente asociado, documentación, recursos de diseño,
+marca, marcas comerciales, estrategia de negocio y cualquier obra derivada
+(en conjunto, "el Software") son propiedad exclusiva de Felipe Aguirre.
+
+El Software se hace públicamente visible en este repositorio CON EL ÚNICO
+PROPÓSITO de permitir la evaluación académica del Trabajo Final de Máster
+del autor, correspondiente al Máster en Desarrollo con IA.
+
+
+================================================================================
+USO PERMITIDO
+================================================================================
+
+Sin necesidad de autorización previa por escrito, se permiten los siguientes
+usos:
+
+  1. Leer, clonar y revisar el código fuente con fines de evaluación
+     académica del Trabajo Final de Máster (TFM) del autor.
+
+  2. Utilizar fragmentos puntuales y aislados del código como referencia
+     educativa en contextos de enseñanza, siempre que se otorgue
+     atribución explícita al autor y se incluya un enlace a este
+     repositorio.
+
+  3. Estudiar las decisiones arquitectónicas documentadas en los
+     Architecture Decision Records (docs/adr/) como material de caso de
+     estudio.
+
+
+================================================================================
+USO PROHIBIDO
+================================================================================
+
+Sin autorización previa y por escrito del titular de los derechos de autor,
+quedan ESTRICTAMENTE PROHIBIDOS los siguientes usos:
+
+  1. El uso comercial del Software, total o parcial, incluyendo pero no
+     limitado a su despliegue como producto, servicio o plataforma con
+     fines de lucro o ventaja comercial.
+
+  2. El despliegue del Software, modificado o sin modificar, como
+     producto o servicio competidor.
+
+  3. La redistribución del código fuente, total o parcial, bajo cualquier
+     licencia (de código abierto o propietaria) y en cualquier medio.
+
+  4. La creación de bifurcaciones (forks) públicas de este repositorio
+     con la intención de continuar su desarrollo, distribuirlo o competir
+     con él.
+
+  5. El uso del nombre "PractiX", su logotipo, las marcas asociadas o
+     su identidad visual en cualquier obra derivada, producto, servicio
+     o publicación.
+
+  6. La integración del Software en otros productos comerciales,
+     incluyendo ofertas de software-como-servicio (SaaS), aplicaciones
+     móviles o interfaces de programación de aplicaciones (APIs).
+
+  7. El entrenamiento de modelos de aprendizaje automático (machine
+     learning) utilizando el código fuente o la documentación contenida
+     en este repositorio.
+
+
+================================================================================
+LICENCIAMIENTO COMERCIAL
+================================================================================
+
+Para cualquier uso que exceda el alcance estrictamente académico definido en
+la sección USO PERMITIDO, incluyendo pero no limitado a licenciamiento
+comercial, alianzas estratégicas, despliegue bajo marca propia (white-label)
+u otros acuerdos de negocio, contactar previamente al titular de los
+derechos de autor.
+
+
+================================================================================
+EXCLUSIÓN DE GARANTÍAS Y LIMITACIÓN DE RESPONSABILIDAD
+================================================================================
+
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍAS DE NINGÚN TIPO,
+EXPRESAS O IMPLÍCITAS, INCLUYENDO, PERO NO LIMITADO A, LAS GARANTÍAS DE
+COMERCIALIZACIÓN, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
+
+EN NINGÚN CASO EL AUTOR O EL TITULAR DE LOS DERECHOS DE AUTOR SERÁN
+RESPONSABLES POR NINGUNA RECLAMACIÓN, DAÑO U OTRA RESPONSABILIDAD, YA SEA
+EN UNA ACCIÓN CONTRACTUAL, EXTRACONTRACTUAL O DE OTRO TIPO, QUE SURJA
+DE O EN CONEXIÓN CON EL SOFTWARE, SU USO U OTRAS OPERACIONES VINCULADAS
+AL MISMO.
+
+
+================================================================================
+JURISDICCIÓN Y LEY APLICABLE
+================================================================================
+
+La presente Licencia se rige e interpreta de conformidad con las leyes de
+la República de Chile. Cualquier controversia o conflicto que se derive de
+esta Licencia, o que guarde relación con la misma, quedará sometida a la
+jurisdicción exclusiva de los tribunales ordinarios de justicia con asiento
+en la ciudad de Santiago de Chile, renunciando las partes a cualquier otro
+fuero que pudiere corresponderles.
+
+
+================================================================================
+
+Última actualización: 2026-05-19
+PractiX v1.13.0
