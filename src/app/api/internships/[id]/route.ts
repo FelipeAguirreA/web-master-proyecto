@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { z, ZodError } from "zod";
 import { requireAuth } from "@/server/lib/auth-guard";
+import { getAuthSession } from "@/server/lib/auth";
 import {
   getInternshipById,
   updateInternship,
   deleteInternship,
+  APPLICATIONS_EXIST_MESSAGE,
 } from "@/server/services/internships.service";
 import { createInternshipSchema } from "@/server/validators";
 
@@ -23,6 +25,19 @@ function notFoundOrInternal(error: unknown) {
   if (error instanceof Error && error.message === NOT_FOUND_MESSAGE) {
     return NextResponse.json({ error: NOT_FOUND_MESSAGE }, { status: 404 });
   }
+  // 409 Conflict — edición bloqueada porque ya hay postulantes. El frontend
+  // detecta este code para mostrar un mensaje específico y deshabilitar el form.
+  if (error instanceof Error && error.message === APPLICATIONS_EXIST_MESSAGE) {
+    return NextResponse.json(
+      {
+        error:
+          "No podés editar esta práctica porque ya tiene postulantes. " +
+          "Si necesitás cambios mayores, cerrá esta práctica y publicá una nueva.",
+        code: "APPLICATIONS_EXIST",
+      },
+      { status: 409 },
+    );
+  }
   Sentry.captureException(error);
   return NextResponse.json(
     { error: "Error interno del servidor" },
@@ -33,7 +48,12 @@ function notFoundOrInternal(error: unknown) {
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const internship = await getInternshipById(id);
+    // #E5 — el listado público filtra isActive=true + companyStatus=APPROVED.
+    // Si la empresa cerró la práctica (isActive=false) y entra al ATS, el GET
+    // por ID debe devolverla igual (es SU práctica). Pasamos el userId opcional
+    // para activar la rama `ownedByMe` en el service.
+    const session = await getAuthSession();
+    const internship = await getInternshipById(id, session?.user?.id);
     if (!internship) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
