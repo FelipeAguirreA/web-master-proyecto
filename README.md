@@ -559,6 +559,7 @@ flowchart TB
 - ✅ Forensic audit log de mutaciones sensibles (tabla `AuditLog`)
 - ✅ Runbook de data breach (`docs/runbooks/incident-data-breach.md`)
 - ✅ Sentry sanitization de PII (email, IP, query strings)
+- ✅ Footer de Ley 21.719 + link a perfil (gestión de datos personales) en todos los emails transaccionales del producto
 
 ---
 

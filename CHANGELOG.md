@@ -5,6 +5,31 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1] - 2026-05-19
+
+### Changed
+
+- `feat(mail): rediseño completo de emails transaccionales con shell reutilizable` (PR #22)
+  - **Refactor estructural**: nuevo helper centralizado `renderEmailShell(opts)` reemplaza HTML inline duplicado en los 8 templates. Cada función pasa de ~30 líneas inline a ~15 líneas de contenido + config.
+  - **Diseño coherente con la app**: paleta warm (`#FF6A3D → #FF9B6A` gradient) reemplaza el azul genérico anterior. Wordmark "PractiX" + tagline en header. Footer institucional con dirección, contacto y compliance Ley 21.719.
+  - **Responsive table-based** (estándar email): viewport meta tag + media queries `@max-width:480px` ajustan padding y hacen CTA full-width en mobile. Graceful degradation en Outlook desktop.
+  - **Preheader text** en cada email — texto invisible que muestra el preview del inbox (mejora open rate).
+  - **Aviso Ley 21.719** + link a `/perfil` en footer (opt-out solo en 2 emails de seguridad transaccional).
+  - **Paleta de badges reusable**: `BADGE.success / warning / danger / brand` contextuales por tipo de email.
+  - **Tipografía con stack nativo del SO** (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial`) — mejor render por plataforma.
+- `chore(i18n): consistencia regional en strings de UI y mensajes API` (PR #21)
+  - Unificación de copy a la forma estándar en 14 strings (UI + backend + tests sincronizados).
+
+### Fixed (security)
+
+- `fix(mail): escapeHtml también en preheader` (PR #22)
+  - `escapeHtml()` ahora se aplica también al preheader del email (antes solo en body). Cierra un vector de inyección donde input controlado por el admin (`companyName`, `suspensionReason`) podía aparecer sin escape en el HTML del preheader. Cubierto por test existente.
+
+### Note
+
+- Las 6 funciones exportadas de `mail.ts` mantienen firma pública idéntica — cero cambio para los callers.
+- 16/16 tests de `mail.test.ts` passing. Todos los subjects, mensajes de status, fallbacks textuales, escape XSS y URLs CTA preservados literalmente.
+
 ## [1.13.0] - 2026-05-19
 
 ### Added (soft delete real para Internship — `deletedAt` ortogonal a `isActive`)
