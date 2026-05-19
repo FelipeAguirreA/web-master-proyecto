@@ -40,8 +40,6 @@ export function EmpresaCard({
   const riskCls = riskColorClass(risk.level);
   const days = daysWaiting(e.createdAt);
   const generic = isGenericEmail(e.user.email);
-  const contactName =
-    [e.user.name, e.user.lastName].filter(Boolean).join(" ") || "—";
 
   return (
     <div

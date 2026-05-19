@@ -18,10 +18,7 @@ import {
 } from "@/components/dashboard/sections/empresa/types";
 
 /* ── Helpers ── */
-import {
-  startOfDay,
-  startOfWeek,
-} from "@/components/dashboard/sections/empresa/utils";
+import { startOfDay } from "@/components/dashboard/sections/empresa/utils";
 
 /* ── Sub-componentes ── */
 import { StatusBanner } from "@/components/dashboard/sections/empresa/StatusBanner";

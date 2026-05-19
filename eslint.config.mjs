@@ -21,6 +21,23 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "playwright-report/**",
   ]),
+  // Convención TS/Sentry: parámetros prefijados con `_` indican
+  // "intencionalmente sin uso" (callback signature obligatoria pero el body
+  // no usa todos los args). Configurar la regla para respetar ese contrato.
+  // Aplica tanto a args como a vars destructuradas. Es best practice estándar.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

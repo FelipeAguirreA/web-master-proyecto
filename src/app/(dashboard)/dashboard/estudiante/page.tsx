@@ -6,15 +6,8 @@ import { useSession } from "next-auth/react";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 import { Welcome } from "@/components/dashboard/sections/Welcome";
 import { SectionHead } from "@/components/dashboard/sections/SectionHead";
-import {
-  PracticaCard,
-  type PracticaCardData,
-} from "@/components/dashboard/sections/PracticaCard";
-import {
-  PipelineStrip,
-  type PipelineColumn,
-  type PipelineItem,
-} from "@/components/dashboard/sections/PipelineStrip";
+import { PracticaCard } from "@/components/dashboard/sections/PracticaCard";
+import { PipelineStrip } from "@/components/dashboard/sections/PipelineStrip";
 import {
   NextInterview,
   type InterviewData,
@@ -24,10 +17,7 @@ import {
   type InboxMessage,
 } from "@/components/dashboard/sections/InboxPanel";
 import { CVPanel, type CVTip } from "@/components/dashboard/sections/CVPanel";
-import {
-  Activity,
-  type ActivityItem,
-} from "@/components/dashboard/sections/Activity";
+import { Activity } from "@/components/dashboard/sections/Activity";
 import { ApplicationDetailModal } from "@/components/dashboard/sections/ApplicationDetailModal";
 import {
   PracticaCardSkeleton,

@@ -6,10 +6,6 @@ import { PublicOrDashboardShell } from "@/components/dashboard/PublicOrDashboard
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 import { PracticaCard } from "@/components/dashboard/sections/PracticaCard";
 import { PracticaCardSkeleton } from "@/components/dashboard/sections/Skeletons";
-import {
-  companyColor,
-  companyInitials,
-} from "@/components/dashboard/companyColors";
 import { Icon } from "@/components/dashboard/Icon";
 import { toCard, buildPageList, type ApiInternship } from "./utils";
 

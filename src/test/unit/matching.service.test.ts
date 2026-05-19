@@ -18,10 +18,7 @@ vi.mock("@/server/lib/embeddings", () => ({
   computeSkillOverlap: vi.fn(),
 }));
 
-import {
-  calculateMatchScore,
-  calculateHybridMatchScore,
-} from "@/server/lib/embeddings";
+import { calculateHybridMatchScore } from "@/server/lib/embeddings";
 import { uploadFile } from "@/server/lib/storage";
 import { extractTextFromCV } from "@/server/lib/cv-parser";
 import { generateEmbedding } from "@/server/lib/embeddings";
