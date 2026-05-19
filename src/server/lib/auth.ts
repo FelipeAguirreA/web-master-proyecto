@@ -142,16 +142,28 @@ export const authOptions: NextAuthOptions = {
           );
           reportFailedLogin("rate_limited", credentials.email, ip);
 
-          // Aviso por email (best-effort, fire-and-forget). Solo si la cuenta
-          // existe — sino estaríamos haciendo enumeración inversa (probando
-          // emails para ver cuáles bouncean). Y con un segundo rate limit
-          // específico del email para no spammear si el ataque se sostiene.
-          notifyLoginBurst(credentials.email).catch((err) => {
+          // Aviso por email a la víctima del burst. AWAIT obligatorio en
+          // serverless: el patrón fire-and-forget previo dejaba que la lambda
+          // de Vercel terminara antes de que la promise resolviera, por lo que
+          // Brevo nunca recibía el POST de envío del email. Bug detectado en
+          // prod (Sentry reportaba `reason: rate_limited` pero el email burst
+          // nunca llegaba al user).
+          //
+          // Trade-off: +300-500ms en la response SOLO del intento que rate-
+          // limita (el atacante, no el usuario legítimo). Aceptable.
+          //
+          // Solo si la cuenta existe — sino estaríamos haciendo enumeración
+          // inversa (probando emails para ver cuáles bouncean). Y con un
+          // segundo rate limit específico del email para no spammear si el
+          // ataque se sostiene.
+          try {
+            await notifyLoginBurst(credentials.email);
+          } catch (err) {
             log.error(
               { err, emailHash: hashEmail(credentials.email) },
               "login burst notification failed",
             );
-          });
+          }
 
           return null;
         }
