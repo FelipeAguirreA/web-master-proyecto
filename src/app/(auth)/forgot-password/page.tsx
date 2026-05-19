@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                       </p>
                       <p className="text-[12.5px] leading-[1.55] text-text">
                         El enlace expira en 1 hora. Si no lo ves en la bandeja
-                        de entrada, revisá la carpeta de spam.
+                        de entrada, revisa la carpeta de spam.
                       </p>
                     </div>
                   </div>

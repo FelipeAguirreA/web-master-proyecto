@@ -26,7 +26,7 @@ export function Welcome({
       ? `${topMatchCompany} te subió a ${topMatchScore}${daysLeft ? `. Recomendamos postular hoy: cierra en ${daysLeft} días.` : "."}`
       : highMatches > 0
         ? "Tu CV está activo y la IA encontró matches nuevos para ti."
-        : "Subí tu CV para empezar a recibir matches personalizados.";
+        : "Sube tu CV para empezar a recibir matches personalizados.";
 
   const headline =
     highMatches > 0 ? (

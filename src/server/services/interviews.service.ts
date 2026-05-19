@@ -273,7 +273,7 @@ export async function updateInterview(
     if (!newConv) {
       throw interviewError(
         "NEW_CANDIDATE_NO_CONVERSATION",
-        "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
+        "El nuevo candidato no tiene una conversación activa. Inicia el chat primero.",
       );
     }
 

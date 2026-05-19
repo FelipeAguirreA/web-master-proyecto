@@ -136,7 +136,7 @@ export default function MyRightsCard() {
               deshacer.
             </p>
             <p className="mt-3 text-[13px] text-muted">
-              Para confirmar, escribí{" "}
+              Para confirmar, escribe{" "}
               <span className="font-mono font-semibold text-rose">
                 {CONFIRM_PHRASE}
               </span>{" "}

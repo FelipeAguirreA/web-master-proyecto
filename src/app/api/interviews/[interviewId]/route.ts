@@ -100,7 +100,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json(
         {
           error:
-            "El nuevo candidato no tiene una conversación activa. Iniciá el chat primero.",
+            "El nuevo candidato no tiene una conversación activa. Inicia el chat primero.",
           code: "NEW_CANDIDATE_NO_CONVERSATION",
         },
         { status: 400 },

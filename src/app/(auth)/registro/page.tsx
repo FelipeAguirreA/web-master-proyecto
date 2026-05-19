@@ -138,7 +138,7 @@ export default function RegistroPage() {
     }
     if (!form.isAdult) {
       errs.isAdult =
-        "Para registrarte declarás tener 18 años o más. Si sos menor, contactá a soporte@practix.cl con tu tutor.";
+        "Para registrarte declaras tener 18 años o más. Si eres menor, contacta a soporte@practix.cl con tu tutor.";
     }
     return errs;
   };
