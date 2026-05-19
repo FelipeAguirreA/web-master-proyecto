@@ -5,6 +5,38 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1] - 2026-05-19
+
+### Fixed (coherencia regional — voseo argentino → tú chileno)
+
+- `fix(i18n): corregir voseo argentino infiltrado por español chileno (tú form)` (PR #21)
+  - 14 strings con conjugación voseo (`Encontrá`, `Iniciá`, `Subí`, `declarás`, `Explorá`, `revisá`, `escribí`, `contactá`, `sos menor`, `con vos`, etc.) reemplazadas por conjugación tú chilena para coherencia con el target market (Chile).
+  - Cobertura: 14 archivos (UI + backend mensajes API + tests sincronizados).
+  - Cero cambio funcional, solo strings.
+  - Detectado por el user al revisar la página `/practicas` para visitantes.
+
+### Changed (rediseño completo de emails transaccionales)
+
+- `feat(mail): rediseño completo de emails con shell reutilizable` (PR #22)
+  - **Refactor estructural**: nuevo helper centralizado `renderEmailShell(opts)` reemplaza 305 líneas de HTML inline duplicado. Cada función pasa de ~30 líneas inline a ~15 líneas de contenido + config.
+  - **Diseño coherente con la app**: paleta warm (`#FF6A3D → #FF9B6A` gradient) reemplaza el azul `#1d4ed8` genérico anterior. Wordmark "PractiX" + tagline en header. Footer institucional con dirección, contacto y compliance Ley 21.719.
+  - **Responsive table-based** (estándar email): viewport meta tag + media queries `@max-width:480px` ajustan padding y hacen CTA full-width en mobile. Graceful degradation en Outlook desktop (centered card de 600px max).
+  - **Preheader text** en cada email — texto invisible que muestra el preview del inbox (mejora open rate).
+  - **Aviso Ley 21.719** + link a `/perfil` en footer (opt-out solo en 2 emails de seguridad transaccional).
+  - **Paleta de badges reusable**: `BADGE.success / warning / danger / brand` para badges contextuales por tipo de email.
+  - **Tipografía con stack nativo del SO** (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial`) — mejor render por plataforma.
+
+### Fixed (security — XSS escape en preheader de emails)
+
+- `fix(mail): escapeHtml también en preheader` (PR #22)
+  - `escapeHtml()` ahora se aplica también al preheader (antes solo en body). Cubre un vector de inyección donde un `companyName` malicioso (`<script>...</script>`) podía aparecer literal en el HTML del preheader.
+  - Detectado por el test `companyName con < > & queda HTML-escapeado en el body` que falló en primera pasada del refactor.
+
+### Note
+
+- Las 6 funciones exportadas de `mail.ts` mantienen firma pública idéntica — cero cambio para los callers.
+- 16/16 tests de `mail.test.ts` passing. Todos los subjects, mensajes de status, fallbacks textuales, escape XSS y URLs CTA preservados literalmente.
+
 ## [1.13.0] - 2026-05-19
 
 ### Added (soft delete real para Internship — `deletedAt` ortogonal a `isActive`)
