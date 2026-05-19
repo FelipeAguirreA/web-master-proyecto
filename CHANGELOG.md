@@ -5,6 +5,17 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.3] - 2026-05-19
+
+### Fixed (auth — emails de seguridad no llegaban en serverless)
+
+- `fix(auth): await notifyLoginBurst() para que el email llegue en serverless` (PR #24)
+  - Bug detectado en producción: cuando un usuario hit el rate limit del login (5 intentos en 5 min), Sentry registraba el evento con tag `reason: rate_limited` pero el email de alerta de seguridad **nunca llegaba** al usuario afectado.
+  - **Causa raíz**: el código usaba patrón fire-and-forget (`notifyLoginBurst(...).catch(...)` sin `await`). En Vercel Lambda, cuando `authorize()` retorna `null`, NextAuth termina la response al cliente y Vercel **congela la función ANTES** de que la promise complete su trabajo async (Prisma query + Upstash check + HTTP POST a Brevo = 300-500ms). Brevo nunca recibía el envío del email.
+  - **Fix**: reemplazar fire-and-forget por `try/await/catch`. La response queda bloqueada ~300-500ms extras SOLO en el intento que rate-limita (al atacante, no al usuario legítimo). Trade-off aceptable.
+  - Tests: 50/50 `auth.test.ts` passing.
+  - Bug clásico de serverless que NINGÚN test unitario hubiera detectado — solo se detecta en runtime real (lifecycle de Lambda con fire-and-forget). Aprendizaje aplicable a cualquier otra promise async post-response.
+
 ## [1.13.2] - 2026-05-19
 
 ### Fixed (email rendering en clients sin soporte de CSS gradients)
