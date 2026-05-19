@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { C } from "./tokens";
 
 const FAQS = [
   {
@@ -36,117 +35,41 @@ export function LandingFAQ() {
   return (
     <section
       id="faq"
-      style={{
-        background: C.bg,
-        padding: "100px 32px",
-        borderBottom: `1px solid ${C.border}`,
-      }}
+      className="bg-bg py-[100px] px-4 sm:px-6 md:px-8 border-b border-border"
     >
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <div className="rv" style={{ textAlign: "center", marginBottom: 56 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              background: C.accentBg,
-              border: `1px solid ${C.accentBdr}`,
-              borderRadius: 40,
-              padding: "4px 14px",
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: 1,
-              color: C.accent,
-              marginBottom: 18,
-              textTransform: "uppercase",
-            }}
-          >
+      <div className="max-w-[760px] mx-auto">
+        <div className="rv text-center mb-14">
+          <span className="inline-flex items-center gap-[7px] bg-accent-bg border border-accent-bdr rounded-[40px] px-[14px] py-1 text-[10.5px] font-bold tracking-[1px] text-accent mb-[18px] uppercase">
             FAQ
           </span>
-          <h2
-            style={{
-              fontSize: "clamp(1.8rem,3.8vw,3rem)",
-              fontWeight: 800,
-              letterSpacing: -1.5,
-              color: C.text,
-              lineHeight: 1.1,
-            }}
-          >
+          <h2 className="text-[clamp(1.8rem,3.8vw,3rem)] font-extrabold tracking-[-1.5px] text-text leading-[1.1]">
             Preguntas frecuentes
           </h2>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {FAQS.map((f, i) => {
             const isOpen = open === i;
             return (
               <div
                 key={i}
-                className="rv"
-                style={{
-                  background: C.surface,
-                  border: `1px solid ${isOpen ? C.accentBdr : C.border}`,
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  transition: "border-color .25s",
-                }}
+                className={`bg-surface rounded-2xl overflow-hidden transition-[border-color] duration-[.25s] border ${isOpen ? "border-accent-bdr" : "border-border"}`}
               >
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "20px 24px",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    gap: 16,
-                    textAlign: "left",
-                  }}
+                  className="w-full flex justify-between items-center px-6 py-5 bg-transparent border-none cursor-pointer gap-4 text-left"
                   aria-expanded={isOpen}
                 >
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: C.text,
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <span className="text-[15px] font-semibold text-text leading-[1.4]">
                     {f.q}
                   </span>
                   <span
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: isOpen ? C.accent : C.bgAlt,
-                      border: `1px solid ${isOpen ? C.accent : C.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      transition: "all .25s",
-                      color: isOpen ? "#fff" : C.muted,
-                      fontSize: 18,
-                      lineHeight: 1,
-                      transform: isOpen ? "rotate(45deg)" : "none",
-                    }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all duration-[.25s] text-lg leading-none ${isOpen ? "bg-accent border-accent text-white rotate-45" : "bg-surface border-border text-muted"} border`}
                   >
                     +
                   </span>
                 </button>
                 {isOpen && (
-                  <div
-                    style={{
-                      padding: "0 24px 22px",
-                      fontSize: 14.5,
-                      color: C.muted,
-                      lineHeight: 1.75,
-                      animation: "fadeUp .3s ease both",
-                    }}
-                  >
+                  <div className="px-6 pb-[22px] text-[14.5px] text-muted leading-[1.75] [animation:fadeUp_.3s_ease_both]">
                     {f.a}
                   </div>
                 )}

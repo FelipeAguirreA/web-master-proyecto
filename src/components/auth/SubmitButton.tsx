@@ -1,7 +1,5 @@
 "use client";
 
-import { A } from "./tokens";
-
 type Props = {
   children: React.ReactNode;
   loading?: boolean;
@@ -17,45 +15,14 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={loading || disabled}
-      className="practix-auth-submit"
-      style={{
-        position: "relative",
-        overflow: "hidden",
-        marginTop: 6,
-        padding: "14px 18px",
-        background: `linear-gradient(135deg,${A.text},#222)`,
-        color: "#fff",
-        border: "none",
-        borderRadius: 12,
-        fontSize: 14,
-        fontWeight: 700,
-        cursor: loading || disabled ? "not-allowed" : "pointer",
-        boxShadow: `0 10px 28px -10px ${A.text}, 0 4px 10px ${A.accent}33`,
-        opacity: loading || disabled ? 0.7 : 1,
-        fontFamily: "inherit",
-        width: "100%",
-      }}
+      className="relative mt-1.5 flex min-h-[44px] w-full items-center justify-center overflow-hidden rounded-xl border-none bg-gradient-to-br from-text to-[#222] px-[18px] py-3.5 text-sm font-bold text-white shadow-[0_10px_28px_-10px_var(--color-text),0_4px_10px_var(--color-accent)] transition-all disabled:cursor-not-allowed disabled:opacity-70"
     >
+      {/* shimmer */}
       <span
         aria-hidden
-        className="practix-auth-shimmer"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent)",
-        }}
+        className="absolute inset-0 animate-[auth-shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/[0.18] to-transparent"
       />
-      <span style={{ position: "relative" }}>
-        {loading ? "Procesando…" : children}
-      </span>
-      <style>{`
-        @keyframes practix-auth-shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .practix-auth-shimmer { animation: practix-auth-shimmer 3s ease-in-out infinite; }
-      `}</style>
+      <span className="relative">{loading ? "Procesando…" : children}</span>
     </button>
   );
 }

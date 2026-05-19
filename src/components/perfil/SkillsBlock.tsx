@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
 import { Block } from "./Block";
 
@@ -69,49 +68,18 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
     >
       {editing ? (
         <>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 6,
-              padding: "10px 12px",
-              border: `1px solid ${D.border}`,
-              borderRadius: 12,
-              background: D.bg,
-              marginBottom: 12,
-              minHeight: 50,
-              alignItems: "center",
-            }}
-          >
+          {/* Tag input container */}
+          <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border border-border rounded-xl bg-bg mb-3 min-h-[50px] items-center">
             {draft.map((s) => (
               <span
                 key={s}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  background: D.accentBg,
-                  color: D.accent,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  padding: "4px 8px 4px 10px",
-                  borderRadius: 7,
-                  border: `1px solid ${D.accentBdr}`,
-                }}
+                className="inline-flex items-center gap-[5px] bg-accent-bg text-accent text-[12.5px] font-bold pl-2.5 pr-2 py-1 rounded-[7px] border border-accent-bdr"
               >
                 {s}
                 <button
                   type="button"
                   onClick={() => removeSkill(s)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    color: D.accent,
-                  }}
+                  className="bg-transparent border-none cursor-pointer p-0 inline-flex items-center text-accent"
                   aria-label={`Quitar ${s}`}
                 >
                   <Icon name="x" size={11} color="currentColor" />
@@ -119,7 +87,11 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
               </span>
             ))}
             <input
+              id="perfil-skill-input"
+              name="skill"
               type="text"
+              aria-label="Agregar skill"
+              autoComplete="off"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInputKey}
@@ -134,55 +106,23 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
                   ? "Escribí una skill y dale Enter…"
                   : "Agregar…"
               }
-              style={{
-                flex: 1,
-                minWidth: 140,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                fontSize: 13,
-                color: D.text,
-                fontFamily: "inherit",
-                padding: "2px 4px",
-              }}
+              className="flex-1 min-w-[140px] border-none outline-none bg-transparent text-[13px] text-text font-[inherit] px-1 py-[2px]"
             />
           </div>
           {visibleSuggestions.length > 0 && (
             <div>
-              <p
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  color: D.subtle,
-                  letterSpacing: 0.6,
-                  textTransform: "uppercase",
-                  marginBottom: 8,
-                }}
-              >
+              <p className="text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-2">
                 Sugerencias de tu CV
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="flex flex-wrap gap-1.5">
                 {visibleSuggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => addSkill(s)}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: D.surface,
-                      color: D.muted,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: "4px 9px",
-                      borderRadius: 7,
-                      border: `1px dashed ${D.border}`,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
+                    className="inline-flex items-center gap-[5px] bg-surface text-muted text-xs font-semibold px-[9px] py-1 rounded-[7px] border border-dashed border-border cursor-pointer font-[inherit] hover:bg-bg hover:text-text transition-colors"
                   >
-                    <Icon name="plus" size={11} color={D.muted} />
+                    <Icon name="plus" size={11} color="currentColor" />
                     {s}
                   </button>
                 ))}
@@ -191,35 +131,18 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
           )}
         </>
       ) : skills.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="flex flex-wrap gap-1.5">
           {skills.map((s) => (
             <span
               key={s}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                fontSize: 12.5,
-                fontWeight: 700,
-                color: D.accent,
-                background: D.accentBg,
-                padding: "5px 10px",
-                borderRadius: 8,
-                border: `1px solid ${D.accentBdr}`,
-              }}
+              className="inline-flex items-center text-[12.5px] font-bold text-accent bg-accent-bg px-2.5 py-[5px] rounded-lg border border-accent-bdr"
             >
               {s}
             </span>
           ))}
         </div>
       ) : (
-        <p
-          style={{
-            fontSize: 13.5,
-            color: D.subtle,
-            lineHeight: 1.65,
-            fontStyle: "italic",
-          }}
-        >
+        <p className="text-[13.5px] text-subtle leading-[1.65] italic">
           {suggestions.length > 0
             ? "Detectamos algunas skills en tu CV. Click en “Editar” para revisarlas."
             : "Aún no has agregado skills. Click en “Editar” o subí tu CV para que las sugiramos."}

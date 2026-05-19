@@ -1,4 +1,4 @@
-import { D } from "../tokens";
+import type { CSSProperties } from "react";
 
 type ScoreVisProps = {
   score: number;
@@ -7,34 +7,51 @@ type ScoreVisProps = {
   label?: boolean;
 };
 
+/** Score → tono semántico (green / amber / rose). Decide qué CSS vars del
+ *  @theme usar para el color principal y el fondo. */
+function scoreVariant(score: number): "green" | "amber" | "rose" {
+  if (score >= 80) return "green";
+  if (score >= 50) return "amber";
+  return "rose";
+}
+
 export function ScoreVis({
   score,
   style = "ring",
   size = 68,
   label = true,
 }: ScoreVisProps) {
-  const c = score >= 80 ? D.green : score >= 50 ? D.amber : D.rose;
-  const bg = score >= 80 ? D.greenBg : score >= 50 ? D.amberBg : D.roseBg;
+  const variant = scoreVariant(score);
+  const cssVars = {
+    "--score-c": `var(--color-${variant})`,
+    "--score-bg": `var(--color-${variant}-bg)`,
+  } as CSSProperties;
 
   if (style === "ring") {
     const R = (size - 10) / 2;
     const CIRC = 2 * Math.PI * R;
     const off = CIRC - (CIRC * score) / 100;
+
     return (
       <div
+        className="relative flex-shrink-0"
         style={{
-          position: "relative",
+          ...cssVars,
           width: size,
           height: size,
-          flexShrink: 0,
         }}
       >
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <svg
+          width={size}
+          height={size}
+          className="-rotate-90"
+          aria-hidden="true"
+        >
           <circle
             cx={size / 2}
             cy={size / 2}
             r={R}
-            stroke="rgba(0,0,0,.06)"
+            stroke="rgba(0,0,0,0.06)"
             strokeWidth="6"
             fill="none"
           />
@@ -42,48 +59,26 @@ export function ScoreVis({
             cx={size / 2}
             cy={size / 2}
             r={R}
-            stroke={c}
+            stroke="var(--score-c)"
             strokeWidth="6"
             fill="none"
             strokeLinecap="round"
             strokeDasharray={CIRC}
             strokeDashoffset={off}
-            style={{
-              transition: "stroke-dashoffset .8s cubic-bezier(.16,1,.3,1)",
-            }}
+            className="[transition:stroke-dashoffset_0.8s_cubic-bezier(0.16,1,0.3,1)]"
           />
         </svg>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
-            style={{
-              fontSize: size > 56 ? 20 : 16,
-              fontWeight: 900,
-              letterSpacing: -0.6,
-              color: D.text,
-              lineHeight: 1,
-            }}
+            className={[
+              "font-black tracking-[-0.6px] text-text leading-none",
+              size > 56 ? "text-[20px]" : "text-[16px]",
+            ].join(" ")}
           >
             {score}
           </span>
           {label && size > 56 && (
-            <span
-              style={{
-                fontSize: 9,
-                color: D.subtle,
-                fontWeight: 700,
-                letterSpacing: 0.4,
-                marginTop: 1,
-              }}
-            >
+            <span className="text-[9px] text-subtle font-bold tracking-[0.4px] mt-px">
               MATCH
             </span>
           )}
@@ -94,57 +89,21 @@ export function ScoreVis({
 
   if (style === "bar") {
     return (
-      <div style={{ flexShrink: 0, minWidth: 96 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 4,
-            marginBottom: 6,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: D.text,
-              letterSpacing: -0.8,
-              lineHeight: 1,
-            }}
-          >
+      <div className="flex-shrink-0 min-w-[96px]" style={cssVars}>
+        <div className="flex items-baseline gap-1 mb-[6px]">
+          <span className="text-[22px] font-black text-text tracking-[-0.8px] leading-none">
             {score}
           </span>
-          <span style={{ fontSize: 11, color: D.subtle, fontWeight: 600 }}>
-            /100
-          </span>
+          <span className="text-[11px] text-subtle font-semibold">/100</span>
         </div>
-        <div
-          style={{
-            height: 6,
-            background: "rgba(0,0,0,.05)",
-            borderRadius: 99,
-            overflow: "hidden",
-          }}
-        >
+        <div className="h-[6px] bg-black/5 rounded-full overflow-hidden">
           <div
-            style={{
-              height: "100%",
-              width: `${score}%`,
-              background: `linear-gradient(90deg,${c},${D.accentHi})`,
-              borderRadius: 99,
-            }}
+            className="h-full rounded-full [background:linear-gradient(90deg,var(--score-c),var(--color-accent-hi))]"
+            style={{ width: `${score}%` }}
           />
         </div>
         {label && (
-          <p
-            style={{
-              fontSize: 10,
-              color: D.subtle,
-              fontWeight: 700,
-              letterSpacing: 0.4,
-              marginTop: 5,
-            }}
-          >
+          <p className="text-[10px] text-subtle font-bold tracking-[0.4px] mt-[5px]">
             MATCH SEMÁNTICO
           </p>
         )}
@@ -154,45 +113,15 @@ export function ScoreVis({
 
   return (
     <div
-      style={{
-        flexShrink: 0,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        background: bg,
-        border: `1px solid ${c}25`,
-        padding: "7px 12px",
-        borderRadius: 12,
-      }}
+      className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-[7px] rounded-[12px] bg-[var(--score-bg)] border border-[var(--score-c)]/25"
+      style={cssVars}
     >
-      <span
-        style={{
-          width: 7,
-          height: 7,
-          borderRadius: "50%",
-          background: c,
-        }}
-      />
-      <span
-        style={{
-          fontSize: 18,
-          fontWeight: 900,
-          color: c,
-          letterSpacing: -0.4,
-          lineHeight: 1,
-        }}
-      >
+      <span className="w-[7px] h-[7px] rounded-full bg-[var(--score-c)]" />
+      <span className="text-[18px] font-black tracking-[-0.4px] text-[var(--score-c)] leading-none">
         {score}
       </span>
       {label && (
-        <span
-          style={{
-            fontSize: 10.5,
-            color: D.muted,
-            fontWeight: 700,
-            letterSpacing: 0.4,
-          }}
-        >
+        <span className="text-[10.5px] text-muted font-bold tracking-[0.4px]">
           MATCH
         </span>
       )}

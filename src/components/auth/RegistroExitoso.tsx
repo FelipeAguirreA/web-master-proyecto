@@ -1,6 +1,5 @@
 "use client";
 
-import { A } from "./tokens";
 import { AuthIcon } from "./AuthIcon";
 
 type Props = {
@@ -9,67 +8,29 @@ type Props = {
 
 export function RegistroExitoso({ onContinue }: Props) {
   return (
-    <div
-      style={{
-        textAlign: "center",
-        padding: "20px 4px",
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 56,
-          height: 56,
-          borderRadius: 18,
-          background: `linear-gradient(135deg, ${A.greenBg}, #C5E8C7)`,
-          border: `1px solid ${A.green}25`,
-          marginBottom: 18,
-        }}
-      >
-        <AuthIcon name="check" size={28} color={A.green} strokeWidth={2.5} />
+    <div className="px-1 py-5 text-center">
+      <div className="mx-auto mb-[18px] inline-flex h-14 w-14 items-center justify-center rounded-[18px] border border-green/[0.15] bg-gradient-to-br from-green-bg to-[#C5E8C7]">
+        <AuthIcon
+          name="check"
+          size={28}
+          color="var(--color-green)"
+          strokeWidth={2.5}
+        />
       </div>
-      <h2
-        style={{
-          fontSize: 20,
-          fontWeight: 800,
-          letterSpacing: -0.4,
-          color: A.text,
-          marginBottom: 8,
-        }}
-      >
+
+      <h2 className="mb-2 text-xl font-extrabold tracking-tight text-text">
         Empresa registrada
       </h2>
-      <p
-        style={{
-          fontSize: 13.5,
-          color: A.muted,
-          lineHeight: 1.55,
-          marginBottom: 24,
-          maxWidth: 320,
-          marginInline: "auto",
-        }}
-      >
+
+      <p className="mx-auto mb-6 max-w-[320px] text-[13.5px] leading-[1.55] text-muted">
         Tu cuenta fue creada. El equipo de PractiX revisa la solicitud y te
         notifica por correo cuando queda aprobada.
       </p>
+
       <button
         type="button"
         onClick={onContinue}
-        style={{
-          width: "100%",
-          padding: "13px 18px",
-          background: `linear-gradient(135deg,${A.text},#222)`,
-          color: "#fff",
-          border: "none",
-          borderRadius: 12,
-          fontSize: 14,
-          fontWeight: 700,
-          cursor: "pointer",
-          fontFamily: "inherit",
-          boxShadow: `0 8px 22px -8px ${A.text}`,
-        }}
+        className="min-h-[44px] w-full rounded-xl border-none bg-gradient-to-br from-text to-[#222] px-[18px] py-3.5 text-sm font-bold text-white shadow-[0_8px_22px_-8px_var(--color-text)] transition-all"
       >
         Ir al inicio de sesión
       </button>

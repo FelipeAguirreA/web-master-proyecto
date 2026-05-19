@@ -5,7 +5,6 @@ import {
   DAYS_ES_SHORT,
   isInterviewPast,
 } from "./calendarHelpers";
-import { E } from "@/components/dashboard/palettes";
 
 type Interview = {
   id: string;
@@ -42,22 +41,12 @@ export default function UpcomingList({ interviews, onSelectInterview }: Props) {
     .slice(0, 8);
 
   return (
-    <div
-      className="rounded-[16px] p-4 flex flex-col flex-1 min-h-0"
-      style={{
-        background: E.surface,
-        border: `1px solid ${E.border}`,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}
-    >
-      <h3
-        className="text-[12.5px] font-bold tracking-[-0.01em] mb-3 flex-shrink-0"
-        style={{ color: E.text }}
-      >
+    <div className="bg-surface border border-border rounded-[16px] p-4 flex flex-col flex-1 min-h-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <h3 className="text-[12.5px] font-bold tracking-[-0.01em] mb-3 flex-shrink-0 text-text">
         Próximas
       </h3>
       {upcoming.length === 0 ? (
-        <p className="text-[11.5px] py-2" style={{ color: E.subtle }}>
+        <p className="text-[11.5px] py-2 text-subtle">
           Sin entrevistas próximas.
         </p>
       ) : (
@@ -75,47 +64,34 @@ export default function UpcomingList({ interviews, onSelectInterview }: Props) {
             }).format(d);
 
             const past = isInterviewPast(iv.scheduledAt, iv.durationMins);
-            const borderColor = past ? E.subtle : E.green;
-            const bgColor = past ? "rgba(15,23,42,0.05)" : E.greenBg;
 
             return (
               <button
                 key={iv.id}
                 onClick={() => onSelectInterview(iv)}
-                className="w-full flex items-center gap-2.5 p-2.5 rounded-[10px] text-left transition-all cursor-pointer"
-                style={{
-                  borderLeft: `3px solid ${borderColor}`,
-                  background: bgColor,
-                }}
+                className={[
+                  "w-full flex items-center gap-2.5 p-2.5 rounded-[10px] text-left transition-all cursor-pointer",
+                  past
+                    ? "border-l-[3px] border-l-subtle bg-dark/5"
+                    : "border-l-[3px] border-l-green bg-green-bg",
+                ].join(" ")}
               >
                 {/* Date */}
                 <div className="min-w-[44px]">
-                  <p
-                    className="text-[9px] font-bold uppercase tracking-[0.05em] leading-none"
-                    style={{ color: E.subtle }}
-                  >
+                  <p className="text-[9px] font-bold uppercase tracking-[0.05em] leading-none text-subtle">
                     {dayName}
                     {!isToday && ` ${dayNum}`}
                   </p>
-                  <p
-                    className="text-[11px] font-bold mt-0.5"
-                    style={{ color: E.text }}
-                  >
+                  <p className="text-[11px] font-bold mt-0.5 text-text">
                     {startLabel}
                   </p>
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="text-[11.5px] font-bold truncate leading-tight"
-                    style={{ color: E.text }}
-                  >
+                  <p className="text-[11.5px] font-bold truncate leading-tight text-text">
                     {iv.title}
                   </p>
-                  <p
-                    className="text-[10px] mt-0.5 truncate"
-                    style={{ color: E.muted }}
-                  >
+                  <p className="text-[10px] mt-0.5 truncate text-muted">
                     {iv.student.name}
                   </p>
                 </div>

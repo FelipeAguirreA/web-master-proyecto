@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { A } from "./tokens";
 import { AuthField } from "./AuthField";
 import { AuthSelect } from "./AuthSelect";
 import { AuthIcon } from "./AuthIcon";
@@ -121,20 +120,23 @@ export function CompanyRegister({ onSuccess }: Props) {
     }
   };
 
+  /* ── RUT input classes (reuses AuthField pattern) ── */
+  const rutInputCls = [
+    "h-11 w-full rounded-[11px] border-[1.5px] pl-10 pr-3.5 text-sm font-medium text-text outline-none transition-all",
+    fieldErrors.empresaRut
+      ? "border-rose bg-rose-bg/40 shadow-[0_0_0_4px_var(--color-rose)/0.11]"
+      : rutFocus
+        ? "border-accent bg-surface shadow-[0_0_0_4px_var(--color-accent)/0.11]"
+        : "border-transparent bg-dark/[0.025]",
+  ].join(" ");
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "flex", flexDirection: "column", gap: 14 }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-        }}
-      >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+      {/* Nombre + Apellido — 2 cols en sm, 1 en mobile */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <AuthField
           label="Nombre"
+          name="given-name"
           placeholder="Juan"
           icon={<AuthIcon name="user" />}
           autoComplete="given-name"
@@ -145,6 +147,7 @@ export function CompanyRegister({ onSuccess }: Props) {
         />
         <AuthField
           label="Apellido"
+          name="family-name"
           placeholder="Pérez"
           autoComplete="family-name"
           value={lastName}
@@ -156,41 +159,24 @@ export function CompanyRegister({ onSuccess }: Props) {
 
       <AuthField
         label="Nombre de la empresa"
+        name="organization"
         placeholder="Empresa S.A."
         icon={<AuthIcon name="bld" />}
+        autoComplete="organization"
         value={companyName}
         onChange={setCompanyName}
         required
         error={fieldErrors.companyName}
       />
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: A.text,
-          }}
-        >
+      {/* RUT / DNI section */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[12px] font-bold tracking-[0.1px] text-text">
           RUT / DNI de la empresa *
         </span>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              background: "rgba(0,0,0,.04)",
-              padding: 3,
-              borderRadius: 10,
-              gap: 2,
-              flexShrink: 0,
-            }}
-          >
+        <div className="flex flex-wrap gap-2">
+          {/* Doc kind toggle */}
+          <div className="inline-flex shrink-0 gap-0.5 rounded-[10px] bg-dark/[0.04] p-0.5">
             {[
               { v: "rut" as const, l: "RUT Chile" },
               { v: "passport" as const, l: "Extranjera" },
@@ -201,39 +187,26 @@ export function CompanyRegister({ onSuccess }: Props) {
                   key={o.v}
                   type="button"
                   onClick={() => setDocKind(o.v)}
-                  style={{
-                    padding: "8px 13px",
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: "none",
-                    cursor: "pointer",
-                    background: active ? A.surface : "transparent",
-                    color: active ? A.text : A.muted,
-                    boxShadow: active ? "0 1px 4px rgba(0,0,0,.06)" : "none",
-                    transition: "all .15s",
-                  }}
+                  className={`min-h-[36px] rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                    active
+                      ? "bg-surface text-text shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
+                      : "bg-transparent text-muted"
+                  }`}
                 >
                   {o.l}
                 </button>
               );
             })}
           </div>
-          <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
-            <span
-              style={{
-                position: "absolute",
-                left: 14,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: A.subtle,
-                display: "flex",
-                pointerEvents: "none",
-              }}
-            >
+
+          {/* RUT input */}
+          <div className="relative min-w-[180px] flex-1">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-subtle">
               <AuthIcon name="id" />
             </span>
             <input
+              id="empresa-rut"
+              name="empresa-rut"
               type="text"
               placeholder={
                 docKind === "rut" ? "76.123.456-7" : "EIN / VAT / Tax ID"
@@ -242,52 +215,23 @@ export function CompanyRegister({ onSuccess }: Props) {
               onChange={(e) => setEmpresaRut(e.target.value)}
               onFocus={() => setRutFocus(true)}
               onBlur={() => setRutFocus(false)}
-              style={{
-                width: "100%",
-                padding: "13px 14px 13px 40px",
-                background: rutFocus ? A.surface : "rgba(0,0,0,.025)",
-                border: `1.5px solid ${
-                  fieldErrors.empresaRut
-                    ? A.rose
-                    : rutFocus
-                      ? A.accent
-                      : "transparent"
-                }`,
-                borderRadius: 11,
-                fontSize: 14,
-                color: A.text,
-                fontWeight: 500,
-                boxShadow: rutFocus ? `0 0 0 4px ${A.accent}1c` : "none",
-                transition: "all .15s",
-                outline: "none",
-                fontFamily: "inherit",
-              }}
+              aria-invalid={!!fieldErrors.empresaRut}
+              className={rutInputCls}
             />
           </div>
         </div>
         {fieldErrors.empresaRut && (
-          <span
-            style={{
-              fontSize: 11,
-              color: A.rose,
-              fontWeight: 600,
-              lineHeight: 1.4,
-            }}
-          >
+          <span className="text-[11px] font-semibold leading-[1.4] text-rose">
             {fieldErrors.empresaRut}
           </span>
         )}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-        }}
-      >
+      {/* Industria + Sitio web — 2 cols en sm */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <AuthSelect
           label="Industria"
+          name="industry"
           icon={<AuthIcon name="fact" />}
           options={INDUSTRY_OPTIONS}
           value={industry}
@@ -296,8 +240,10 @@ export function CompanyRegister({ onSuccess }: Props) {
         />
         <AuthField
           label="Sitio web"
+          name="url"
           placeholder="https://empresa.cl"
           icon={<AuthIcon name="glb" />}
+          autoComplete="url"
           value={website}
           onChange={setWebsite}
           error={fieldErrors.website}
@@ -306,6 +252,7 @@ export function CompanyRegister({ onSuccess }: Props) {
 
       <AuthField
         label="Teléfono"
+        name="tel"
         type="tel"
         placeholder="+56 9 1234 5678"
         icon={<AuthIcon name="ph" />}
@@ -318,6 +265,7 @@ export function CompanyRegister({ onSuccess }: Props) {
 
       <AuthField
         label="Correo corporativo"
+        name="email"
         type="email"
         placeholder="nombre@empresa.cl"
         icon={<AuthIcon name="mail" />}
@@ -328,55 +276,30 @@ export function CompanyRegister({ onSuccess }: Props) {
         error={fieldErrors.email}
       />
 
+      {/* Checkbox: email genérico */}
       <label
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-          cursor: "pointer",
-          padding: "10px 12px",
-          background: allowGenericEmail ? A.accentBg : "rgba(0,0,0,.025)",
-          border: `1px solid ${
-            allowGenericEmail ? A.accentBdr : "transparent"
-          }`,
-          borderRadius: 11,
-          marginTop: -4,
-          transition: "all .15s",
-        }}
+        className={`-mt-1 flex cursor-pointer items-start gap-2 rounded-[11px] border p-3 transition-all ${
+          allowGenericEmail
+            ? "border-accent-bdr bg-accent-bg"
+            : "border-transparent bg-dark/[0.025]"
+        }`}
       >
         <input
           type="checkbox"
           checked={allowGenericEmail}
           onChange={(e) => setAllowGenericEmail(e.target.checked)}
-          style={{
-            width: 15,
-            height: 15,
-            marginTop: 2,
-            accentColor: A.accent,
-            flexShrink: 0,
-          }}
+          className="mt-0.5 h-[15px] w-[15px] shrink-0 accent-accent"
         />
-        <span
-          style={{
-            fontSize: 12.5,
-            color: A.text,
-            lineHeight: 1.5,
-            fontWeight: 500,
-          }}
-        >
+        <span className="text-[12.5px] font-medium leading-relaxed text-text">
           Mi empresa usa Gmail, Outlook u otro servicio genérico
         </span>
       </label>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-        }}
-      >
+      {/* Contraseñas — 2 cols en sm */}
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <AuthField
           label="Contraseña"
+          name="new-password"
           type="password"
           placeholder="••••••••"
           icon={<AuthIcon name="lock" />}
@@ -389,6 +312,7 @@ export function CompanyRegister({ onSuccess }: Props) {
         />
         <AuthField
           label="Confirmar contraseña"
+          name="confirm-password"
           type="password"
           placeholder="••••••••"
           autoComplete="new-password"
@@ -399,45 +323,26 @@ export function CompanyRegister({ onSuccess }: Props) {
         />
       </div>
 
-      <label
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 8,
-          cursor: "pointer",
-          marginTop: 2,
-        }}
-      >
+      {/* Checkbox: términos */}
+      <label className="mt-0.5 flex cursor-pointer items-start gap-2">
         <input
           type="checkbox"
           checked={acceptedTerms}
           onChange={(e) => setAcceptedTerms(e.target.checked)}
-          style={{
-            width: 15,
-            height: 15,
-            marginTop: 2,
-            accentColor: A.accent,
-            flexShrink: 0,
-          }}
+          className="mt-0.5 h-[15px] w-[15px] shrink-0 accent-accent"
         />
-        <span
-          style={{
-            fontSize: 12,
-            color: A.muted,
-            lineHeight: 1.5,
-          }}
-        >
+        <span className="text-xs leading-relaxed text-muted">
           Acepto la{" "}
           <Link
             href="/privacidad"
-            style={{ color: A.accent, fontWeight: 700, textDecoration: "none" }}
+            className="font-bold text-accent no-underline hover:opacity-75"
           >
             Política de Privacidad
           </Link>{" "}
           y los{" "}
           <Link
             href="/terminos"
-            style={{ color: A.accent, fontWeight: 700, textDecoration: "none" }}
+            className="font-bold text-accent no-underline hover:opacity-75"
           >
             Términos de Uso
           </Link>{" "}
@@ -447,16 +352,8 @@ export function CompanyRegister({ onSuccess }: Props) {
 
       {submitError && (
         <div
-          style={{
-            padding: "10px 12px",
-            background: A.roseBg,
-            border: `1px solid ${A.rose}25`,
-            borderRadius: 11,
-            fontSize: 12.5,
-            color: A.rose,
-            fontWeight: 600,
-            lineHeight: 1.5,
-          }}
+          role="alert"
+          className="rounded-[11px] border border-rose/[0.15] bg-rose-bg px-3 py-2.5 text-[12.5px] font-semibold leading-relaxed text-rose"
         >
           {submitError}
         </div>
@@ -464,17 +361,9 @@ export function CompanyRegister({ onSuccess }: Props) {
 
       <SubmitButton loading={loading}>Crear cuenta empresa</SubmitButton>
 
-      <p
-        style={{
-          fontSize: 11.5,
-          color: A.subtle,
-          textAlign: "center",
-          lineHeight: 1.5,
-          marginTop: -2,
-        }}
-      >
+      <p className="-mt-0.5 text-center text-[11.5px] leading-relaxed text-subtle">
         Al registrarte, tu cuenta queda{" "}
-        <b style={{ color: A.muted }}>en revisión</b> hasta ser aprobada por el
+        <b className="text-muted">en revisión</b> hasta ser aprobada por el
         equipo de PractiX.
       </p>
     </form>

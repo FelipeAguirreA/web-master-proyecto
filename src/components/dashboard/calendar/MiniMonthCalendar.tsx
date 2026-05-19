@@ -7,7 +7,6 @@ import {
   MONTHS_ES,
   DAYS_ES_SHORT,
 } from "./calendarHelpers";
-import { E } from "@/components/dashboard/palettes";
 
 type Props = {
   year: number;
@@ -35,35 +34,23 @@ export default function MiniMonthCalendar({
   const weekSet = new Set(weekDates);
 
   return (
-    <div
-      className="rounded-[16px] p-4"
-      style={{
-        background: E.surface,
-        border: `1px solid ${E.border}`,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}
-    >
+    <div className="bg-surface border border-border rounded-[16px] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3
-          className="text-[12.5px] font-bold tracking-[-0.01em]"
-          style={{ color: E.text }}
-        >
+        <h3 className="text-[12.5px] font-bold tracking-[-0.01em] text-text">
           {MONTHS_ES[month]} {year}
         </h3>
         <div className="flex gap-1">
           <button
             onClick={onPrevMonth}
-            className="w-6 h-6 inline-flex items-center justify-center rounded-lg transition-all"
-            style={{ color: E.subtle }}
+            className="w-6 h-6 inline-flex items-center justify-center rounded-lg transition-all text-subtle hover:text-text"
             aria-label="Mes anterior"
           >
             <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.2} />
           </button>
           <button
             onClick={onNextMonth}
-            className="w-6 h-6 inline-flex items-center justify-center rounded-lg transition-all"
-            style={{ color: E.subtle }}
+            className="w-6 h-6 inline-flex items-center justify-center rounded-lg transition-all text-subtle hover:text-text"
             aria-label="Mes siguiente"
           >
             <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.2} />
@@ -76,8 +63,7 @@ export default function MiniMonthCalendar({
         {DAYS_ES_SHORT.map((d) => (
           <div
             key={d}
-            className="text-center text-[9px] font-bold uppercase tracking-[0.06em] py-1"
-            style={{ color: E.subtle }}
+            className="text-center text-[9px] font-bold uppercase tracking-[0.06em] py-1 text-subtle"
           >
             {d.charAt(0)}
           </div>
@@ -97,44 +83,38 @@ export default function MiniMonthCalendar({
           const inCurrentWeek = weekSet.has(dateStr);
           const hasEvent = interviewDates.has(dateStr);
 
-          let cellStyle: React.CSSProperties;
+          // Determine cell appearance via Tailwind classes
+          let cellClass: string;
           if (isSelected) {
-            cellStyle = {
-              background: E.accent,
-              color: "#fff",
-              fontWeight: 700,
-              boxShadow: `0 3px 8px -2px ${E.accentBdr}`,
-            };
+            cellClass =
+              "bg-accent text-white font-bold shadow-[0_3px_8px_-2px_var(--color-accent-bdr)]";
           } else if (isToday) {
-            cellStyle = {
-              background: E.accentBg,
-              color: E.accent,
-              fontWeight: 700,
-            };
+            cellClass = "bg-accent-bg text-accent font-bold";
           } else if (inCurrentWeek) {
-            cellStyle = {
-              background: `${E.accentBg}99`,
-              color: E.accent,
-              fontWeight: 600,
-            };
+            // 60% opacity accent-bg for current-week days
+            cellClass = "bg-accent-bg/60 text-accent font-semibold";
           } else {
-            cellStyle = { color: E.muted };
+            cellClass = "text-muted";
           }
 
           return (
             <button
               key={dateStr}
               onClick={() => onSelectDate(dateStr)}
-              className="relative flex flex-col items-center justify-center h-7 w-7 mx-auto rounded-lg text-[10.5px] font-medium transition-all"
-              style={cellStyle}
+              className={[
+                "relative flex flex-col items-center justify-center h-7 w-7 mx-auto rounded-lg text-[10.5px] font-medium transition-all",
+                cellClass,
+              ].join(" ")}
+              aria-label={dateStr}
+              aria-pressed={isSelected}
             >
               {day}
               {hasEvent && (
                 <span
-                  className="absolute bottom-0.5 w-1 h-1 rounded-full"
-                  style={{
-                    background: isSelected ? "rgba(255,255,255,0.7)" : E.accent,
-                  }}
+                  className={[
+                    "absolute bottom-0.5 w-1 h-1 rounded-full",
+                    isSelected ? "bg-white/70" : "bg-accent",
+                  ].join(" ")}
                 />
               )}
             </button>

@@ -1,7 +1,5 @@
 "use client";
 
-import { A } from "./tokens";
-
 type Role = "student" | "company";
 
 type Props = {
@@ -11,15 +9,7 @@ type Props = {
 
 export function RoleToggle({ role, onChange }: Props) {
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        background: "rgba(0,0,0,.04)",
-        padding: 4,
-        borderRadius: 30,
-        gap: 2,
-      }}
-    >
+    <div className="inline-flex gap-0.5 rounded-[30px] bg-dark/[0.04] p-1">
       {[
         { v: "student" as const, l: "Soy estudiante" },
         { v: "company" as const, l: "Soy empresa" },
@@ -30,18 +20,11 @@ export function RoleToggle({ role, onChange }: Props) {
             key={o.v}
             type="button"
             onClick={() => onChange(o.v)}
-            style={{
-              padding: "7px 16px",
-              borderRadius: 30,
-              fontSize: 12.5,
-              fontWeight: 700,
-              border: "none",
-              cursor: "pointer",
-              background: active ? A.surface : "transparent",
-              color: active ? A.text : A.muted,
-              boxShadow: active ? "0 2px 6px rgba(0,0,0,.06)" : "none",
-              transition: "all .15s",
-            }}
+            className={`min-h-[36px] rounded-[30px] px-4 py-1.5 text-[12.5px] font-bold transition-all ${
+              active
+                ? "bg-surface text-text shadow-[0_2px_6px_rgba(0,0,0,0.06)]"
+                : "bg-transparent text-muted"
+            }`}
           >
             {o.l}
           </button>

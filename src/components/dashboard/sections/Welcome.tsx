@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 
 type WelcomeProps = {
   firstName: string;
@@ -33,7 +32,7 @@ export function Welcome({
     highMatches > 0 ? (
       <>
         Hola {firstName} 👋 Tienes{" "}
-        <span style={{ color: D.accentHi }}>
+        <span className="text-accent-hi">
           {highMatches} match{highMatches > 1 ? "es" : ""} sobre 90
         </span>{" "}
         esta semana.
@@ -42,206 +41,75 @@ export function Welcome({
       <>Hola {firstName} 👋 Bienvenido a tu panel.</>
     );
 
+  const stats = [
+    { k: "CV", v: `${cvPct}%`, sub: "Completo" },
+    { k: "Postulaciones", v: applicationsCount, sub: "activas" },
+    { k: "Entrevistas", v: interviewsCount, sub: "agendadas" },
+  ];
+
   return (
-    <section
-      style={{
-        background: D.dark,
-        borderRadius: 22,
-        padding: 26,
-        color: "#fff",
-        position: "relative",
-        overflow: "hidden",
-        marginBottom: 20,
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: -80,
-          right: -60,
-          width: 340,
-          height: 340,
-          background: `radial-gradient(circle, ${D.accent}38 0%, transparent 65%)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px,rgba(255,255,255,.04) 1px,transparent 0)",
-          backgroundSize: "22px 22px",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        className="practix-welcome-grid"
-        style={{
-          position: "relative",
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          gap: 24,
-          alignItems: "center",
-        }}
-      >
+    <section className="bg-dark rounded-[22px] p-5 sm:p-[26px] text-white relative overflow-hidden mb-5">
+      {/* Glow decorativo — radial con accent */}
+      <div className="absolute -top-20 -right-[60px] w-[340px] h-[340px] pointer-events-none [background:radial-gradient(circle,color-mix(in_srgb,var(--color-accent)_22%,transparent)_0%,transparent_65%)]" />
+      {/* Dot pattern */}
+      <div className="absolute inset-0 pointer-events-none [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,.04)_1px,transparent_0)] [background-size:22px_22px]" />
+
+      {/* Main grid: content | stats */}
+      <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center">
+        {/* Left: headline + CTAs */}
         <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              background: "rgba(255,255,255,.07)",
-              border: "1px solid rgba(255,255,255,.12)",
-              borderRadius: 30,
-              padding: "4px 12px",
-              fontSize: 11,
-              fontWeight: 600,
-              color: "rgba(255,255,255,.75)",
-              marginBottom: 16,
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#28C840",
-              }}
-            />{" "}
+          {/* Pill badge */}
+          <div className="inline-flex items-center gap-[7px] bg-white/[.07] border border-white/[.12] rounded-[30px] px-3 py-1 text-[11px] font-semibold text-white/75 mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#28C840]" />
             {highMatches > 0
               ? `${highMatches} nuevos matches esta semana`
               : "Listo para nuevos matches"}
           </div>
-          <h1
-            style={{
-              fontSize: "clamp(1.6rem,3.4vw,2.2rem)",
-              fontWeight: 800,
-              letterSpacing: -1.2,
-              lineHeight: 1.1,
-              marginBottom: 8,
-              textWrap: "balance",
-            }}
-          >
+
+          <h1 className="text-[clamp(1.6rem,3.4vw,2.2rem)] font-extrabold tracking-[-1.2px] leading-[1.1] mb-2 text-balance">
             {headline}
           </h1>
-          <p
-            style={{
-              fontSize: 14,
-              color: "rgba(255,255,255,.6)",
-              maxWidth: 480,
-              lineHeight: 1.6,
-              marginBottom: 18,
-            }}
-          >
+
+          <p className="text-[14px] text-white/60 max-w-[480px] leading-[1.6] mb-[18px]">
             {subtitle}
           </p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+
+          <div className="flex gap-2.5 flex-wrap">
             <Link
               href="/practicas"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                background: `linear-gradient(135deg,${D.accent},${D.accentHi})`,
-                color: "#fff",
-                padding: "10px 18px",
-                borderRadius: 11,
-                fontWeight: 700,
-                fontSize: 13,
-                boxShadow: `0 6px 20px ${D.accent}55`,
-                textDecoration: "none",
-              }}
+              className="inline-flex items-center gap-[7px] bg-gradient-to-br from-accent to-accent-hi text-white px-[18px] py-2.5 rounded-[11px] font-bold text-[13px] no-underline shadow-[0_6px_20px_color-mix(in_srgb,var(--color-accent)_33%,transparent)]"
             >
               Ver matches del día
             </Link>
             <Link
               href="/perfil"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                background: "rgba(255,255,255,.08)",
-                border: "1px solid rgba(255,255,255,.14)",
-                color: "#fff",
-                padding: "10px 18px",
-                borderRadius: 11,
-                fontWeight: 600,
-                fontSize: 13,
-                textDecoration: "none",
-              }}
+              className="inline-flex items-center gap-[7px] bg-white/[.08] border border-white/[.14] text-white px-[18px] py-2.5 rounded-[11px] font-semibold text-[13px] no-underline"
             >
               Mejorar mi CV
             </Link>
           </div>
         </div>
-        <div
-          className="practix-welcome-stats"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            minWidth: 180,
-          }}
-        >
-          {[
-            { k: "CV", v: `${cvPct}%`, sub: "Completo" },
-            { k: "Postulaciones", v: applicationsCount, sub: "activas" },
-            { k: "Entrevistas", v: interviewsCount, sub: "agendadas" },
-          ].map((s) => (
+
+        {/* Right: stats — oculto en mobile */}
+        <div className="hidden md:flex flex-col gap-2.5 min-w-[180px]">
+          {stats.map((s) => (
             <div
               key={s.k}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 14px",
-                background: "rgba(255,255,255,.05)",
-                border: "1px solid rgba(255,255,255,.08)",
-                borderRadius: 12,
-              }}
+              className="flex items-center justify-between px-3.5 py-2.5 bg-white/5 border border-white/[.08] rounded-[12px]"
             >
               <div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: 0.6,
-                    color: "rgba(255,255,255,.5)",
-                    textTransform: "uppercase",
-                  }}
-                >
+                <div className="text-[10px] font-bold tracking-[0.6px] text-white/50 uppercase">
                   {s.k}
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "rgba(255,255,255,.45)",
-                  }}
-                >
-                  {s.sub}
-                </div>
+                <div className="text-[11px] text-white/45">{s.sub}</div>
               </div>
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 900,
-                  letterSpacing: -0.8,
-                  color: "#fff",
-                }}
-              >
+              <div className="text-[22px] font-black tracking-[-0.8px]">
                 {s.v}
               </div>
             </div>
           ))}
         </div>
       </div>
-      <style>{`
-        @media (max-width:900px) {
-          .practix-welcome-grid { grid-template-columns: 1fr !important; }
-          .practix-welcome-stats { display: none !important; }
-        }
-      `}</style>
     </section>
   );
 }

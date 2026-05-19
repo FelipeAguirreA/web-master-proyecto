@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
 import { ScoreVis } from "../dashboard/atoms/ScoreVis";
 
@@ -55,55 +54,29 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
   };
 
   return (
-    <section
-      style={{
-        background: `linear-gradient(135deg, ${D.cream}, #fff)`,
-        border: `1px solid ${D.accentBdr}`,
-        borderRadius: 18,
-        padding: 18,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <section className="bg-gradient-to-br from-cream to-white border border-accent-bdr rounded-[18px] p-4 sm:p-[18px] relative overflow-hidden">
+      {/* Decorative radial blob */}
       <div
+        className="absolute pointer-events-none"
         style={{
-          position: "absolute",
           top: -40,
           right: -30,
           width: 160,
           height: 160,
-          background: `radial-gradient(circle, ${D.accent}25, transparent 65%)`,
-          pointerEvents: "none",
+          background:
+            "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 65%)",
         }}
       />
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            marginBottom: 14,
-          }}
-        >
+
+      <div className="relative">
+        {/* Header: score ring + status text */}
+        <div className="flex items-center gap-3.5 mb-3.5">
           <ScoreVis score={cvPct} style="ring" size={66} label={false} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h3
-              style={{
-                fontSize: 13.5,
-                fontWeight: 800,
-                color: D.text,
-              }}
-            >
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[13.5px] font-extrabold text-text">
               {cvUrl ? "CV subido" : "Sin CV"}
             </h3>
-            <p
-              style={{
-                fontSize: 11.5,
-                color: D.muted,
-                lineHeight: 1.45,
-                marginTop: 2,
-              }}
-            >
+            <p className="text-[11.5px] text-muted leading-[1.45] mt-0.5">
               {cvUrl
                 ? "Tu CV está activo. Lo usamos para hacer match con prácticas."
                 : "Sube un PDF o DOCX. Lo procesamos en menos de 5 segundos."}
@@ -112,6 +85,7 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
         </div>
 
         {!cvUrl ? (
+          /* Drop zone */
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -124,59 +98,39 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
               const file = e.dataTransfer.files?.[0];
               if (file) validateAndUpload(file);
             }}
-            style={{
-              border: `1.5px dashed ${dragOver ? D.accent : D.border}`,
-              borderRadius: 12,
-              padding: "20px 16px",
-              textAlign: "center",
-              background: dragOver ? `${D.accent}08` : "rgba(255,255,255,.5)",
-              transition: "all .2s",
-              cursor: busy ? "wait" : "pointer",
-            }}
             onClick={() => !busy && fileRef.current?.click()}
+            className={[
+              "border-2 border-dashed rounded-xl px-4 py-5 text-center transition-all duration-200 min-h-[44px]",
+              busy ? "cursor-wait" : "cursor-pointer",
+              dragOver
+                ? "border-accent bg-accent-bg"
+                : "border-border bg-white/50 hover:border-accent-hi hover:bg-accent-bg/40",
+            ].join(" ")}
           >
-            <Icon name="cv" size={28} color={dragOver ? D.accent : D.muted} />
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: D.text,
-                marginTop: 8,
-              }}
-            >
+            <Icon
+              name="cv"
+              size={28}
+              color={dragOver ? "var(--color-accent)" : "var(--color-muted)"}
+            />
+            <p className="text-[13px] font-bold text-text mt-2">
               {busy
                 ? "Procesando…"
                 : dragOver
                   ? "Soltá el archivo"
                   : "Arrastrá o clickeá para subir"}
             </p>
-            <p
-              style={{
-                fontSize: 11,
-                color: D.subtle,
-                marginTop: 4,
-              }}
-            >
+            <p className="text-[11px] text-subtle mt-1">
               PDF o DOCX · Máx 5 MB
             </p>
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 8 }}>
+          /* Actions when CV exists */
+          <div className="flex gap-2">
             <a
               href={cvUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                flex: 1,
-                textAlign: "center",
-                background: D.text,
-                color: "#fff",
-                padding: "10px 14px",
-                borderRadius: 11,
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
+              className="flex-1 text-center bg-text text-white px-3.5 py-2.5 rounded-[11px] text-[12.5px] font-bold no-underline min-h-[44px] inline-flex items-center justify-center"
             >
               Ver CV
             </a>
@@ -184,19 +138,7 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
               type="button"
               onClick={() => !busy && fileRef.current?.click()}
               disabled={busy}
-              style={{
-                flex: 1,
-                background: `linear-gradient(135deg,${D.accent},${D.accentHi})`,
-                color: "#fff",
-                padding: "10px 14px",
-                borderRadius: 11,
-                fontSize: 12.5,
-                fontWeight: 700,
-                border: "none",
-                cursor: busy ? "not-allowed" : "pointer",
-                boxShadow: `0 4px 12px ${D.accent}45`,
-                opacity: busy ? 0.7 : 1,
-              }}
+              className="flex-1 bg-gradient-to-br from-accent to-accent-hi text-white px-3.5 py-2.5 rounded-[11px] text-[12.5px] font-bold border-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 min-h-[44px] shadow-[0_4px_12px_color-mix(in_srgb,var(--color-accent)_27%,transparent)]"
             >
               {busy ? "…" : "Reemplazar"}
             </button>
@@ -204,52 +146,36 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
               type="button"
               onClick={handleDelete}
               disabled={busy}
-              style={{
-                width: 38,
-                background: "transparent",
-                color: D.rose,
-                padding: "10px",
-                borderRadius: 11,
-                border: `1px solid ${D.rose}30`,
-                cursor: busy ? "not-allowed" : "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: busy ? 0.5 : 1,
-              }}
+              className="w-[38px] min-h-[44px] bg-transparent text-rose px-2.5 rounded-[11px] border border-rose/20 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center justify-center"
               title="Eliminar CV"
               aria-label="Eliminar CV"
             >
-              <Icon name="x" size={14} color={D.rose} />
+              <Icon name="x" size={14} color="var(--color-rose)" />
             </button>
           </div>
         )}
 
+        {/* Error message */}
         {error && (
-          <p
-            style={{
-              fontSize: 11.5,
-              color: D.rose,
-              marginTop: 10,
-              padding: "8px 10px",
-              background: D.roseBg,
-              borderRadius: 8,
-              border: `1px solid ${D.rose}25`,
-            }}
-          >
+          <p className="text-[11.5px] text-rose mt-2.5 px-2.5 py-2 bg-rose-bg rounded-lg border border-rose/15">
             {error}
           </p>
         )}
+
+        {/* Hidden file input — accept preserved */}
         <input
           ref={fileRef}
+          id="perfil-cv-upload"
+          name="cv"
           type="file"
           accept={ACCEPTED}
+          aria-label="Subir CV"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) validateAndUpload(file);
             e.target.value = "";
           }}
-          style={{ display: "none" }}
+          className="hidden"
         />
       </div>
     </section>

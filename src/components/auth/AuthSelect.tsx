@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { A } from "./tokens";
 
 type Option = { value: string; label: string };
 
 type Props = {
   label: string;
+  /** `name` del select — necesario para a11y y autofill. */
+  name: string;
   icon?: ReactNode;
   options: Option[];
   value: string;
@@ -17,6 +18,7 @@ type Props = {
 
 export function AuthSelect({
   label,
+  name,
   icon,
   options,
   value,
@@ -26,61 +28,30 @@ export function AuthSelect({
 }: Props) {
   const [focus, setFocus] = useState(false);
   return (
-    <label
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        minWidth: 0,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: A.text,
-          letterSpacing: 0.1,
-        }}
-      >
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-[12px] font-bold tracking-[0.1px] text-text">
         {label}
       </span>
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         {icon && (
-          <span
-            style={{
-              position: "absolute",
-              left: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: A.subtle,
-              display: "flex",
-              pointerEvents: "none",
-            }}
-          >
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-subtle">
             {icon}
           </span>
         )}
         <select
+          id={name}
+          name={name}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          style={{
-            width: "100%",
-            appearance: "none",
-            padding: `13px 36px 13px ${icon ? 40 : 14}px`,
-            background: focus ? A.surface : "rgba(0,0,0,.025)",
-            border: `1.5px solid ${focus ? A.accent : "transparent"}`,
-            borderRadius: 11,
-            fontSize: 14,
-            color: value ? A.text : A.subtle,
-            fontWeight: 500,
-            boxShadow: focus ? `0 0 0 4px ${A.accent}1c` : "none",
-            transition: "all .15s",
-            outline: "none",
-            fontFamily: "inherit",
-            cursor: "pointer",
-          }}
+          className={`h-11 w-full appearance-none rounded-[11px] border-[1.5px] pr-9 text-sm font-medium text-text outline-none transition-all ${
+            icon ? "pl-10" : "pl-3.5"
+          } ${
+            focus
+              ? "border-accent bg-surface shadow-[0_0_0_4px_var(--color-accent)/0.11]"
+              : "border-transparent bg-dark/[0.025]"
+          } ${!value ? "text-subtle" : ""}`}
         >
           {placeholder && (
             <option value="" disabled>
@@ -93,30 +64,12 @@ export function AuthSelect({
             </option>
           ))}
         </select>
-        <span
-          style={{
-            position: "absolute",
-            right: 14,
-            top: "50%",
-            transform: "translateY(-50%)",
-            color: A.subtle,
-            pointerEvents: "none",
-            fontSize: 11,
-          }}
-        >
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-subtle">
           ▾
         </span>
       </div>
       {hint && (
-        <span
-          style={{
-            fontSize: 11,
-            color: A.subtle,
-            lineHeight: 1.4,
-          }}
-        >
-          {hint}
-        </span>
+        <span className="text-[11px] leading-[1.4] text-subtle">{hint}</span>
       )}
     </label>
   );

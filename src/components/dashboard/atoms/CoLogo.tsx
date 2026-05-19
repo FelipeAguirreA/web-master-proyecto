@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { D } from "../tokens";
+import { useState, type CSSProperties } from "react";
 
 type CoLogoProps = {
   /** Iniciales o texto de fallback cuando no hay imagen. */
@@ -9,7 +8,9 @@ type CoLogoProps = {
   /** URL de la imagen del logo. Si está presente y carga OK, se muestra
    *  en vez del fallback. Si la carga falla → fallback automático. */
   logoUrl?: string | null;
+  /** Override del color de fondo del fallback. Por defecto: `--color-text`. */
   logoBg?: string;
+  /** Override del color del texto del fallback. Por defecto: blanco. */
   logoFg?: string;
   size?: number;
 };
@@ -17,31 +18,29 @@ type CoLogoProps = {
 export function CoLogo({
   logo,
   logoUrl,
-  logoBg = D.text,
-  logoFg = "#fff",
+  logoBg,
+  logoFg,
   size = 36,
 }: CoLogoProps) {
   const [broken, setBroken] = useState(false);
   const showImage = !!logoUrl && !broken;
-  const radius = size > 40 ? 12 : 9;
+  const isLarge = size > 40;
+
+  const cssVars = {
+    "--logo-size": `${size}px`,
+    "--logo-bg": showImage ? "#ffffff" : (logoBg ?? "var(--color-text)"),
+    "--logo-fg": logoFg ?? "#ffffff",
+  } as CSSProperties;
 
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        background: showImage ? "#fff" : logoBg,
-        color: logoFg,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 800,
-        fontSize: size > 40 ? 13 : 11,
-        letterSpacing: -0.4,
-        flexShrink: 0,
-        overflow: "hidden",
-      }}
+      className={[
+        "flex items-center justify-center font-extrabold flex-shrink-0 overflow-hidden tracking-[-0.4px]",
+        "w-[var(--logo-size)] h-[var(--logo-size)]",
+        "bg-[var(--logo-bg)] text-[var(--logo-fg)]",
+        isLarge ? "rounded-[12px] text-[13px]" : "rounded-[9px] text-[11px]",
+      ].join(" ")}
+      style={cssVars}
     >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -49,7 +48,8 @@ export function CoLogo({
           src={logoUrl!}
           alt={logo}
           onError={() => setBroken(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover"
         />
       ) : (
         logo

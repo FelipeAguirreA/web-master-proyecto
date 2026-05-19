@@ -24,12 +24,9 @@ export default function DashboardRedirect() {
   }, [session, status, router]);
 
   return (
-    <div
-      className="min-h-[60vh] flex flex-col items-center justify-center gap-3"
-      style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-    >
-      <div className="w-9 h-9 border-2 border-[#FF6A3D]/25 border-t-[#FF6A3D] rounded-full animate-spin" />
-      <p className="text-[12.5px] text-[#6D6A63]">Preparando tu panel…</p>
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+      <div className="w-9 h-9 border-2 border-accent/25 border-t-accent rounded-full animate-spin" />
+      <p className="text-[12.5px] text-muted">Preparando tu panel…</p>
     </div>
   );
 }

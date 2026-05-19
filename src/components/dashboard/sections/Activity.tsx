@@ -1,100 +1,47 @@
-import type { ReactNode } from "react";
-import { D } from "../tokens";
+import type { CSSProperties } from "react";
 
 export type ActivityItem = {
   id: string;
   icon: string;
+  /** Hex color for the icon text (genuinely dynamic per item type) */
   color: string;
+  /** Hex background for the icon chip (genuinely dynamic per item type) */
   bg: string;
-  text: ReactNode;
+  /** Plain text label shown as the activity description */
+  label: string;
   when: string;
 };
 
 export function Activity({ items }: { items: ActivityItem[] }) {
   return (
-    <section
-      style={{
-        background: D.surface,
-        border: `1px solid ${D.border}`,
-        borderRadius: 18,
-        padding: 18,
-      }}
-    >
-      <h3
-        style={{
-          fontSize: 14,
-          fontWeight: 800,
-          color: D.text,
-          letterSpacing: -0.3,
-          marginBottom: 14,
-        }}
-      >
+    <section className="bg-surface border border-border rounded-[18px] p-[18px]">
+      <h3 className="text-[14px] font-extrabold text-text tracking-[-0.3px] mb-3.5">
         Actividad reciente
       </h3>
       {items.length === 0 ? (
-        <p
-          style={{
-            fontSize: 12,
-            color: D.subtle,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="text-[12px] text-subtle leading-[1.5]">
           Cuando pase algo importante con tus postulaciones, lo vas a ver acá.
         </p>
       ) : (
-        <ul
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 11,
-            listStyle: "none",
-            padding: 0,
-          }}
-        >
+        <ul className="flex flex-col gap-[11px] list-none p-0">
           {items.map((a) => (
-            <li
-              key={a.id}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 10,
-              }}
-            >
+            <li key={a.id} className="flex items-start gap-2.5">
               <span
-                style={{
-                  flexShrink: 0,
-                  width: 26,
-                  height: 26,
-                  borderRadius: 8,
-                  background: a.bg,
-                  color: a.color,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 13,
-                }}
+                className="shrink-0 w-[26px] h-[26px] rounded-[8px] flex items-center justify-center font-black text-[13px]"
+                style={
+                  {
+                    background: a.bg,
+                    color: a.color,
+                  } as CSSProperties
+                }
               >
                 {a.icon}
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    color: D.text,
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {a.text}
+              <div className="flex-1 min-w-0">
+                <p className="text-[12.5px] text-text leading-[1.45]">
+                  {a.label}
                 </p>
-                <p
-                  style={{
-                    fontSize: 10.5,
-                    color: D.subtle,
-                    marginTop: 2,
-                    fontWeight: 500,
-                  }}
-                >
+                <p className="text-[10.5px] text-subtle mt-0.5 font-medium">
                   {a.when}
                 </p>
               </div>

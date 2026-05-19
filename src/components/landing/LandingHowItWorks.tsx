@@ -1,4 +1,4 @@
-import { C } from "./tokens";
+import type { CSSProperties } from "react";
 
 const STEPS = [
   {
@@ -11,8 +11,11 @@ const STEPS = [
       "Extracción inteligente de texto",
       "Sin formato específico requerido",
     ],
+    // step 1: warm orange brand — hex literal porque el código concatena
+    // alpha hex (`${accent}30`, `${accent}28`) que no funciona con CSS vars.
+    // #FF6A3D = valor exacto de --color-accent (paleta D warm).
     color: "#FFF3EC",
-    accent: C.accent,
+    accent: "#FF6A3D",
   },
   {
     n: "02",
@@ -24,6 +27,7 @@ const STEPS = [
       "Funciona para todas las carreras",
       "Multilingüe y contextual",
     ],
+    // step 2: blue/indigo brand color — not in @theme
     color: "#EEF2FF",
     accent: "#6366F1",
   },
@@ -37,6 +41,7 @@ const STEPS = [
       "Solo prácticas relevantes para ti",
       "Postulación con un solo click",
     ],
+    // step 3: emerald brand color — not in @theme
     color: "#ECFDF5",
     accent: "#10B981",
   },
@@ -46,205 +51,94 @@ export function LandingHowItWorks() {
   return (
     <section
       id="como-funciona"
-      style={{
-        background: C.bgAlt,
-        padding: "100px 32px",
-        borderBottom: `1px solid ${C.border}`,
-      }}
+      className="bg-surface py-[100px] px-4 sm:px-6 md:px-8 border-b border-border"
     >
-      <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-        <div
-          className="rv practix-howit-header"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 60,
-            alignItems: "end",
-            marginBottom: 72,
-          }}
-        >
+      <div className="max-w-[1000px] mx-auto">
+        {/* header: 2 cols on md+, stack on mobile */}
+        <div className="rv grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-[60px] items-end mb-[72px]">
           <div>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                background: C.accentBg,
-                border: `1px solid ${C.accentBdr}`,
-                borderRadius: 40,
-                padding: "4px 14px",
-                fontSize: 10.5,
-                fontWeight: 700,
-                letterSpacing: 1,
-                color: C.accent,
-                marginBottom: 18,
-                textTransform: "uppercase",
-              }}
-            >
+            <span className="inline-flex items-center gap-[7px] bg-accent-bg border border-accent-bdr rounded-[40px] px-[14px] py-1 text-[10.5px] font-bold tracking-[1px] text-accent mb-[18px] uppercase">
               ¿Cómo funciona?
             </span>
-            <h2
-              style={{
-                fontSize: "clamp(1.8rem,3.8vw,3rem)",
-                fontWeight: 800,
-                letterSpacing: -1.5,
-                color: C.text,
-                lineHeight: 1.1,
-              }}
-            >
+            <h2 className="text-[clamp(1.8rem,3.8vw,3rem)] font-extrabold tracking-[-1.5px] text-text leading-[1.1]">
               De tu CV a tu práctica ideal en tres pasos.
             </h2>
           </div>
-          <p style={{ fontSize: 16, color: C.muted, lineHeight: 1.7 }}>
+          <p className="text-base text-muted leading-[1.7]">
             Sin cartas de presentación genéricas. Sin formularios eternos. Solo
             subes tu CV una vez y la IA hace el resto.
           </p>
         </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div className="flex flex-col">
           {STEPS.map((s, i) => (
             <div
               key={i}
-              className={`rv d${i + 1}`}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "80px 1fr",
-                gap: 0,
-                position: "relative",
-              }}
+              className={`rv d${i + 1} grid grid-cols-[80px_1fr] relative`}
             >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  paddingTop: 4,
-                }}
-              >
+              {/* step indicator column */}
+              <div className="flex flex-col items-center pt-1">
                 <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: "50%",
-                    background: s.color,
-                    border: `2px solid ${s.accent}35`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    zIndex: 1,
-                  }}
+                  className="w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0 z-[1]"
+                  style={
+                    {
+                      background: s.color,
+                      border: `2px solid ${s.accent}35`,
+                    } as CSSProperties
+                  }
                 >
                   <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 900,
-                      color: s.accent,
-                      letterSpacing: -0.5,
-                    }}
+                    className="text-sm font-black tracking-[-0.5px]"
+                    style={{ color: s.accent } as CSSProperties}
                   >
                     {s.n}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div
-                    style={{
-                      width: 2,
-                      flex: 1,
-                      background: `linear-gradient(to bottom,${s.accent}30,${STEPS[i + 1].accent}20)`,
-                      marginTop: 8,
-                      marginBottom: 8,
-                      minHeight: 48,
-                    }}
+                    className="w-[2px] flex-1 mt-2 mb-2 min-h-[48px]"
+                    style={
+                      {
+                        background: `linear-gradient(to bottom,${s.accent}30,${STEPS[i + 1].accent}20)`,
+                      } as CSSProperties
+                    }
                   />
                 )}
               </div>
-              <div
-                style={{
-                  paddingBottom: i < STEPS.length - 1 ? 48 : 0,
-                  paddingLeft: 24,
-                }}
-              >
+              {/* content column */}
+              <div className={`pl-6${i < STEPS.length - 1 ? " pb-12" : ""}`}>
                 <div
-                  className="practix-howit-card"
+                  className="practix-howit-card bg-surface border border-border rounded-[20px] p-6 sm:p-9 transition-[box-shadow,border-color] duration-300"
                   style={{
-                    background: C.surface,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 20,
-                    padding: 36,
-                    transition: "box-shadow .3s,border-color .3s",
                     ["--step-shadow" as never]: `${s.accent}28`,
                     ["--step-border" as never]: `${s.accent}28`,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: 16,
-                      marginBottom: 16,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: C.text,
-                        letterSpacing: -0.6,
-                        lineHeight: 1.15,
-                      }}
-                    >
+                  <div className="flex justify-between items-start gap-4 mb-4 flex-wrap">
+                    <h3 className="text-[22px] font-bold text-text tracking-[-0.6px] leading-[1.15]">
                       {s.title}
                     </h3>
                     <span
-                      style={{
-                        background: s.color,
-                        border: `1px solid ${s.accent}25`,
-                        color: s.accent,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "5px 13px",
-                        borderRadius: 10,
-                        letterSpacing: 0.3,
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
+                      className="text-[11px] font-bold px-[13px] py-[5px] rounded-[10px] tracking-[0.3px] whitespace-nowrap shrink-0"
+                      style={
+                        {
+                          background: s.color,
+                          border: `1px solid ${s.accent}25`,
+                          color: s.accent,
+                        } as CSSProperties
+                      }
                     >
                       {s.tag}
                     </span>
                   </div>
-                  <p
-                    style={{
-                      fontSize: 15,
-                      color: C.muted,
-                      lineHeight: 1.72,
-                      marginBottom: 24,
-                    }}
-                  >
+                  <p className="text-[15px] text-muted leading-[1.72] mb-6">
                     {s.body}
                   </p>
-                  <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                  <div className="flex gap-5 flex-wrap">
                     {s.detail.map((d) => (
-                      <div
-                        key={d}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                        }}
-                      >
+                      <div key={d} className="flex items-center gap-[7px]">
                         <span
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: "50%",
-                            background: s.color,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
+                          className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+                          style={{ background: s.color } as CSSProperties}
                         >
                           <svg
                             width="9"
@@ -257,13 +151,7 @@ export function LandingHowItWorks() {
                             <path d="M20 6L9 17l-5-5" />
                           </svg>
                         </span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            color: C.text,
-                            fontWeight: 500,
-                          }}
-                        >
+                        <span className="text-[13px] text-text font-medium">
                           {d}
                         </span>
                       </div>
@@ -277,9 +165,6 @@ export function LandingHowItWorks() {
       </div>
       <style>{`
         .practix-howit-card:hover { box-shadow: 0 16px 48px -16px var(--step-shadow); border-color: var(--step-border); }
-        @media (max-width:768px){
-          .practix-howit-header{grid-template-columns:1fr !important; gap:24px !important; align-items:start !important;}
-        }
       `}</style>
     </section>
   );

@@ -16,7 +16,6 @@ import DayView from "@/components/dashboard/calendar/DayView";
 import AgendaView from "@/components/dashboard/calendar/AgendaView";
 import UpcomingList from "@/components/dashboard/calendar/UpcomingList";
 import EventDrawer from "@/components/dashboard/calendar/EventDrawer";
-import { E } from "@/components/dashboard/palettes";
 import {
   toLocalDateStr,
   getWeekDays,
@@ -279,42 +278,28 @@ export default function EmpresaCalendarPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div
-      className="h-[calc(100vh-64px)] flex flex-col overflow-hidden"
-      style={{ background: E.bg }}
-    >
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-bg">
       {/* ── Header ── */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4">
+      <div className="flex-shrink-0 px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-3 sm:pb-4">
         {/* Title row */}
-        <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
+        <div className="flex items-start justify-between gap-4 mb-4 sm:mb-5 flex-wrap">
           <div>
-            <div
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm mb-3"
-              style={{
-                background: E.surface,
-                border: `1px solid ${E.border}`,
-              }}
-            >
-              <CalendarIcon
-                className="w-3 h-3"
-                style={{ color: E.accent }}
-                strokeWidth={2.4}
-              />
-              <span
-                className="text-[10.5px] font-semibold tracking-[0.08em] uppercase"
-                style={{ color: E.muted }}
-              >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-sm mb-3 bg-surface border border-border">
+              <CalendarIcon className="w-3 h-3 text-accent" strokeWidth={2.4} />
+              <span className="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-muted">
                 Agenda de entrevistas
               </span>
             </div>
-            <h1
-              className="text-[32px] md:text-[38px] leading-[1.05] font-bold tracking-[-0.035em]"
-              style={{ color: E.text }}
-            >
+            <h1 className="text-[28px] sm:text-[32px] md:text-[38px] leading-[1.05] font-bold tracking-[-0.035em] text-text">
               Tus{" "}
+              {/*
+                Gradient text: WebkitTextFillColor requires inline style —
+                no Tailwind equivalent. Justified exception per refactor rules.
+              */}
               <span
                 style={{
-                  background: `linear-gradient(135deg, ${E.accentHi}, ${E.accent})`,
+                  background:
+                    "linear-gradient(135deg, var(--color-accent-hi), var(--color-accent))",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
@@ -323,7 +308,7 @@ export default function EmpresaCalendarPage() {
                 entrevistas
               </span>
             </h1>
-            <p className="text-[13px] mt-2" style={{ color: E.muted }}>
+            <p className="text-[13px] mt-2 text-muted">
               {weekInterviewCount} entrevistas esta semana
               {todayInterviewCount > 0 && ` · ${todayInterviewCount} hoy`}
             </p>
@@ -334,38 +319,28 @@ export default function EmpresaCalendarPage() {
               setEditingInterview(null);
               setShowModal(true);
             }}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-white text-[13px] font-semibold rounded-xl flex-shrink-0 transition-all"
-            style={{
-              background: `linear-gradient(135deg, ${E.accent}, ${E.accentHi})`,
-              boxShadow: `0 4px 12px -2px ${E.accentBdr}`,
-            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-white text-[13px] font-semibold rounded-xl flex-shrink-0 transition-all bg-gradient-to-br from-accent to-accent-hi shadow-[0_4px_12px_-2px_var(--color-accent-bdr)] min-h-[40px]"
           >
             <Plus className="w-4 h-4" strokeWidth={2.4} />
-            Nueva entrevista
+            <span className="hidden xs:inline">Nueva entrevista</span>
+            <span className="xs:hidden">Nueva</span>
           </button>
         </div>
 
         {/* Controls row */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* View toggle */}
-          <div
-            className="flex rounded-[10px] p-1"
-            style={{ background: E.border }}
-          >
+          <div className="flex rounded-[10px] p-1 bg-border">
             {(["week", "day", "agenda"] as CalendarView[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-semibold transition-all"
-                style={
+                className={[
+                  "px-2.5 sm:px-3.5 py-1.5 rounded-[8px] text-[11.5px] sm:text-[12px] font-semibold transition-all min-h-[32px]",
                   view === v
-                    ? {
-                        background: E.surface,
-                        color: E.text,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                      }
-                    : { color: E.muted }
-                }
+                    ? "bg-surface text-text shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
+                    : "text-muted",
+                ].join(" ")}
               >
                 {v === "week" ? "Semana" : v === "day" ? "Día" : "Agenda"}
               </button>
@@ -374,31 +349,20 @@ export default function EmpresaCalendarPage() {
 
           {/* Week navigation (only in week view) */}
           {view === "week" && (
-            <div
-              className="flex items-center gap-1 rounded-[10px] px-1 py-1"
-              style={{
-                background: E.surface,
-                border: `1px solid ${E.border}`,
-              }}
-            >
+            <div className="flex items-center gap-1 rounded-[10px] px-1 py-1 bg-surface border border-border">
               <button
                 onClick={handlePrevWeek}
-                className="w-7 h-7 inline-flex items-center justify-center rounded-lg transition-all"
-                style={{ color: E.muted }}
+                className="w-7 h-7 inline-flex items-center justify-center rounded-lg transition-all text-muted hover:text-text"
                 aria-label="Semana anterior"
               >
                 <ChevronLeft className="w-4 h-4" strokeWidth={2.2} />
               </button>
-              <span
-                className="text-[12.5px] font-bold px-2 min-w-[140px] text-center"
-                style={{ color: E.text }}
-              >
+              <span className="text-[11.5px] sm:text-[12.5px] font-bold px-1 sm:px-2 min-w-[110px] sm:min-w-[140px] text-center text-text">
                 {weekLabel}
               </span>
               <button
                 onClick={handleNextWeek}
-                className="w-7 h-7 inline-flex items-center justify-center rounded-lg transition-all"
-                style={{ color: E.muted }}
+                className="w-7 h-7 inline-flex items-center justify-center rounded-lg transition-all text-muted hover:text-text"
                 aria-label="Semana siguiente"
               >
                 <ChevronRight className="w-4 h-4" strokeWidth={2.2} />
@@ -408,12 +372,7 @@ export default function EmpresaCalendarPage() {
 
           <button
             onClick={handleToday}
-            className="px-3.5 py-2 text-[12px] font-semibold rounded-[10px] transition-all"
-            style={{
-              background: E.surface,
-              border: `1px solid ${E.border}`,
-              color: E.text,
-            }}
+            className="px-3 sm:px-3.5 py-2 text-[12px] font-semibold rounded-[10px] transition-all bg-surface border border-border text-text hover:bg-bg min-h-[36px]"
           >
             Hoy
           </button>
@@ -421,8 +380,7 @@ export default function EmpresaCalendarPage() {
           {/* Filter by práctica */}
           <div className="relative inline-flex items-center ml-auto">
             <Filter
-              className="w-3.5 h-3.5 absolute left-3 pointer-events-none"
-              style={{ color: E.subtle }}
+              className="w-3.5 h-3.5 absolute left-3 pointer-events-none text-subtle"
               strokeWidth={2.2}
             />
             <select
@@ -431,13 +389,7 @@ export default function EmpresaCalendarPage() {
               value={filterInternshipId}
               onChange={(e) => setFilterInternshipId(e.target.value)}
               aria-label="Filtrar entrevistas por práctica"
-              className="appearance-none rounded-[10px] pl-8 pr-8 py-2 text-[12px] font-medium focus:outline-none transition-all cursor-pointer"
-              style={{
-                background: E.surface,
-                border: `1px solid ${E.border}`,
-                color: E.text,
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              }}
+              className="appearance-none rounded-[10px] pl-8 pr-8 py-2 text-[12px] font-medium focus:outline-none transition-all cursor-pointer bg-surface border border-border text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-h-[36px]"
             >
               <option value="">Todas las prácticas</option>
               {internships.map((i) => (
@@ -451,25 +403,12 @@ export default function EmpresaCalendarPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4 px-6 pb-6">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4 px-4 sm:px-6 md:px-8 pb-4 sm:pb-6">
         {/* Calendar panel */}
-        <div
-          className="rounded-[20px] overflow-hidden flex flex-col min-h-0"
-          style={{
-            background: E.surface,
-            border: `1px solid ${E.border}`,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
+        <div className="bg-surface border border-border rounded-[20px] overflow-hidden flex flex-col min-h-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div
-                className="w-8 h-8 border-2 rounded-full animate-spin"
-                style={{
-                  borderColor: `${E.accentLo}`,
-                  borderTopColor: E.accent,
-                }}
-              />
+              <div className="w-8 h-8 border-2 rounded-full animate-spin border-accent-lo border-t-accent" />
             </div>
           ) : (
             <>

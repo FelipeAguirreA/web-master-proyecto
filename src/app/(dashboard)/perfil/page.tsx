@@ -14,7 +14,6 @@ import { computeCompleteness, computeCvProgress } from "@/lib/cv-progress";
 import { ContactCard } from "@/components/perfil/ContactCard";
 import { Block } from "@/components/perfil/Block";
 import MyRightsCard from "@/components/MyRightsCard";
-import { D } from "@/components/dashboard/tokens";
 
 type ProfileData = {
   id: string;
@@ -35,18 +34,6 @@ type ProfileData = {
   } | null;
 };
 
-const INPUT_STYLE = {
-  width: "100%",
-  padding: "10px 12px",
-  border: `1px solid ${D.border}`,
-  borderRadius: 10,
-  fontSize: 13.5,
-  color: D.text,
-  background: D.bg,
-  fontFamily: "inherit",
-  outline: "none",
-} as const;
-
 export default function PerfilPage() {
   const { update } = useSession();
   const router = useRouter();
@@ -61,6 +48,7 @@ export default function PerfilPage() {
   useEffect(() => {
     if (isCompany) router.replace("/dashboard/empresa/perfil");
   }, [isCompany, router]);
+
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [nameEditing, setNameEditing] = useState(false);
@@ -229,25 +217,8 @@ export default function PerfilPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "60vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            border: `2px solid ${D.accent}25`,
-            borderTopColor: D.accent,
-            borderRadius: "50%",
-            animation: "practix-perfil-spin .9s linear infinite",
-          }}
-        />
-        <style>{`@keyframes practix-perfil-spin{to{transform:rotate(360deg)}}`}</style>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-accent/15 border-t-accent animate-spin" />
       </div>
     );
   }
@@ -261,15 +232,7 @@ export default function PerfilPage() {
   const sp = profile.studentProfile;
 
   return (
-    <div
-      className="practix-perfil-root"
-      style={{
-        padding: "20px 22px",
-        maxWidth: 1300,
-        margin: "0 auto",
-        width: "100%",
-      }}
-    >
+    <div className="px-4 sm:px-6 md:px-8 py-5 md:py-6 max-w-[1300px] mx-auto w-full">
       <PerfilHero
         name={profile.name}
         lastName={profile.lastName}
@@ -283,23 +246,10 @@ export default function PerfilPage() {
         onPickAvatar={handleAvatar}
       />
 
-      <div
-        className="practix-perfil-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 320px",
-          gap: 14,
-          alignItems: "flex-start",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-            minWidth: 0,
-          }}
-        >
+      {/* Two-column grid: main + sidebar. Single column on mobile. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3.5 items-start">
+        {/* Main column */}
+        <div className="flex flex-col gap-3.5 min-w-0">
           <Block
             title="Datos personales"
             editing={nameEditing}
@@ -309,72 +259,51 @@ export default function PerfilPage() {
             saving={nameSaving}
           >
             {nameEditing ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label
-                    style={{
-                      display: "block",
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                      color: D.subtle,
-                      letterSpacing: 0.6,
-                      textTransform: "uppercase",
-                      marginBottom: 6,
-                    }}
+                    htmlFor="perfil-nombre"
+                    className="block text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-1.5"
                   >
                     Nombre
                   </label>
                   <input
+                    id="perfil-nombre"
+                    name="given-name"
                     type="text"
+                    autoComplete="given-name"
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
                     maxLength={80}
-                    style={INPUT_STYLE}
+                    className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
                   />
                 </div>
                 <div>
                   <label
-                    style={{
-                      display: "block",
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                      color: D.subtle,
-                      letterSpacing: 0.6,
-                      textTransform: "uppercase",
-                      marginBottom: 6,
-                    }}
+                    htmlFor="perfil-apellido"
+                    className="block text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-1.5"
                   >
                     Apellido
                   </label>
                   <input
+                    id="perfil-apellido"
+                    name="family-name"
                     type="text"
+                    autoComplete="family-name"
                     value={lastNameDraft}
                     onChange={(e) => setLastNameDraft(e.target.value)}
                     maxLength={80}
-                    style={INPUT_STYLE}
+                    className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
                   />
                 </div>
               </div>
             ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  fontSize: 13.5,
-                }}
-              >
-                <span style={{ color: D.text, fontWeight: 600 }}>
+              <div className="flex flex-col gap-1 text-[13.5px]">
+                <span className="text-text font-semibold">
                   {[profile.name, profile.lastName].filter(Boolean).join(" ") ||
                     "Sin nombre"}
                 </span>
-                <span style={{ color: D.muted, fontSize: 12.5 }}>
+                <span className="text-muted text-[12.5px]">
                   {profile.email}
                 </span>
               </div>
@@ -431,16 +360,8 @@ export default function PerfilPage() {
           />
         </div>
 
-        <aside
-          className="practix-perfil-rail"
-          style={{
-            position: "sticky",
-            top: 80,
-            display: "flex",
-            flexDirection: "column",
-            gap: 14,
-          }}
-        >
+        {/* Sidebar — sticky on lg+ */}
+        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24">
           <CVUploadCard
             cvUrl={sp?.cvUrl ?? null}
             cvPct={cvPct}
@@ -467,36 +388,17 @@ export default function PerfilPage() {
         </aside>
       </div>
 
+      {/* Toast notification */}
       {toast && (
         <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            padding: "10px 18px",
-            background: toast.type === "ok" ? D.green : D.rose,
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            borderRadius: 12,
-            boxShadow: "0 12px 28px -8px rgba(0,0,0,.25)",
-            zIndex: 200,
-          }}
+          className={[
+            "fixed bottom-6 left-1/2 -translate-x-1/2 px-[18px] py-2.5 text-white text-[13px] font-bold rounded-xl shadow-[0_12px_28px_-8px_rgba(0,0,0,.25)] z-[200]",
+            toast.type === "ok" ? "bg-green" : "bg-rose",
+          ].join(" ")}
         >
           {toast.msg}
         </div>
       )}
-
-      <style>{`
-        @media (max-width:1100px) {
-          .practix-perfil-grid { grid-template-columns: 1fr !important; }
-          .practix-perfil-rail { position: static !important; }
-        }
-        @media (max-width:600px) {
-          .practix-perfil-root { padding: 14px 12px !important; }
-        }
-      `}</style>
     </div>
   );
 }

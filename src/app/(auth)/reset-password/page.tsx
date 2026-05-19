@@ -22,20 +22,17 @@ function passwordStrength(password: string): number {
 }
 
 const STRENGTH_LABELS = ["", "Débil", "Regular", "Buena", "Fuerte"];
+
+/* Bar and text colors map to @theme tokens:
+   1 = rose (weak), 2 = amber (regular), 3 = amber (good), 4 = green (strong) */
 const STRENGTH_TEXT = [
   "",
-  "text-[#FF6565]",
-  "text-[#FFA15F]",
-  "text-[#FFBD2E]",
-  "text-[#1A8F3C]",
+  "text-rose",
+  "text-amber",
+  "text-amber",
+  "text-green",
 ];
-const STRENGTH_BAR = [
-  "",
-  "bg-[#FF6565]",
-  "bg-[#FFA15F]",
-  "bg-[#FFBD2E]",
-  "bg-[#1A8F3C]",
-];
+const STRENGTH_BAR = ["", "bg-rose", "bg-amber", "bg-amber", "bg-green"];
 
 function AmbientMesh() {
   return (
@@ -43,9 +40,10 @@ function AmbientMesh() {
       className="pointer-events-none fixed inset-0 overflow-hidden"
       aria-hidden
     >
-      <div className="absolute -top-32 -left-24 w-[560px] h-[560px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.38),transparent_72%)] blur-[60px]" />
-      <div className="absolute top-1/3 -right-24 w-[520px] h-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[60px]" />
-      <div className="absolute -bottom-32 left-1/3 w-[500px] h-[500px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.28),transparent_72%)] blur-[70px]" />
+      <div className="absolute -top-32 -left-24 h-[560px] w-[560px] rounded-full bg-[radial-gradient(closest-side,rgba(255,181,124,0.38),transparent_72%)] blur-[60px]" />
+      <div className="absolute top-1/3 -right-24 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(255,138,82,0.3),transparent_70%)] blur-[60px]" />
+      <div className="absolute -bottom-32 left-1/3 h-[500px] w-[500px] rounded-full bg-[radial-gradient(closest-side,rgba(255,220,180,0.28),transparent_72%)] blur-[70px]" />
+      {/* dot grid — static decorative pattern */}
       <div
         className="absolute inset-0 opacity-[0.04] mix-blend-multiply"
         style={{
@@ -58,11 +56,11 @@ function AmbientMesh() {
 }
 
 const INPUT_BASE =
-  "w-full rounded-xl px-4 py-3 pr-11 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+  "w-full rounded-xl border border-transparent bg-bg px-4 py-3 pr-11 text-base text-text placeholder:text-subtle hover:border-border focus:border-accent/40 focus:bg-surface focus:outline-none focus:shadow-[0_0_0_4px_var(--color-accent)/0.08] sm:text-[14px] transition-all";
 const INPUT_ERROR =
-  "w-full rounded-xl px-4 py-3 pr-11 text-[14px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+  "w-full rounded-xl border border-rose/30 bg-rose-bg/50 px-4 py-3 pr-11 text-base text-text placeholder:text-subtle focus:border-rose focus:outline-none focus:shadow-[0_0_0_4px_var(--color-rose)/0.08] sm:text-[14px] transition-all";
 const LABEL_CLS =
-  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2";
+  "mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -81,22 +79,22 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="text-center space-y-5 py-2">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#FFCDCD] to-[#FF6B6B] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(255,107,107,0.45)]">
-          <AlertTriangle className="w-8 h-8 text-white" strokeWidth={2.2} />
+      <div className="space-y-5 py-2 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-bg to-rose shadow-[0_8px_20px_-6px_var(--color-rose)/0.45]">
+          <AlertTriangle className="h-8 w-8 text-white" strokeWidth={2.2} />
         </div>
         <div className="space-y-2">
-          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-[#0A0909]">
+          <h2 className="text-[20px] font-bold tracking-[-0.02em] text-text">
             Enlace inválido
           </h2>
-          <p className="text-[13.5px] text-[#6D6A63] leading-[1.6] max-w-[320px] mx-auto">
+          <p className="mx-auto max-w-[320px] text-[13.5px] leading-[1.6] text-muted">
             El enlace está incompleto o ya expiró. Solicitá uno nuevo desde la
             página de recuperación.
           </p>
         </div>
         <Link
           href="/forgot-password"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent no-underline transition-colors hover:opacity-75"
         >
           Solicitar un nuevo enlace
         </Link>
@@ -140,24 +138,24 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="text-center space-y-5 py-2">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#D3E9C7] to-[#1A8F3C] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(26,143,60,0.45)]">
-          <CheckCircle2 className="w-8 h-8 text-white" strokeWidth={2.2} />
+      <div className="space-y-5 py-2 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-bg to-green shadow-[0_8px_20px_-6px_var(--color-green)/0.45]">
+          <CheckCircle2 className="h-8 w-8 text-white" strokeWidth={2.2} />
         </div>
         <div className="space-y-2">
-          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909]">
+          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-text">
             ¡Contraseña actualizada!
           </h2>
-          <p className="text-[13.5px] text-[#6D6A63] leading-[1.6] max-w-[320px] mx-auto">
+          <p className="mx-auto max-w-[320px] text-[13.5px] leading-[1.6] text-muted">
             Tu contraseña fue cambiada correctamente. Te estamos redirigiendo al
             login…
           </p>
         </div>
         <div className="flex items-center justify-center gap-2 pt-1">
-          <span className="w-4 h-4 border-2 border-[#FF6A3D]/30 border-t-[#FF6A3D] rounded-full animate-spin" />
+          <span className="h-4 w-4 animate-[auth-spin_0.9s_linear_infinite] rounded-full border-2 border-accent/30 border-t-accent" />
           <Link
             href="/login"
-            className="text-[13px] font-semibold text-[#FF6A3D] hover:text-[#FF5A28] transition-colors"
+            className="text-[13px] font-semibold text-accent no-underline transition-opacity hover:opacity-75"
           >
             Ir al login ahora
           </Link>
@@ -169,13 +167,13 @@ function ResetPasswordForm() {
   return (
     <>
       <div className="mb-6 text-center">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(255,106,61,0.45)] mb-4">
-          <ShieldCheck className="w-7 h-7 text-white" strokeWidth={2.2} />
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-hi shadow-[0_8px_20px_-6px_var(--color-accent)/0.45]">
+          <ShieldCheck className="h-7 w-7 text-white" strokeWidth={2.2} />
         </div>
-        <h1 className="text-[22px] font-bold tracking-[-0.02em] text-[#0A0909]">
+        <h1 className="text-[22px] font-bold tracking-[-0.02em] text-text">
           Nueva contraseña
         </h1>
-        <p className="text-[13.5px] text-[#6D6A63] mt-1.5 leading-[1.55] max-w-[340px] mx-auto">
+        <p className="mx-auto mt-1.5 max-w-[340px] text-[13.5px] leading-[1.55] text-muted">
           Elegí una contraseña segura para tu cuenta empresa.
         </p>
       </div>
@@ -200,13 +198,13 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setShowPwd((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9891] hover:text-[#4A4843] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle transition-colors hover:text-text"
               aria-label={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPwd ? (
-                <EyeOff className="w-4 h-4" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="w-4 h-4" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           </div>
@@ -218,7 +216,7 @@ function ResetPasswordForm() {
                   <div
                     key={i}
                     className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                      strength >= i ? STRENGTH_BAR[strength] : "bg-[#F4F3EF]"
+                      strength >= i ? STRENGTH_BAR[strength] : "bg-faint"
                     }`}
                   />
                 ))}
@@ -229,7 +227,7 @@ function ResetPasswordForm() {
                 >
                   {STRENGTH_LABELS[strength]}
                 </p>
-                <p className="text-[10.5px] text-[#9B9891] tracking-[0.04em] uppercase">
+                <p className="text-[10.5px] uppercase tracking-[0.04em] text-subtle">
                   {strength}/4
                 </p>
               </div>
@@ -242,15 +240,13 @@ function ResetPasswordForm() {
                 ].map(([ok, label]) => (
                   <li
                     key={label as string}
-                    className={`text-[11.5px] flex items-center gap-1.5 ${
-                      ok ? "text-[#1A8F3C] font-medium" : "text-[#9B9891]"
+                    className={`flex items-center gap-1.5 text-[11.5px] ${
+                      ok ? "font-medium text-green" : "text-subtle"
                     }`}
                   >
                     <span
-                      className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-bold ${
-                        ok
-                          ? "bg-[#E7F8EA] text-[#1A8F3C]"
-                          : "bg-[#F4F3EF] text-[#C9C6BF]"
+                      className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-bold ${
+                        ok ? "bg-green-bg text-green" : "bg-faint/50 text-faint"
                       }`}
                     >
                       {ok ? "✓" : "·"}
@@ -277,6 +273,7 @@ function ResetPasswordForm() {
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="Repetí tu contraseña"
               disabled={loading}
+              aria-invalid={!!(confirm && confirm !== password)}
               className={
                 confirm && confirm !== password ? INPUT_ERROR : INPUT_BASE
               }
@@ -284,33 +281,36 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setShowConfirm((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B9891] hover:text-[#4A4843] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle transition-colors hover:text-text"
               aria-label={
                 showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"
               }
             >
               {showConfirm ? (
-                <EyeOff className="w-4 h-4" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="w-4 h-4" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           </div>
           {confirm && confirm !== password && (
-            <p className="mt-1.5 text-[12px] text-[#E24B2C] font-medium">
+            <p className="mt-1.5 text-[12px] font-medium text-rose">
               Las contraseñas no coinciden.
             </p>
           )}
           {confirm && confirm === password && strength === 4 && (
-            <p className="mt-1.5 text-[12px] text-[#1A8F3C] font-medium inline-flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Listo, coinciden.
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-medium text-green">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Listo, coinciden.
             </p>
           )}
         </div>
 
         {error && (
-          <div className="rounded-xl bg-[#FFF0ED] border border-[#FF6A3D]/20 px-4 py-3 text-[12.5px] text-[#A63418] flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-[#FF6A3D]" />
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-xl border border-rose/20 bg-rose-bg px-4 py-3 text-[12.5px] text-rose"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose" />
             <span>{error}</span>
           </div>
         )}
@@ -318,11 +318,11 @@ function ResetPasswordForm() {
         <button
           type="submit"
           disabled={loading || strength < 4 || password !== confirm}
-          className="group w-full bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] text-white py-3.5 rounded-xl font-semibold text-[14px] shadow-[0_8px_20px_-6px_rgba(255,106,61,0.5)] hover:shadow-[0_12px_28px_-8px_rgba(255,106,61,0.6)] hover:from-[#FF5A28] hover:to-[#FF8A52] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-accent to-accent-hi px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_var(--color-accent)/0.5] transition-all hover:shadow-[0_12px_28px_-8px_var(--color-accent)/0.6] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
             <>
-              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              <span className="h-4 w-4 animate-[auth-spin_0.9s_linear_infinite] rounded-full border-2 border-white/40 border-t-white" />
               Actualizando…
             </>
           ) : (
@@ -331,12 +331,12 @@ function ResetPasswordForm() {
         </button>
       </form>
 
-      <div className="mt-6 pt-5 border-t border-black/[0.05] text-center">
+      <div className="mt-6 border-t border-border pt-5 text-center">
         <Link
           href="/login"
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#FF6A3D] transition-colors"
+          className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted no-underline transition-colors hover:text-accent"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
+          <ArrowLeft className="h-3.5 w-3.5" />
           Volver al login
         </Link>
       </div>
@@ -346,32 +346,29 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div
-      className="min-h-screen bg-[#FAFAF8] text-[#0A0909] relative overflow-hidden"
-      style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-    >
+    <div className="relative min-h-screen overflow-hidden bg-bg text-text">
       <AmbientMesh />
 
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-10">
+      <div className="relative flex min-h-screen flex-col items-center justify-center px-4 py-10">
         <Link
           href="/"
-          className="mb-8 inline-flex items-center gap-2 text-[17px] font-bold tracking-[-0.02em] text-[#0A0909] hover:opacity-80 transition-opacity"
+          className="mb-8 inline-flex items-center gap-2 text-[17px] font-bold tracking-[-0.02em] text-text no-underline transition-opacity hover:opacity-80"
         >
-          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] flex items-center justify-center text-white text-[13px] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.4)]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-hi text-[13px] text-white shadow-[0_4px_12px_-2px_var(--color-accent)/0.4]">
             P
           </span>
           Practi
-          <span className="bg-gradient-to-r from-[#FF6A3D] to-[#FF9B6A] bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-accent to-accent-hi bg-clip-text text-transparent">
             X
           </span>
         </Link>
 
         <div className="w-full max-w-[440px]">
-          <div className="bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] p-5 sm:p-8">
+          <div className="rounded-[20px] border border-border bg-surface p-5 shadow-[0_12px_40px_-12px_rgba(20,15,10,0.12),0_2px_8px_-2px_rgba(20,15,10,0.04)] sm:rounded-[24px] sm:p-8">
             <Suspense
               fallback={
-                <div className="h-40 flex items-center justify-center">
-                  <div className="w-7 h-7 border-2 border-[#FF6A3D]/30 border-t-[#FF6A3D] rounded-full animate-spin" />
+                <div className="flex h-40 items-center justify-center">
+                  <div className="h-7 w-7 animate-[auth-spin_0.9s_linear_infinite] rounded-full border-2 border-accent/30 border-t-accent" />
                 </div>
               }
             >
@@ -379,7 +376,7 @@ export default function ResetPasswordPage() {
             </Suspense>
           </div>
 
-          <p className="mt-6 text-center text-[11.5px] text-[#9B9891]">
+          <p className="mt-6 text-center text-[11.5px] text-subtle">
             © {new Date().getFullYear()} PractiX · Hecho con cuidado en Chile
           </p>
         </div>

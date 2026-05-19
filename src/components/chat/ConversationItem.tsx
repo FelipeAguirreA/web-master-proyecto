@@ -61,12 +61,11 @@ export default function ConversationItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 border-b border-[#E8E5DD] transition-colors relative ${
-        isActive ? "bg-[#FFF0E4]/60" : "hover:bg-[rgba(15,23,42,0.025)]"
+      className={`w-full text-left px-4 py-3 border-b border-[#E8E5DD] transition-colors relative border-l-[3px] ${
+        isActive
+          ? "bg-[#FFF0E4]/60 border-l-[#FF6A3D]"
+          : "hover:bg-[rgba(15,23,42,0.025)] border-l-transparent"
       }`}
-      style={{
-        borderLeft: `3px solid ${isActive ? "#FF6A3D" : "transparent"}`,
-      }}
     >
       <div className="flex gap-2.5">
         <div className="flex-shrink-0">
@@ -107,7 +106,9 @@ export default function ConversationItem({
           </div>
           <div
             className="text-[10.5px] font-bold mb-1 truncate"
-            style={{ color: stage.color }}
+            style={{
+              color: stage.color,
+            }} /* dynamic: runtime pipelineStatus hex from stageMeta */
           >
             {c.internshipTitle}
           </div>

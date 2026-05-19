@@ -15,7 +15,8 @@ export async function applyToInternship(
     },
   });
 
-  if (!internship) throw new Error("Internship not found");
+  if (!internship || internship.deletedAt)
+    throw new Error("Internship not found");
   if (!internship.isActive) throw new Error("Internship is not active");
 
   try {
@@ -140,6 +141,9 @@ export async function getApplicantsByInternship(
 
   if (!company) throw new Error("Not found or not authorized");
 
+  // No filtramos deletedAt acá: el ATS de una práctica eliminada debe seguir
+  // mostrando aplicaciones existentes (historial preservado). Si la práctica
+  // fue soft-deleted, la empresa puede volver a verla en la tab "Eliminadas".
   const internship = await prisma.internship.findFirst({
     where: { id: internshipId, companyId: company.id },
   });

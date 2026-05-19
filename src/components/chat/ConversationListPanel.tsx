@@ -89,6 +89,12 @@ export default function ConversationListPanel({
         <div className="relative mb-2.5">
           <Search className="w-3.5 h-3.5 absolute left-[11px] top-1/2 -translate-y-1/2 text-[#9B9891]" />
           <input
+            id="inbox-search"
+            name="inbox-search"
+            type="search"
+            role="searchbox"
+            aria-label="Buscar conversaciones"
+            autoComplete="off"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar conversaciones…"

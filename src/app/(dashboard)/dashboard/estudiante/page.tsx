@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
-import { D } from "@/components/dashboard/tokens";
 import { Welcome } from "@/components/dashboard/sections/Welcome";
 import { SectionHead } from "@/components/dashboard/sections/SectionHead";
 import {
@@ -40,6 +39,14 @@ import {
 } from "@/components/dashboard/companyColors";
 import { useNotifications } from "@/hooks/useNotifications";
 import { computeCvProgress, computeCompleteness } from "@/lib/cv-progress";
+import {
+  toPracticaCard,
+  buildPipeline,
+  notifToActivity,
+  relativeTime,
+} from "./utils";
+
+// ─── API Types ────────────────────────────────────────────────────────────────
 
 type ApiInternship = {
   id: string;
@@ -119,152 +126,7 @@ type ApiConversation = {
   updatedAt: string;
 };
 
-const MODALITY_LABEL: Record<string, string> = {
-  REMOTE: "Remoto",
-  ONSITE: "Presencial",
-  HYBRID: "Híbrido",
-};
-
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "hace un rato";
-  const diff = Date.now() - then;
-  const mins = Math.round(diff / 60000);
-  if (mins < 1) return "hace un instante";
-  if (mins < 60) return `hace ${mins} min`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `hace ${hrs} h`;
-  const days = Math.round(hrs / 24);
-  if (days === 1) return "ayer";
-  if (days < 7) return `hace ${days} días`;
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "numeric",
-    month: "short",
-  });
-}
-
-function toPracticaCard(it: ApiInternship): PracticaCardData {
-  const co = it.company.companyName;
-  const color = companyColor(co);
-  const score = Math.round(it.matchScore ?? 0);
-  const top =
-    score >= 95
-      ? "Top 5%"
-      : score >= 90
-        ? "Top 10%"
-        : score >= 80
-          ? "Top 20%"
-          : null;
-  const mode = `${MODALITY_LABEL[it.modality] ?? it.modality} · ${it.location}`;
-  const isNew = it.createdAt
-    ? Date.now() - new Date(it.createdAt).getTime() < 7 * 24 * 3600 * 1000
-    : false;
-  return {
-    id: it.id,
-    co,
-    logo: companyInitials(co),
-    logoUrl: it.company.logo ?? null,
-    logoBg: color.bg,
-    logoFg: color.fg,
-    title: it.title,
-    description: it.description ?? null,
-    mode,
-    salary: null,
-    dur: it.duration,
-    score,
-    top,
-    tags: (it.skills ?? []).slice(0, 4),
-    deadline: null,
-    applicants: null,
-    isNew,
-    ai: null,
-  };
-}
-
-function applicationToPipelineItem(a: ApiApplication): PipelineItem {
-  const co = a.internship.company.companyName;
-  const color = companyColor(co);
-  return {
-    id: a.id,
-    co,
-    logo: companyInitials(co),
-    logoUrl: a.internship.company.logo ?? null,
-    logoBg: color.bg,
-    logoFg: color.fg,
-    title: a.internship.title,
-    ago: relativeTime(a.createdAt),
-  };
-}
-
-function stageFor(a: ApiApplication): PipelineColumn["stage"] | "Rechazada" {
-  if (a.status === "ACCEPTED") return "Oferta";
-  if (a.status === "REJECTED") return "Rechazada";
-  if (a.pipelineStatus === "INTERVIEW") return "Entrevista";
-  if (a.pipelineStatus === "REVIEWING" || a.status === "REVIEWED")
-    return "En revisión";
-  return "Postulé";
-}
-
-function buildPipeline(apps: ApiApplication[]): PipelineColumn[] {
-  const stages: PipelineColumn["stage"][] = [
-    "Postulé",
-    "En revisión",
-    "Entrevista",
-    "Oferta",
-  ];
-  const grouped: Record<string, ApiApplication[]> = {
-    Postulé: [],
-    "En revisión": [],
-    Entrevista: [],
-    Oferta: [],
-  };
-  for (const a of apps) {
-    const s = stageFor(a);
-    if (s !== "Rechazada") grouped[s].push(a);
-  }
-  return stages.map((stage) => ({
-    stage,
-    count: grouped[stage].length,
-    items: grouped[stage].map(applicationToPipelineItem),
-  }));
-}
-
-function notifToActivity(n: {
-  id: string;
-  type: string;
-  title: string;
-  body: string;
-  createdAt: string;
-}): ActivityItem {
-  let icon = "✓";
-  let color: string = D.green;
-  let bg: string = D.greenBg;
-  if (n.type === "APPLICATION_ACCEPTED") {
-    icon = "★";
-    color = D.accent;
-    bg = D.accentBg;
-  } else if (n.type === "APPLICATION_REJECTED") {
-    icon = "✗";
-    color = D.rose;
-    bg = D.roseBg;
-  } else if (n.type === "APPLICATION_REVIEWED") {
-    icon = "✓";
-    color = D.blue;
-    bg = D.blueBg;
-  }
-  return {
-    id: n.id,
-    icon,
-    color,
-    bg,
-    text: (
-      <span>
-        <b>{n.title}</b> · {n.body}
-      </span>
-    ),
-    when: relativeTime(n.createdAt),
-  };
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function StudentDashboard() {
   const { data: session } = useSession();
@@ -321,6 +183,10 @@ export default function StudentDashboard() {
       .catch(() => setSavedInternships([]));
   }, [session]);
 
+  // ─── Derived state ──────────────────────────────────────────────────────────
+
+  const hasCv = Boolean(user?.studentProfile?.cvUrl);
+
   const savedCards = useMemo(
     () => savedInternships.slice(0, 6).map(toPracticaCard),
     [savedInternships],
@@ -343,13 +209,10 @@ export default function StudentDashboard() {
     return top.matchScore && top.matchScore > 0 ? top : null;
   }, [recs]);
 
-  // Próxima entrevista: apps con Interview SCHEDULED EN EL FUTURO, ordenadas
-  // por scheduledAt asc. Si ninguna futura, cae a la app más reciente en
-  // pipelineStatus INTERVIEW. Filtrar por "futura" es necesario porque hay
-  // Interviews SCHEDULED viejas que nunca se marcan COMPLETED y se gana al
-  // sort, mostrando entrevistas pasadas como "próximas".
+  // Próxima entrevista: SCHEDULED en el futuro ordenadas por scheduledAt asc.
+  // Si ninguna futura, cae a la más reciente en pipelineStatus INTERVIEW.
   const interviewApp = useMemo(() => {
-    // eslint-disable-next-line react-hooks/purity
+    // eslint-disable-next-line react-hooks/purity -- intencional: recalcula con la hora actual en cada render para que las entrevistas que pasaron del momento se filtren correctamente sin esperar un poll.
     const now = Date.now();
     const futures = apps
       .filter(
@@ -428,15 +291,11 @@ export default function StudentDashboard() {
     });
   }, [conversations]);
 
-  // Mismo cálculo que /perfil (CompletenessCard) — fuente única en cv-progress.ts.
   const cvPct = computeCvProgress(user);
-  // Tips priorizados: pendientes primero, luego done. Top 4 por puntos.
   const cvTips: CVTip[] = useMemo(() => {
     const items = computeCompleteness(user);
     const sorted = [...items].sort((a, b) => {
-      // pendientes (done=false) primero
       if (a.done !== b.done) return a.done ? 1 : -1;
-      // dentro del mismo grupo, mayor pts primero
       return b.pts - a.pts;
     });
     return sorted.slice(0, 4).map((it) => ({
@@ -455,16 +314,10 @@ export default function StudentDashboard() {
     (a) => a.pipelineStatus === "INTERVIEW",
   ).length;
 
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <div
-      style={{
-        padding: "24px 28px",
-        maxWidth: 1280,
-        margin: "0 auto",
-        width: "100%",
-      }}
-      className="practix-student-root"
-    >
+    <div className="px-4 py-[18px] sm:px-7 sm:py-6 max-w-[1280px] mx-auto w-full">
       <Welcome
         firstName={firstName}
         highMatches={highMatches}
@@ -478,23 +331,11 @@ export default function StudentDashboard() {
         interviewsCount={interviewsCount}
       />
 
-      <div
-        className="practix-student-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 320px",
-          gap: 24,
-          alignItems: "flex-start",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 28,
-            minWidth: 0,
-          }}
-        >
+      {/* Main grid: content izq + rail der */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        {/* Left column */}
+        <div className="flex flex-col gap-7 min-w-0">
+          {/* Recomendadas */}
           <section>
             <SectionHead
               title="Recomendadas para ti"
@@ -510,95 +351,45 @@ export default function StudentDashboard() {
               action={{ label: "Ver todas", href: "/practicas" }}
             />
             {recsLoading ? (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2,1fr)",
-                  gap: 14,
-                }}
-                className="practix-recs-grid"
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {[0, 1, 2, 3].map((i) => (
                   <PracticaCardSkeleton key={i} />
                 ))}
               </div>
             ) : recsError ? (
-              <div
-                style={{
-                  background: D.surface,
-                  border: `1px solid ${D.rose}25`,
-                  borderRadius: 16,
-                  padding: 24,
-                  textAlign: "center",
-                  color: D.rose,
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                }}
-              >
-                <p style={{ fontWeight: 700, marginBottom: 4 }}>
+              <div className="bg-surface border border-rose/20 rounded-[16px] p-6 text-center text-rose text-[13px] leading-[1.6]">
+                <p className="font-bold mb-1">
                   No pudimos cargar recomendaciones
                 </p>
-                <p style={{ color: D.muted, fontWeight: 500 }}>{recsError}</p>
+                <p className="text-muted font-medium">{recsError}</p>
               </div>
             ) : cards.length === 0 ? (
-              <div
-                style={{
-                  background: D.surface,
-                  border: `1px dashed ${D.border}`,
-                  borderRadius: 16,
-                  padding: 32,
-                  textAlign: "center",
-                  color: D.muted,
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                }}
-              >
+              <div className="bg-surface border border-dashed border-border rounded-[16px] p-8 text-center text-muted text-[13px] leading-[1.6]">
                 {hasCv ? (
                   <>
-                    <p
-                      style={{
-                        color: D.text,
-                        fontWeight: 600,
-                        marginBottom: 6,
-                      }}
-                    >
+                    <p className="text-text font-semibold mb-1.5">
                       Sin matches por ahora
                     </p>
                     Tu CV ya está procesado. Esto puede ser porque hay pocas
                     prácticas activas, o porque las que hay todavía no se
                     indexaron. Probá{" "}
-                    <Link
-                      href="/practicas"
-                      style={{ color: D.accent, fontWeight: 700 }}
-                    >
+                    <Link href="/practicas" className="text-accent font-bold">
                       ver todas las prácticas
                     </Link>{" "}
                     o actualizar tu CV en{" "}
-                    <Link
-                      href="/perfil"
-                      style={{ color: D.accent, fontWeight: 700 }}
-                    >
+                    <Link href="/perfil" className="text-accent font-bold">
                       tu perfil
                     </Link>
                     .
                   </>
                 ) : (
                   <>
-                    <p
-                      style={{
-                        color: D.text,
-                        fontWeight: 600,
-                        marginBottom: 6,
-                      }}
-                    >
+                    <p className="text-text font-semibold mb-1.5">
                       Aún no subís tu CV
                     </p>
                     Cuando lo subas, vas a ver acá las prácticas que mejor
                     calzan con tu perfil.{" "}
-                    <a
-                      href="/perfil"
-                      style={{ color: D.accent, fontWeight: 700 }}
-                    >
+                    <a href="/perfil" className="text-accent font-bold">
                       Ir al perfil
                     </a>
                   </>
@@ -607,18 +398,11 @@ export default function StudentDashboard() {
             ) : (
               <>
                 {featured && (
-                  <div style={{ marginBottom: 14 }}>
+                  <div className="mb-3.5">
                     <PracticaCard p={featured} featured />
                   </div>
                 )}
-                <div
-                  className="practix-recs-grid"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2,1fr)",
-                    gap: 14,
-                  }}
-                >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {rest.map((p) => (
                     <PracticaCard key={p.id} p={p} />
                   ))}
@@ -627,6 +411,7 @@ export default function StudentDashboard() {
             )}
           </section>
 
+          {/* Guardadas */}
           {savedCards.length > 0 && (
             <section>
               <SectionHead
@@ -634,14 +419,7 @@ export default function StudentDashboard() {
                 sub={`${savedInternships.length} práctica${savedInternships.length === 1 ? "" : "s"} que marcaste para revisar después`}
                 action={{ label: "Ver todas", href: "/practicas/guardadas" }}
               />
-              <div
-                className="practix-recs-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2,1fr)",
-                  gap: 14,
-                }}
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {savedCards.map((p) => (
                   <PracticaCard key={p.id} p={p} />
                 ))}
@@ -649,6 +427,7 @@ export default function StudentDashboard() {
             </section>
           )}
 
+          {/* Pipeline */}
           {appsLoading ? (
             <PipelineSkeleton />
           ) : (
@@ -659,16 +438,8 @@ export default function StudentDashboard() {
           )}
         </div>
 
-        <aside
-          className="practix-student-rail"
-          style={{
-            position: "sticky",
-            top: 80,
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
+        {/* Right rail — sticky en desktop, fluido en mobile */}
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
           <NextInterview interview={interview} />
           <InboxPanel
             messages={inboxMessages}
@@ -679,15 +450,7 @@ export default function StudentDashboard() {
         </aside>
       </div>
 
-      <style>{`
-        @media (max-width:900px) {
-          .practix-student-grid { grid-template-columns: 1fr !important; }
-          .practix-student-rail { position: static !important; }
-          .practix-recs-grid { grid-template-columns: 1fr !important; }
-          .practix-student-root { padding: 18px 16px !important; }
-        }
-      `}</style>
-
+      {/* Modal de detalle de postulación */}
       {selectedAppId &&
         (() => {
           const selected = apps.find((a) => a.id === selectedAppId);

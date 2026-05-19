@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 import { Icon } from "../Icon";
 import { CoLogo } from "../atoms/CoLogo";
 
@@ -26,55 +25,16 @@ export function NextInterview({
 }) {
   if (!interview) {
     return (
-      <section
-        style={{
-          background: D.surface,
-          border: `1px solid ${D.border}`,
-          borderRadius: 18,
-          padding: 18,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-          }}
-        >
-          <span
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              background: D.accentBg,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon name="cal" size={15} color={D.accent} />
+      <section className="bg-surface border border-border rounded-[18px] p-[18px] flex flex-col gap-2">
+        <div className="flex items-center gap-[9px]">
+          <span className="w-[30px] h-[30px] rounded-[9px] bg-accent-bg flex items-center justify-center">
+            <Icon name="cal" size={15} color="var(--color-accent)" />
           </span>
-          <h3
-            style={{
-              fontSize: 14,
-              fontWeight: 800,
-              color: D.text,
-              letterSpacing: -0.3,
-            }}
-          >
+          <h3 className="text-[14px] font-extrabold text-text tracking-[-0.3px]">
             Sin entrevistas próximas
           </h3>
         </div>
-        <p
-          style={{
-            fontSize: 12,
-            color: D.muted,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="text-[12px] text-muted leading-[1.5]">
           Cuando una empresa te agende una entrevista, vas a verla acá.
         </p>
       </section>
@@ -82,72 +42,23 @@ export function NextInterview({
   }
 
   return (
-    <section
-      style={{
-        background: D.dark,
-        color: "#fff",
-        borderRadius: 18,
-        padding: 18,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          bottom: -40,
-          right: -30,
-          width: 180,
-          height: 180,
-          background: `radial-gradient(circle, ${D.accent}40, transparent 60%)`,
-          filter: "blur(20px)",
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 10,
-          }}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: D.accent,
-              animation: "pulseDot 1.5s ease infinite",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: 0.6,
-              color: D.accentHi,
-              textTransform: "uppercase",
-            }}
-          >
+    <section className="bg-dark text-white rounded-[18px] p-[18px] relative overflow-hidden">
+      {/* Glow de fondo — radial con token de accent */}
+      <div className="absolute -bottom-10 -right-[30px] w-[180px] h-[180px] pointer-events-none blur-[20px] [background:radial-gradient(circle,color-mix(in_srgb,var(--color-accent)_25%,transparent)_0%,transparent_60%)]" />
+
+      <div className="relative">
+        {/* Label "Próxima entrevista" con punto animado */}
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-[pulseDot_1.5s_ease_infinite]" />
+          <span className="text-[10px] font-extrabold tracking-[0.6px] text-accent-hi uppercase">
             Próxima entrevista
           </span>
         </div>
-        {/* Header clickeable → detalle de la práctica.
-            Fecha (whenLabel) a la izquierda de la flecha. */}
+
+        {/* Header clickeable → detalle de la práctica */}
         <Link
           href={`/practicas/${interview.internshipId}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 14,
-            textDecoration: "none",
-            color: "inherit",
-            borderRadius: 10,
-            padding: "4px 0",
-          }}
+          className="flex items-center gap-3 mb-3.5 no-underline text-inherit rounded-[10px] py-1"
           aria-label={`Ver detalle de ${interview.role} en ${interview.co}`}
         >
           <CoLogo
@@ -157,80 +68,40 @@ export function NextInterview({
             logoFg={interview.logoFg}
             size={42}
           />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h3
-              style={{
-                fontSize: 15.5,
-                fontWeight: 800,
-                letterSpacing: -0.3,
-              }}
-            >
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15.5px] font-extrabold tracking-[-0.3px]">
               {interview.co}
             </h3>
-            <p
-              style={{
-                fontSize: 12,
-                color: "rgba(255,255,255,.6)",
-                marginTop: 1,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+            <p className="text-[12px] text-white/60 mt-px truncate">
               {interview.role}
               {interview.duration ? ` · ${interview.duration}` : ""}
             </p>
           </div>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "rgba(255,255,255,.7)",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
+          <span className="text-[11px] font-bold text-white/70 whitespace-nowrap shrink-0">
             {interview.whenLabel}
           </span>
-          <Icon name="arr" size={14} color="rgba(255,255,255,.45)" sw={2.2} />
+          <Icon
+            name="arr"
+            size={14}
+            color="rgba(255,255,255,.45)"
+            strokeWidth={2.2}
+          />
         </Link>
+
         {(interview.timeLabel || interview.channelLabel) && (
-          <div
-            style={{
-              display: "flex",
-              gap: 14,
-              padding: "10px 12px",
-              background: "rgba(255,255,255,.05)",
-              border: "1px solid rgba(255,255,255,.08)",
-              borderRadius: 11,
-              marginBottom: 12,
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="flex gap-3.5 flex-wrap px-3 py-2.5 bg-white/5 border border-white/[.08] rounded-[11px] mb-3">
             {interview.timeLabel && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                }}
-              >
+              <div className="flex items-center gap-[7px]">
                 <Icon name="clock" size={13} color="rgba(255,255,255,.7)" />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>
+                <span className="text-[12px] font-semibold">
                   {interview.timeLabel}
                 </span>
               </div>
             )}
             {interview.channelLabel && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                }}
-              >
+              <div className="flex items-center gap-[7px]">
                 <Icon name="video" size={13} color="rgba(255,255,255,.7)" />
-                <span style={{ fontSize: 12, fontWeight: 600 }}>
+                <span className="text-[12px] font-semibold">
                   {interview.channelLabel}
                 </span>
               </div>

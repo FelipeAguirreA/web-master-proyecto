@@ -1,4 +1,4 @@
-import { C } from "./tokens";
+import type { CSSProperties } from "react";
 
 const COMPANIES = [
   { name: "Falabella", ini: "F", c: "#007A33", tc: "#fff" },
@@ -18,110 +18,34 @@ const COMPANIES = [
 export function LandingLogoWall() {
   const all = [...COMPANIES, ...COMPANIES];
   return (
-    <div
-      style={{
-        background: C.bgAlt,
-        borderBottom: `1px solid ${C.border}`,
-        padding: "32px 0",
-        overflow: "hidden",
-      }}
-    >
-      <p
-        style={{
-          textAlign: "center",
-          fontSize: 10.5,
-          fontWeight: 700,
-          letterSpacing: 2.2,
-          textTransform: "uppercase",
-          color: C.subtle,
-          marginBottom: 24,
-        }}
-      >
+    <div className="bg-surface border-b border-border py-8 overflow-hidden">
+      <p className="text-center text-[10.5px] font-bold tracking-[2.2px] uppercase text-subtle mb-6">
         Empresas con prácticas activas
       </p>
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 120,
-            background: `linear-gradient(to right,${C.bgAlt},transparent)`,
-            zIndex: 1,
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 120,
-            background: `linear-gradient(to left,${C.bgAlt},transparent)`,
-            zIndex: 1,
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            animation: "marquee 40s linear infinite",
-            width: "max-content",
-          }}
-        >
+      <div className="relative">
+        {/* fade left */}
+        <div className="absolute left-0 top-0 bottom-0 w-[120px] bg-gradient-to-r from-surface to-transparent z-10 pointer-events-none" />
+        {/* fade right */}
+        <div className="absolute right-0 top-0 bottom-0 w-[120px] bg-gradient-to-l from-surface to-transparent z-10 pointer-events-none" />
+        <div className="flex gap-[10px] w-max [animation:marquee_40s_linear_infinite]">
           {all.map((co, i) => (
             <div
               key={i}
-              className="practix-logo-chip"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 12,
-                padding: "9px 17px",
-                flexShrink: 0,
-                transition: "border-color .2s,box-shadow .2s",
-              }}
+              className="flex items-center gap-[9px] bg-surface border border-border rounded-xl px-[17px] py-[9px] shrink-0 transition-[border-color,box-shadow] duration-200 hover:border-border-hi hover:shadow-[0_4px_16px_rgba(0,0,0,.07)]"
             >
               <span
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 6,
-                  background: co.c,
-                  color: co.tc,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 9,
-                  fontWeight: 800,
-                  flexShrink: 0,
-                }}
+                className="w-6 h-6 rounded-[6px] flex items-center justify-center text-[9px] font-extrabold shrink-0"
+                style={{ background: co.c, color: co.tc } as CSSProperties}
               >
                 {co.ini}
               </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: C.text,
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <span className="text-[13px] font-semibold text-text whitespace-nowrap">
                 {co.name}
               </span>
             </div>
           ))}
         </div>
       </div>
-      <style>{`
-        .practix-logo-chip:hover { border-color: rgba(0,0,0,.14) !important; box-shadow: 0 4px 16px rgba(0,0,0,.07); }
-      `}</style>
     </div>
   );
 }

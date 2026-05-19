@@ -55,24 +55,24 @@ export default function MyRightsCard() {
     <>
       <section
         aria-labelledby="my-rights-title"
-        className="rounded-2xl bg-white border border-black/[0.06] p-6 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08)]"
+        className="rounded-2xl bg-surface border border-border p-4 sm:p-5 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08)]"
       >
         <div className="flex items-center gap-2 mb-1">
-          <ShieldCheck className="w-4 h-4 text-[#FF6A3D]" />
+          <ShieldCheck className="w-4 h-4 text-accent" />
           <h2
             id="my-rights-title"
-            className="text-[15px] font-semibold text-[#0A0909]"
+            className="text-[15px] font-semibold text-text"
           >
             Tus derechos sobre tus datos
           </h2>
         </div>
-        <p className="text-[12.5px] text-[#6D6A63] leading-[1.55] mb-5">
+        <p className="text-[12.5px] text-muted leading-[1.55] mb-5">
           La{" "}
           <Link
             href="/privacidad"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#FF6A3D] hover:underline"
+            className="text-accent hover:underline"
           >
             Ley 21.719
           </Link>{" "}
@@ -80,7 +80,7 @@ export default function MyRightsCard() {
           datos personales. Para consultas o reclamos:{" "}
           <a
             href="mailto:soporte@practix.cl"
-            className="text-[#FF6A3D] hover:underline"
+            className="text-accent hover:underline"
           >
             soporte@practix.cl
           </a>
@@ -91,7 +91,7 @@ export default function MyRightsCard() {
           <button
             type="button"
             onClick={handleExport}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-black/[0.08] text-[13px] font-semibold text-[#0A0909] hover:bg-[#FAF8F4] transition-colors"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-border-hi text-[13px] font-semibold text-text hover:bg-bg transition-colors"
           >
             <Download className="w-4 h-4" />
             Descargar mis datos
@@ -103,7 +103,7 @@ export default function MyRightsCard() {
               setDeleteError(null);
               setShowDeleteModal(true);
             }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#C74A1E]/30 text-[13px] font-semibold text-[#C74A1E] hover:bg-[#FFF0ED] transition-colors"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl border border-rose/30 text-[13px] font-semibold text-rose hover:bg-rose-bg transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             Eliminar mi cuenta
@@ -116,28 +116,28 @@ export default function MyRightsCard() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-modal-title"
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-dark/40 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !deleting) {
               setShowDeleteModal(false);
             }
           }}
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-2xl">
             <h3
               id="delete-modal-title"
-              className="text-[16px] font-semibold text-[#0A0909]"
+              className="text-[16px] font-semibold text-text"
             >
               Eliminar cuenta — acción irreversible
             </h3>
-            <p className="mt-2 text-[13px] text-[#4A4843] leading-[1.55]">
+            <p className="mt-2 text-[13px] text-muted leading-[1.55]">
               Vas a eliminar tu cuenta de PractiX y todos tus datos: perfil,
               postulaciones, mensajes, entrevistas y CV. Esta acción no se puede
               deshacer.
             </p>
-            <p className="mt-3 text-[13px] text-[#4A4843]">
+            <p className="mt-3 text-[13px] text-muted">
               Para confirmar, escribí{" "}
-              <span className="font-mono font-semibold text-[#C74A1E]">
+              <span className="font-mono font-semibold text-rose">
                 {CONFIRM_PHRASE}
               </span>{" "}
               en el campo de abajo:
@@ -150,17 +150,17 @@ export default function MyRightsCard() {
               autoFocus
               disabled={deleting}
               aria-label="Confirmación de eliminación de cuenta"
-              className="mt-3 w-full rounded-xl px-4 py-2.5 text-[14px] bg-[#FAFAF8] border border-black/[0.08] focus:outline-none focus:border-[#C74A1E]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(199,74,30,0.08)] font-mono"
+              className="mt-3 w-full rounded-xl px-4 py-2.5 text-[14px] bg-bg border border-border focus:outline-none focus:border-rose/40 focus:bg-surface focus:shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-rose)_8%,transparent)] font-mono"
             />
             {deleteError && (
-              <p className="mt-3 text-[12.5px] text-[#C74A1E]">{deleteError}</p>
+              <p className="mt-3 text-[12.5px] text-rose">{deleteError}</p>
             )}
             <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2.5 sm:justify-end">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-lg text-[12.5px] font-semibold text-[#0A0909] hover:bg-[#FAF8F4] transition-colors disabled:opacity-60"
+                className="min-h-[44px] px-4 py-2 rounded-lg text-[12.5px] font-semibold text-text hover:bg-bg transition-colors disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -168,7 +168,7 @@ export default function MyRightsCard() {
                 type="button"
                 disabled={!canConfirmDelete || deleting}
                 onClick={handleDelete}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#C74A1E] text-white text-[12.5px] font-semibold hover:bg-[#A63418] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-rose text-white text-[12.5px] font-semibold hover:bg-rose/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleting ? (
                   <>

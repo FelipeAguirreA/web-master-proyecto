@@ -445,13 +445,16 @@ export async function getAvailableCandidates(
   internshipId: string,
   companyUserId: string,
 ) {
-  // Verificar que la práctica pertenece a esta empresa
+  // Verificar que la práctica pertenece a esta empresa Y no fue soft-deleted
+  // (no podés agendar entrevistas sobre una práctica eliminada).
   const internship = await prisma.internship.findUnique({
     where: { id: internshipId },
     include: { company: { select: { userId: true } } },
   });
 
-  if (!internship) throw interviewError("NOT_FOUND", "Internship not found");
+  if (!internship || internship.deletedAt) {
+    throw interviewError("NOT_FOUND", "Internship not found");
+  }
   if (internship.company.userId !== companyUserId) {
     throw interviewError("NOT_FOUND", "Internship not found");
   }

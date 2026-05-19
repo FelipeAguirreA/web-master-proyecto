@@ -6,7 +6,7 @@
   --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
 
-  /* Brand — azul */
+  /* Brand — azul (legacy, usado por ATSToggle) */
   --color-brand-50: #eef7ff;
   --color-brand-100: #d9edff;
   --color-brand-200: #bce0ff;
@@ -19,10 +19,75 @@
   --color-brand-900: #193e8d;
   --color-brand-950: #142756;
 
-  /* Accent — naranja */
-  --color-accent-400: #fb923c;
-  --color-accent-500: #f97316;
-  --color-accent-600: #ea580c;
+  /* ───────────────────────────────────────────────
+   * Warm Tech palette — paleta D por defecto
+   * (estudiante + páginas públicas + landing).
+   * El dashboard empresa la sobreescribe con paleta E
+   * usando [data-palette="company"] más abajo.
+   * Estos tokens generan utilities: bg-bg, text-text,
+   * border-border-hi, bg-accent, text-accent-hi, etc.
+   * ─────────────────────────────────────────────── */
+  --color-bg: #fafaf8;
+  --color-surface: #ffffff;
+  --color-cream: #fff8f2;
+  --color-dark: #0c0a08;
+  --color-border: rgba(0, 0, 0, 0.07);
+  --color-border-hi: rgba(0, 0, 0, 0.12);
+  --color-text: #0a0909;
+  --color-muted: #6d6a63;
+  --color-subtle: #9b9891;
+  --color-faint: #c8c5bd;
+  --color-accent: #ff6a3d;
+  --color-accent-hi: #ff9b6a;
+  --color-accent-lo: #ffd4b8;
+  --color-accent-bg: #fff3ec;
+  --color-accent-bdr: rgba(255, 106, 61, 0.18);
+  --color-green: #1a8f3c;
+  --color-green-bg: #e7f8ea;
+  --color-blue: #3d5aff;
+  --color-blue-bg: #e4ecff;
+  --color-purple: #8247e5;
+  --color-purple-bg: #f0e7fc;
+  --color-amber: #c89000;
+  --color-amber-bg: #fff4d6;
+  --color-rose: #c74a1e;
+  --color-rose-bg: #ffe9e0;
+}
+
+/* ───────────────────────────────────────────────
+ * Override de paleta para contextos B2B (empresa).
+ * El layout de dashboard agrega data-palette="company"
+ * cuando el role es COMPANY. Los mismos tokens del @theme
+ * se reescriben con los valores de la paleta E, así
+ * las utilities bg-accent / text-text / etc. pintan azul
+ * automáticamente sin tocar los componentes.
+ * ─────────────────────────────────────────────── */
+[data-palette="company"] {
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-cream: #eef3fe;
+  --color-dark: #0b1b3f;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-hi: rgba(15, 23, 42, 0.14);
+  --color-text: #0f172a;
+  --color-muted: #475569;
+  --color-subtle: #94a3b8;
+  --color-faint: #cbd5e1;
+  --color-accent: #2c5cfa;
+  --color-accent-hi: #4a78ff;
+  --color-accent-lo: #b8c9ff;
+  --color-accent-bg: #eef2ff;
+  --color-accent-bdr: rgba(44, 92, 250, 0.18);
+  --color-green: #0e8a4a;
+  --color-green-bg: #dff6e8;
+  --color-blue: #0ea5e9;
+  --color-blue-bg: #e0f2fe;
+  --color-purple: #7c3aed;
+  --color-purple-bg: #ede9fe;
+  --color-amber: #b45309;
+  --color-amber-bg: #fef3c7;
+  --color-rose: #be123c;
+  --color-rose-bg: #ffe4e6;
 }
 
 body {
@@ -41,6 +106,51 @@ body {
   button:disabled,
   [role="button"][aria-disabled="true"] {
     cursor: not-allowed;
+  }
+}
+
+/* ═══ Auth shimmer (SubmitButton) ═══ */
+@keyframes auth-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ═══ Auth page spinner (login Suspense fallback) ═══ */
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ═══ Dashboard shell animations ═══ */
+@keyframes practix-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ═══ Practicas detail page spinner (0.9s — non-standard timing) ═══ */
+@keyframes practix-det-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Spinner usado en CardSkeleton del dashboard empresa */
+@keyframes practix-emp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Spinner del ATS pipeline page */
+@keyframes ats-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

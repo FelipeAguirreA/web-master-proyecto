@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 import { Icon } from "../Icon";
 import { CoLogo } from "../atoms/CoLogo";
 
@@ -24,178 +23,60 @@ export function InboxPanel({
   inboxHref: string;
 }) {
   const unreadCount = messages.filter((m) => m.unread).length;
+
   return (
-    <section
-      style={{
-        background: "#1F1A16",
-        color: "#fff",
-        borderRadius: 18,
-        overflow: "hidden",
-        position: "relative",
-        border: "1px solid rgba(255,255,255,.06)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: -40,
-          right: -30,
-          width: 180,
-          height: 180,
-          background: `radial-gradient(circle, ${D.accent}28, transparent 65%)`,
-          filter: "blur(24px)",
-          pointerEvents: "none",
-        }}
-      />
-      <header
-        style={{
-          position: "relative",
-          padding: "16px 18px 12px",
-          borderBottom: "1px solid rgba(255,255,255,.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 9,
-              background: "rgba(255,255,255,.08)",
-              border: "1px solid rgba(255,255,255,.12)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="chat" size={15} color={D.accentHi} />
+    <section className="bg-[#1F1A16] text-white rounded-[18px] overflow-hidden relative border border-white/[.06]">
+      {/* Glow decorativo — accent translúcido */}
+      <div className="absolute -top-10 -right-[30px] w-[180px] h-[180px] pointer-events-none blur-[24px] [background:radial-gradient(circle,color-mix(in_srgb,var(--color-accent)_16%,transparent)_0%,transparent_65%)]" />
+
+      <header className="relative px-[18px] pt-4 pb-3 border-b border-white/[.08] flex items-center justify-between">
+        <div className="flex items-center gap-[9px] min-w-0">
+          <span className="w-[30px] h-[30px] rounded-[9px] bg-white/[.08] border border-white/[.12] flex items-center justify-center shrink-0">
+            <Icon name="chat" size={15} color="var(--color-accent-hi)" />
           </span>
-          <h3
-            style={{
-              fontSize: 15,
-              fontWeight: 800,
-              color: "#fff",
-              letterSpacing: -0.3,
-            }}
-          >
+          <h3 className="text-[15px] font-extrabold text-white tracking-[-0.3px]">
             Mensajes
           </h3>
           {unreadCount > 0 && (
-            <span
-              style={{
-                background: D.accent,
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 800,
-                padding: "2px 7px",
-                borderRadius: 10,
-                flexShrink: 0,
-                boxShadow: `0 4px 10px ${D.accent}55`,
-              }}
-            >
+            <span className="bg-accent text-white text-[10px] font-extrabold py-0.5 px-[7px] rounded-[10px] shrink-0 shadow-[0_4px_10px_color-mix(in_srgb,var(--color-accent)_33%,transparent)]">
               {unreadCount} nuevo{unreadCount > 1 ? "s" : ""}
             </span>
           )}
         </div>
         <Link
           href={inboxHref}
-          style={{
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: D.accentHi,
-            textDecoration: "none",
-            flexShrink: 0,
-          }}
+          className="text-[11.5px] font-bold text-accent-hi no-underline shrink-0"
         >
           Inbox
         </Link>
       </header>
+
       {messages.length === 0 ? (
-        <div
-          style={{
-            position: "relative",
-            padding: "32px 18px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              background: "rgba(255,255,255,.05)",
-              border: "1px solid rgba(255,255,255,.08)",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 10,
-            }}
-          >
+        <div className="relative px-[18px] py-8 text-center">
+          <div className="w-11 h-11 rounded-[14px] bg-white/5 border border-white/[.08] inline-flex items-center justify-center mb-2.5">
             <Icon name="chat" size={20} color="rgba(255,255,255,.5)" />
           </div>
-          <p
-            style={{
-              fontSize: 12.5,
-              color: "rgba(255,255,255,.75)",
-              fontWeight: 500,
-            }}
-          >
+          <p className="text-[12.5px] text-white/75 font-medium">
             Sin mensajes por ahora
           </p>
-          <p
-            style={{
-              fontSize: 11,
-              color: "rgba(255,255,255,.45)",
-              marginTop: 4,
-              lineHeight: 1.5,
-            }}
-          >
+          <p className="text-[11px] text-white/45 mt-1 leading-[1.5]">
             Cuando una empresa te escriba, lo vas a ver acá.
           </p>
         </div>
       ) : (
-        <div style={{ position: "relative" }}>
+        <div className="relative">
           {messages.map((m, i) => (
             <Link
               key={m.id}
               href={inboxHref}
-              className="practix-inbox-item"
-              style={{
-                display: "flex",
-                gap: 11,
-                padding: "13px 18px",
-                borderBottom:
-                  i < messages.length - 1
-                    ? "1px solid rgba(255,255,255,.06)"
-                    : "none",
-                position: "relative",
-                transition: "background .15s",
-                textDecoration: "none",
-              }}
+              className={[
+                "flex gap-[11px] px-[18px] py-[13px] relative transition-colors duration-150 no-underline hover:bg-white/[.04]",
+                i < messages.length - 1 ? "border-b border-white/[.06]" : "",
+              ].join(" ")}
             >
+              {/* Unread dot */}
               {m.unread && (
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 8,
-                    top: "50%",
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: D.accent,
-                    boxShadow: `0 0 8px ${D.accent}`,
-                  }}
-                />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 w-[5px] h-[5px] rounded-full bg-accent shadow-[0_0_8px_var(--color-accent)]" />
               )}
               <CoLogo
                 logo={m.logo}
@@ -204,62 +85,30 @@ export function InboxPanel({
                 logoFg={m.logoFg}
                 size={36}
               />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    marginBottom: 3,
-                  }}
-                >
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between gap-2 mb-[3px]">
                   <span
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: m.unread ? 700 : 600,
-                      color: "#fff",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      minWidth: 0,
-                    }}
+                    className={[
+                      "text-[12.5px] text-white truncate min-w-0",
+                      m.unread ? "font-bold" : "font-semibold",
+                    ].join(" ")}
                   >
                     {m.co}
                   </span>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      color: "rgba(255,255,255,.45)",
-                      flexShrink: 0,
-                    }}
-                  >
+                  <span className="text-[10.5px] text-white/45 shrink-0">
                     {m.when}
                   </span>
                 </div>
                 {m.sender && (
-                  <p
-                    style={{
-                      fontSize: 11.5,
-                      color: "rgba(255,255,255,.5)",
-                      fontWeight: 500,
-                      marginBottom: 3,
-                    }}
-                  >
+                  <p className="text-[11.5px] text-white/50 font-medium mb-[3px]">
                     {m.sender}
                   </p>
                 )}
                 <p
-                  style={{
-                    fontSize: 12.5,
-                    color: m.unread
-                      ? "rgba(255,255,255,.92)"
-                      : "rgba(255,255,255,.65)",
-                    lineHeight: 1.45,
-                    overflow: "hidden",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                  }}
+                  className={[
+                    "text-[12.5px] leading-[1.45] line-clamp-2",
+                    m.unread ? "text-white/92" : "text-white/65",
+                  ].join(" ")}
                 >
                   {m.preview}
                 </p>
@@ -268,9 +117,6 @@ export function InboxPanel({
           ))}
         </div>
       )}
-      <style>{`
-        .practix-inbox-item:hover { background: rgba(255,255,255,.04); }
-      `}</style>
     </section>
   );
 }

@@ -3,10 +3,10 @@
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { ADMIN_EMAIL } from "@/lib/constants";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
-import { paletteFor } from "@/components/dashboard/palettes";
 import { Icon } from "@/components/dashboard/Icon";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardTopbar } from "@/components/dashboard/DashboardTopbar";
@@ -103,30 +103,22 @@ export default function DashboardLayout({
   }, [drawerOpen]);
 
   const roleEarly = session?.user?.role as "STUDENT" | "COMPANY" | undefined;
-  const p = paletteFor(roleEarly);
 
   if (status === "loading") {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: p.bg,
-        }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        {/* Spinner: border-top usa accent dinámico con alpha via CSS var */}
         <div
-          style={{
-            width: 32,
-            height: 32,
-            border: `2px solid ${p.accent}25`,
-            borderTopColor: p.accent,
-            borderRadius: "50%",
-            animation: "practix-spin .9s linear infinite",
-          }}
+          className="w-8 h-8 rounded-full border-2 [animation:practix-spin_.9s_linear_infinite]"
+          style={
+            {
+              "--spinner-border":
+                "color-mix(in srgb, var(--color-accent) 15%, transparent)",
+              borderColor: "var(--spinner-border)",
+              borderTopColor: "var(--color-accent)",
+            } as CSSProperties
+          }
         />
-        <style>{`@keyframes practix-spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
@@ -147,28 +139,16 @@ export default function DashboardLayout({
 
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background: p.bg,
-        color: p.text,
-        display: "flex",
-      }}
+      data-palette={role === "COMPANY" ? "company" : "student"}
+      className="min-h-screen bg-bg text-text flex"
     >
       <DashboardSidebar
         role={role}
         unreadInbox={unreadCount}
         cvPct={isStudent ? cvPct : null}
-        palette={p}
       />
 
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      <div className="flex-1 min-w-0 flex flex-col">
         <DashboardTopbar
           userName={name}
           userEmail={session.user.email ?? ""}
@@ -176,186 +156,86 @@ export default function DashboardLayout({
           isAdmin={isAdmin}
           role={role}
           onMenu={() => setDrawerOpen(true)}
-          palette={p}
         />
 
-        <main style={{ flex: 1, position: "relative" }}>{children}</main>
+        <main className="flex-1 relative">{children}</main>
       </div>
 
+      {/* Mobile drawer overlay */}
       <div
         ref={drawerRef}
+        className="fixed inset-0 z-60 transition-opacity duration-200"
         style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 60,
           opacity: drawerOpen ? 1 : 0,
           pointerEvents: drawerOpen ? "auto" : "none",
-          transition: "opacity .2s",
         }}
         aria-hidden={!drawerOpen}
         inert={!drawerOpen}
       >
+        {/* Backdrop */}
         <button
           type="button"
           onClick={() => setDrawerOpen(false)}
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(10,9,9,.4)",
-            backdropFilter: "blur(2px)",
-            border: "none",
-            cursor: "pointer",
-          }}
+          className="absolute inset-0 border-none cursor-pointer"
+          style={{ background: "rgba(10,9,9,.4)", backdropFilter: "blur(2px)" }}
           aria-label="Cerrar menú"
         />
+
+        {/* Drawer panel */}
         <aside
+          className="absolute left-0 top-0 h-full w-[85vw] max-w-[320px] bg-surface flex flex-col transition-transform duration-[250ms] ease-out"
           style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            height: "100%",
-            width: "85vw",
-            maxWidth: 320,
-            background: p.surface,
             boxShadow: "0 24px 64px -12px rgba(20,15,10,0.24)",
-            display: "flex",
-            flexDirection: "column",
             transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
-            transition: "transform .25s ease-out",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "18px 20px 14px",
-              borderBottom: `1px solid ${p.border}`,
-            }}
-          >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-[18px] pb-[14px] border-b border-border">
             <Link
               href="/"
               onClick={() => setDrawerOpen(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                textDecoration: "none",
-              }}
+              className="flex items-center gap-[9px] no-underline"
             >
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: `linear-gradient(135deg,${p.accent},${p.accentHi})`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 13,
-                  color: "#fff",
-                }}
-              >
+              <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center font-[800] text-[13px] text-white [background:linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))]">
                 P
               </div>
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: p.text,
-                  letterSpacing: -0.4,
-                }}
-              >
+              <span className="font-[700] text-[15px] text-text tracking-[-0.4px]">
                 PractiX
               </span>
             </Link>
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              style={{
-                width: 36,
-                height: 36,
-                border: "none",
-                background: "transparent",
-                borderRadius: 10,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: p.text,
-              }}
+              className="w-9 h-9 border-none bg-transparent rounded-[10px] cursor-pointer inline-flex items-center justify-center text-text"
               aria-label="Cerrar"
             >
-              <Icon name="x" size={18} color={p.text} />
+              <Icon name="x" size={18} />
             </button>
           </div>
 
-          <div
-            style={{
-              padding: "16px 20px",
-              borderBottom: `1px solid ${p.border}`,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
+          {/* User info */}
+          <div className="px-5 py-4 border-b border-border flex items-center gap-3">
             <Avatar
               ini={initial}
               size={44}
               src={session.user.image}
               alt={name}
             />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: p.text,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-[700] text-text truncate">
                 {name}
               </p>
-              <p
-                style={{
-                  fontSize: 11,
-                  color: p.subtle,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                  fontWeight: 700,
-                  marginTop: 2,
-                }}
-              >
+              <p className="text-[11px] text-subtle uppercase tracking-[0.8px] font-[700] mt-0.5">
                 {roleLabel}
               </p>
-              <p
-                style={{
-                  fontSize: 11.5,
-                  color: p.muted,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  marginTop: 2,
-                }}
-              >
+              <p className="text-[11.5px] text-muted truncate mt-0.5">
                 {session.user.email}
               </p>
             </div>
           </div>
 
-          <nav
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "12px 12px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-1">
             {(() => {
               let bestHref: string | null = null;
               let bestLen = -1;
@@ -379,36 +259,23 @@ export default function DashboardLayout({
                     key={it.href}
                     href={it.href}
                     onClick={() => setDrawerOpen(false)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      fontSize: 13.5,
-                      fontWeight: active ? 700 : 500,
-                      color: active ? p.accent : p.muted,
-                      background: active ? p.accentBg : "transparent",
-                      textDecoration: "none",
-                    }}
+                    className={[
+                      "flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13.5px] no-underline transition-all duration-150",
+                      active
+                        ? "font-[700] text-accent bg-accent-bg"
+                        : "font-[500] text-muted bg-transparent",
+                    ].join(" ")}
                   >
                     <Icon
                       name={it.icon}
                       size={17}
-                      color={active ? p.accent : p.muted}
+                      color={
+                        active ? "var(--color-accent)" : "var(--color-muted)"
+                      }
                     />
-                    <span style={{ flex: 1 }}>{it.label}</span>
+                    <span className="flex-1">{it.label}</span>
                     {badge && (
-                      <span
-                        style={{
-                          background: p.text,
-                          color: "#fff",
-                          fontSize: 10,
-                          fontWeight: 800,
-                          padding: "2px 7px",
-                          borderRadius: 10,
-                        }}
-                      >
+                      <span className="bg-text text-white text-[10px] font-[800] px-[7px] py-[2px] rounded-[10px]">
                         {badge}
                       </span>
                     )}
@@ -420,19 +287,7 @@ export default function DashboardLayout({
               <Link
                 href="/admin/empresas"
                 onClick={() => setDrawerOpen(false)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 12px",
-                  marginTop: 4,
-                  borderRadius: 10,
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  color: "#fff",
-                  background: p.text,
-                  textDecoration: "none",
-                }}
+                className="flex items-center gap-3 px-3 py-[10px] mt-1 rounded-[10px] text-[13.5px] font-[700] text-white bg-text no-underline"
               >
                 <Icon name="set" size={16} color="#fff" />
                 Panel admin
@@ -440,36 +295,15 @@ export default function DashboardLayout({
             )}
           </nav>
 
-          <div
-            style={{
-              borderTop: `1px solid ${p.border}`,
-              padding: "10px 12px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
+          {/* Footer */}
+          <div className="border-t border-border px-3 py-[10px] flex flex-col gap-1">
             <button
               type="button"
               onClick={() => {
                 setDrawerOpen(false);
                 signOut({ callbackUrl: "/" });
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "10px 12px",
-                borderRadius: 10,
-                fontSize: 13.5,
-                fontWeight: 500,
-                color: "#C2410C",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                width: "100%",
-                textAlign: "left",
-              }}
+              className="flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13.5px] font-[500] text-[#C2410C] bg-transparent border-none cursor-pointer w-full text-left"
             >
               <Icon name="x" size={16} color="#C2410C" />
               Cerrar sesión

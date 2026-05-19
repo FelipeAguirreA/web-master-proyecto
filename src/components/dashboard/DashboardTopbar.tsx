@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { signOut } from "next-auth/react";
-import { D, type Palette } from "./palettes";
 import { Icon } from "./Icon";
 import { Avatar } from "./atoms/Avatar";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -59,7 +59,6 @@ type Props = {
   role?: "STUDENT" | "COMPANY";
   onMenu: () => void;
   showLogo?: boolean;
-  palette?: Palette;
 };
 
 export function DashboardTopbar({
@@ -70,14 +69,12 @@ export function DashboardTopbar({
   role = "STUDENT",
   onMenu,
   showLogo = false,
-  palette,
 }: Props) {
   // El perfil del estudiante vive en /perfil (unificado con datos académicos +
   // CV). El perfil de la empresa es /dashboard/empresa/perfil con su propio
   // shell (logo, descripción, prácticas publicadas).
   const perfilHref =
     role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil";
-  const p = palette ?? D;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -239,74 +236,35 @@ export function DashboardTopbar({
 
   return (
     <header
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        background: `${p.bg}EE`,
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${p.border}`,
-        padding: "12px 24px",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-      }}
+      className="sticky top-0 z-50 border-b border-border px-4 sm:px-6 py-3 flex items-center gap-[14px]"
+      style={
+        {
+          // bg con alpha EE (93%) via CSS var — no hay token para esto
+          background: "color-mix(in srgb, var(--color-bg) 93%, transparent)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        } as CSSProperties
+      }
     >
+      {/* Hamburger menu — visible solo en mobile (md:hidden) */}
       <button
         type="button"
         onClick={onMenu}
-        className="practix-topbar-menu"
-        style={{
-          display: "none",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          padding: 6,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="md:hidden inline-flex items-center justify-center bg-transparent border-none cursor-pointer p-1.5 text-text"
         aria-label="Abrir menú"
       >
-        <Icon name="menu" size={20} color={p.text} />
+        <Icon name="menu" size={20} color="var(--color-text)" />
       </button>
 
       {showLogo && (
         <Link
           href="/"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            marginRight: 18,
-            textDecoration: "none",
-          }}
+          className="flex items-center gap-[9px] mr-[18px] no-underline"
         >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              background: `linear-gradient(135deg,${p.accent},${p.accentHi})`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: 13,
-              color: "#fff",
-            }}
-          >
+          <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center font-[800] text-[13px] text-white [background:linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))]">
             P
           </div>
-          <span
-            className="practix-topbar-logoname"
-            style={{
-              fontWeight: 700,
-              fontSize: 15,
-              color: p.text,
-              letterSpacing: -0.4,
-            }}
-          >
+          <span className="hidden md:inline font-[700] text-[15px] text-text tracking-[-0.4px]">
             PractiX
           </span>
         </Link>
@@ -315,29 +273,19 @@ export function DashboardTopbar({
       {showSearch && (
         <div
           ref={searchContainerRef}
-          className="practix-topbar-search"
-          style={{
-            flex: 1,
-            maxWidth: 440,
-            position: "relative",
-          }}
+          className="flex-1 max-w-[440px] relative hidden sm:block"
         >
-          <span
-            style={{
-              position: "absolute",
-              left: 14,
-              top: 19,
-              color: p.subtle,
-              display: "flex",
-              pointerEvents: "none",
-              zIndex: 1,
-            }}
-          >
-            <Icon name="search" size={15} color={p.subtle} />
+          <span className="absolute left-[14px] top-[19px] text-subtle flex pointer-events-none z-10">
+            <Icon name="search" size={15} color="var(--color-subtle)" />
           </span>
           <input
             ref={searchInputRef}
-            type="text"
+            id="dashboard-search"
+            name="dashboard-search"
+            type="search"
+            role="searchbox"
+            aria-label={searchPlaceholder}
+            autoComplete="off"
             placeholder={searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -348,88 +296,54 @@ export function DashboardTopbar({
                 searchInputRef.current?.blur();
               }
             }}
-            style={{
-              width: "100%",
-              background: searchOpen ? p.surface : "rgba(0,0,0,.035)",
-              border: `1px solid ${searchOpen ? p.borderHi : "transparent"}`,
-              borderRadius: 12,
-              padding: "10px 14px 10px 38px",
-              fontSize: 13.5,
-              color: p.text,
-              fontFamily: "inherit",
-              outline: "none",
-              boxShadow: searchOpen ? `0 0 0 4px ${p.accent}14` : "none",
-              transition: "all .15s",
-            }}
+            className="w-full rounded-[12px] pl-[38px] pr-[14px] py-[10px] text-[13.5px] text-text font-[inherit] outline-none transition-all duration-150"
+            style={
+              {
+                background: searchOpen
+                  ? "var(--color-surface)"
+                  : "rgba(0,0,0,.035)",
+                border: searchOpen
+                  ? "1px solid var(--color-border-hi)"
+                  : "1px solid transparent",
+                // ring de foco: accent con 8% de alpha — CSS var + color-mix
+                boxShadow: searchOpen
+                  ? "0 0 0 4px color-mix(in srgb, var(--color-accent) 8%, transparent)"
+                  : "none",
+              } as CSSProperties
+            }
           />
 
           {searchOpen && (
             <div
               role="listbox"
               aria-label="Resultados de búsqueda"
+              className="absolute top-[calc(100%+6px)] left-0 right-0 bg-surface border border-border rounded-[12px] flex flex-col overflow-hidden z-50"
               style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                left: 0,
-                right: 0,
-                background: p.surface,
-                border: `1px solid ${p.border}`,
-                borderRadius: 12,
                 boxShadow: "0 14px 32px -10px rgba(0,0,0,.18)",
                 // Alto fijo con scroll interno. El min(380, viewport - 96)
                 // evita que el dropdown se salga de pantalla en notebooks
                 // chicos (donde 380 px sería casi medio viewport).
                 maxHeight: "min(380px, calc(100vh - 96px))",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                zIndex: 50,
               }}
             >
               {/* Cuerpo scrollable: lista crece hasta `maxHeight` del padre,
                   después scroll interno. overscrollBehavior: contain evita
                   que el scroll del dropdown se propague al body. */}
-              <div
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowY: "auto",
-                  overscrollBehavior: "contain",
-                }}
-              >
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
                 {searchLoading && (
-                  <div
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 12.5,
-                      color: p.subtle,
-                    }}
-                  >
+                  <div className="px-4 py-[14px] text-[12.5px] text-subtle">
                     Cargando…
                   </div>
                 )}
                 {!searchLoading && searchError && (
-                  <div
-                    style={{
-                      padding: "14px 16px",
-                      fontSize: 12.5,
-                      color: p.rose,
-                    }}
-                  >
+                  <div className="px-4 py-[14px] text-[12.5px] text-rose">
                     {searchError}
                   </div>
                 )}
                 {!searchLoading &&
                   !searchError &&
                   filteredResults.length === 0 && (
-                    <div
-                      style={{
-                        padding: "16px",
-                        fontSize: 12.5,
-                        color: p.subtle,
-                        lineHeight: 1.5,
-                      }}
-                    >
+                    <div className="p-4 text-[12.5px] text-subtle leading-[1.5]">
                       {searchItems && searchItems.length === 0
                         ? role === "COMPANY"
                           ? "Todavía no publicaste ninguna práctica."
@@ -447,79 +361,27 @@ export function DashboardTopbar({
                         setSearchOpen(false);
                         setQuery("");
                       }}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 14px",
-                        textDecoration: "none",
-                        borderBottom: `1px solid ${p.border}`,
-                        transition: "background .15s",
-                      }}
-                      onMouseEnter={(ev) => {
-                        ev.currentTarget.style.background = p.accentBg;
-                      }}
-                      onMouseLeave={(ev) => {
-                        ev.currentTarget.style.background = "transparent";
-                      }}
+                      className="flex items-center gap-[10px] px-[14px] py-[10px] no-underline border-b border-border transition-colors duration-150 hover:bg-accent-bg"
                     >
-                      <span
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          background: p.accentBg,
-                          color: p.accent,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Icon name="briefc" size={13} color={p.accent} />
+                      <span className="w-7 h-7 rounded-[7px] bg-accent-bg text-accent inline-flex items-center justify-center shrink-0">
+                        <Icon
+                          name="briefc"
+                          size={13}
+                          color="var(--color-accent)"
+                        />
                       </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: p.text,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-[700] text-text truncate">
                           {item.title}
                         </div>
                         {item.subtitle && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: p.subtle,
-                              marginTop: 2,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                          <div className="text-[11px] text-subtle mt-0.5 truncate">
                             {item.subtitle}
                           </div>
                         )}
                       </div>
                       {item.kind === "applied" && item.status && (
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: p.muted,
-                            background: "rgba(15,23,42,.05)",
-                            padding: "3px 8px",
-                            borderRadius: 5,
-                            letterSpacing: 0.3,
-                            textTransform: "uppercase",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <span className="text-[10px] font-[800] text-muted bg-black/[0.05] px-2 py-[3px] rounded-[5px] tracking-[0.3px] uppercase whitespace-nowrap">
                           {APPLICATION_STATUS_LABEL[item.status] ?? item.status}
                         </span>
                       )}
@@ -529,17 +391,7 @@ export function DashboardTopbar({
               {/* Footer fijo abajo del dropdown: contador para que se entienda
                   que hay más resultados arriba/abajo del scroll. */}
               {!searchLoading && !searchError && filteredResults.length > 0 && (
-                <div
-                  style={{
-                    flexShrink: 0,
-                    padding: "8px 14px",
-                    borderTop: `1px solid ${p.border}`,
-                    background: "rgba(15,23,42,.025)",
-                    fontSize: 11,
-                    color: p.subtle,
-                    fontWeight: 600,
-                  }}
-                >
+                <div className="shrink-0 px-[14px] py-2 border-t border-border bg-black/[0.025] text-[11px] text-subtle font-[600]">
                   {filteredResults.length === 1
                     ? "1 resultado"
                     : `${filteredResults.length} resultados`}
@@ -550,81 +402,36 @@ export function DashboardTopbar({
         </div>
       )}
 
-      <div
-        style={{
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
+      <div className="ml-auto flex items-center gap-1.5">
         {isAdmin && (
           <Link
             href="/admin/empresas"
-            className="practix-topbar-admin"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 11.5,
-              fontWeight: 700,
-              color: "#fff",
-              background: p.text,
-              padding: "6px 12px",
-              borderRadius: 30,
-              textDecoration: "none",
-              marginRight: 4,
-            }}
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-[700] text-white bg-text px-3 py-[6px] rounded-[30px] no-underline mr-1"
           >
             Admin
           </Link>
         )}
 
-        <div ref={bellRef} style={{ position: "relative" }}>
+        {/* Bell notification button */}
+        <div ref={bellRef} className="relative">
           <button
             type="button"
             onClick={() => setBellOpen((v) => !v)}
-            style={{
-              position: "relative",
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            className="practix-topbar-bell"
+            className="relative w-9 h-9 rounded-[10px] bg-transparent border-none cursor-pointer flex items-center justify-center"
             aria-label={
               notifCount > 0
                 ? `Notificaciones (${notifCount} sin leer)`
                 : "Notificaciones"
             }
           >
-            <Icon name="bell" size={18} color={p.muted} />
+            <Icon name="bell" size={18} color="var(--color-muted)" />
             {notifCount > 0 && (
               <span
+                className="absolute top-1 right-1 min-w-[13px] h-[13px] px-[3px] rounded-[7px] bg-accent text-white text-[9px] font-[800] flex items-center justify-center leading-none"
                 style={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  minWidth: 13,
-                  height: 13,
-                  padding: "0 3px",
-                  borderRadius: 7,
-                  background: p.accent,
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 800,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: `1.5px solid ${p.surface}`,
+                  // border solid usa surface para cutout effect
+                  border: "1.5px solid var(--color-surface)",
                   boxSizing: "content-box",
-                  lineHeight: 1,
-                  letterSpacing: 0,
                 }}
               >
                 {notifCount > 9 ? "9+" : notifCount}
@@ -634,47 +441,15 @@ export function DashboardTopbar({
 
           {bellOpen && (
             <div
-              style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                right: 0,
-                width: 320,
-                maxWidth: "min(90vw,320px)",
-                background: p.surface,
-                borderRadius: 16,
-                boxShadow: "0 16px 48px -12px rgba(20,15,10,0.18)",
-                border: `1px solid ${p.border}`,
-                overflow: "hidden",
-                zIndex: 50,
-              }}
+              className="fixed top-[76px] right-3 md:absolute md:top-[calc(100%+8px)] md:right-0 w-[calc(100vw-1.5rem)] max-w-[300px] md:w-80 md:max-w-[320px] bg-surface rounded-[16px] border border-border overflow-hidden z-50"
+              style={{ boxShadow: "0 16px 48px -12px rgba(20,15,10,0.18)" }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 14px",
-                  borderBottom: `1px solid ${p.border}`,
-                }}
-              >
+              <div className="flex items-center justify-between px-[14px] py-3 border-b border-border">
                 <div>
-                  <p
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      color: p.text,
-                      letterSpacing: -0.1,
-                    }}
-                  >
+                  <p className="text-[12.5px] font-[700] text-text tracking-[-0.1px]">
                     Notificaciones
                   </p>
-                  <p
-                    style={{
-                      fontSize: 10,
-                      color: p.subtle,
-                      marginTop: 2,
-                    }}
-                  >
+                  <p className="text-[10px] text-subtle mt-0.5">
                     {notifications.length} en total
                   </p>
                 </div>
@@ -682,62 +457,25 @@ export function DashboardTopbar({
                   <button
                     type="button"
                     onClick={markAllRead}
-                    style={{
-                      fontSize: 10.5,
-                      color: p.accent,
-                      fontWeight: 700,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
+                    className="text-[10.5px] text-accent font-[700] bg-transparent border-none cursor-pointer"
                   >
                     Marcar leídas
                   </button>
                 )}
               </div>
               <div
-                style={{
-                  maxHeight: "min(60dvh,360px)",
-                  overflowY: "auto",
-                }}
+                className="overflow-y-auto"
+                style={{ maxHeight: "min(60dvh,360px)" }}
               >
                 {notifications.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "40px 16px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 14,
-                        background: p.bg,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginBottom: 10,
-                      }}
-                    >
-                      <Icon name="bell" size={20} color={p.faint} />
+                  <div className="px-4 py-[40px] text-center">
+                    <div className="w-11 h-11 rounded-[14px] bg-bg inline-flex items-center justify-center mb-[10px]">
+                      <Icon name="bell" size={20} color="var(--color-faint)" />
                     </div>
-                    <p
-                      style={{
-                        fontSize: 12.5,
-                        color: p.muted,
-                        fontWeight: 500,
-                      }}
-                    >
+                    <p className="text-[12.5px] text-muted font-[500]">
                       Sin notificaciones por ahora
                     </p>
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: p.subtle,
-                        marginTop: 4,
-                      }}
-                    >
+                    <p className="text-[11px] text-subtle mt-1">
                       Te avisamos acá cuando pase algo.
                     </p>
                   </div>
@@ -756,51 +494,26 @@ export function DashboardTopbar({
                     return (
                       <div
                         key={n.id}
+                        className="flex gap-[10px] px-[14px] py-3 border-b border-border"
                         style={{
-                          display: "flex",
-                          gap: 10,
-                          padding: "12px 14px",
-                          background: n.read ? p.surface : "#FFF7F2",
-                          borderBottom: `1px solid ${p.border}`,
+                          // Notif no leída tiene fondo distinto: valor fijo de diseño
+                          // no está en paleta (warm cream para marcar sin leer).
+                          background: n.read
+                            ? "var(--color-surface)"
+                            : "#FFF7F2",
                         }}
                       >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            flexShrink: 0,
-                            marginTop: 2,
-                          }}
-                        >
+                        <span className="text-[13px] shrink-0 mt-0.5">
                           {ic}
                         </span>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <p
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: p.text,
-                              lineHeight: 1.3,
-                            }}
-                          >
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words text-[12px] font-[700] text-text leading-[1.3]">
                             {n.title}
                           </p>
-                          <p
-                            style={{
-                              fontSize: 11,
-                              color: p.muted,
-                              marginTop: 2,
-                              lineHeight: 1.4,
-                            }}
-                          >
+                          <p className="line-clamp-2 break-words text-[11px] text-muted mt-0.5 leading-[1.4]">
                             {n.body}
                           </p>
-                          <p
-                            style={{
-                              fontSize: 10,
-                              color: p.subtle,
-                              marginTop: 4,
-                            }}
-                          >
+                          <p className="text-[10px] text-subtle mt-1">
                             {new Intl.DateTimeFormat("es-CL", {
                               day: "numeric",
                               month: "short",
@@ -815,17 +528,14 @@ export function DashboardTopbar({
                             e.stopPropagation();
                             deleteNotification(n.id);
                           }}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: p.subtle,
-                            padding: 4,
-                            alignSelf: "flex-start",
-                          }}
+                          className="w-6 h-6 flex items-center justify-center self-start shrink-0 bg-transparent border-none cursor-pointer text-subtle"
                           aria-label="Eliminar"
                         >
-                          <Icon name="x" size={12} color={p.subtle} />
+                          <Icon
+                            name="x"
+                            size={12}
+                            color="var(--color-subtle)"
+                          />
                         </button>
                       </div>
                     );
@@ -836,113 +546,45 @@ export function DashboardTopbar({
           )}
         </div>
 
-        <div ref={dropdownRef} style={{ position: "relative" }}>
+        {/* User avatar dropdown */}
+        <div ref={dropdownRef} className="relative">
           <button
             type="button"
             onClick={() => setDropdownOpen((v) => !v)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "4px 10px 4px 4px",
-              borderRadius: 30,
-              border: `1px solid ${p.border}`,
-              background: p.surface,
-              cursor: "pointer",
-            }}
+            className="flex items-center gap-2 pl-1 pr-[10px] py-1 rounded-[30px] border border-border bg-surface cursor-pointer"
             aria-label="Menú usuario"
           >
             <Avatar ini={initial} size={28} src={userImage} alt={userName} />
-            <span
-              className="practix-topbar-name"
-              style={{
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: p.text,
-              }}
-            >
+            <span className="hidden md:inline text-[12.5px] font-[600] text-text">
               {userName.split(" ")[0]}
             </span>
           </button>
 
           {dropdownOpen && (
             <div
-              style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                right: 0,
-                width: 224,
-                background: p.surface,
-                borderRadius: 16,
-                border: `1px solid ${p.border}`,
-                boxShadow: "0 16px 48px -12px rgba(20,15,10,0.18)",
-                overflow: "hidden",
-                zIndex: 50,
-              }}
+              className="absolute top-[calc(100%+8px)] right-0 w-[224px] bg-surface rounded-[16px] border border-border overflow-hidden z-50"
+              style={{ boxShadow: "0 16px 48px -12px rgba(20,15,10,0.18)" }}
             >
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: `1px solid ${p.border}`,
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: p.text,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+              <div className="px-4 py-[14px] border-b border-border">
+                <p className="text-[13px] font-[700] text-text truncate">
                   {userName}
                 </p>
-                <p
-                  style={{
-                    fontSize: 11.5,
-                    color: p.muted,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    marginTop: 2,
-                  }}
-                >
+                <p className="text-[11.5px] text-muted truncate mt-0.5">
                   {userEmail}
                 </p>
               </div>
               <Link
                 href={perfilHref}
                 onClick={() => setDropdownOpen(false)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 16px",
-                  fontSize: 13,
-                  color: p.muted,
-                  textDecoration: "none",
-                }}
+                className="flex items-center gap-[10px] px-4 py-[10px] text-[13px] text-muted no-underline hover:bg-accent-bg transition-colors duration-150"
               >
-                <Icon name="user" size={14} color={p.subtle} />
+                <Icon name="user" size={14} color="var(--color-subtle)" />
                 Editar perfil
               </Link>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/" })}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 16px",
-                  fontSize: 13,
-                  color: "#C2410C",
-                  background: "none",
-                  border: "none",
-                  width: "100%",
-                  cursor: "pointer",
-                  textAlign: "left",
-                }}
+                className="flex items-center gap-[10px] px-4 py-[10px] text-[13px] text-[#C2410C] bg-transparent border-none w-full cursor-pointer text-left hover:bg-[#FFF3F0] transition-colors duration-150"
               >
                 <Icon name="x" size={14} color="#C2410C" />
                 Cerrar sesión
@@ -951,16 +593,6 @@ export function DashboardTopbar({
           )}
         </div>
       </div>
-
-      <style>{`
-        @media (max-width:900px) {
-          .practix-topbar-menu { display: inline-flex !important; }
-          .practix-topbar-name { display: none !important; }
-        }
-        @media (max-width:600px) {
-          .practix-topbar-search { display: none !important; }
-        }
-      `}</style>
     </header>
   );
 }

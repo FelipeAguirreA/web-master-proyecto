@@ -3,7 +3,6 @@
 import { createPortal } from "react-dom";
 import { X, Video, MapPin, Link as LinkIcon, Send } from "lucide-react";
 import { MONTHS_ES, isInterviewPast } from "./calendarHelpers";
-import { E } from "@/components/dashboard/palettes";
 
 type Interview = {
   id: string;
@@ -40,13 +39,8 @@ function StudentAvatar({ name, size = 40 }: { name: string; size?: number }) {
 
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.35,
-        background: `linear-gradient(135deg, ${E.accentHi}, ${E.accent})`,
-      }}
+      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 bg-gradient-to-br from-accent-hi to-accent"
+      style={{ width: size, height: size, fontSize: size * 0.35 }}
     >
       {initials}
     </div>
@@ -81,13 +75,6 @@ export default function EventDrawer({
   const weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
   const isOnline = interview.meetingLink !== null;
   const past = isInterviewPast(interview.scheduledAt, interview.durationMins);
-  const headerBg = past ? "rgba(15,23,42,0.05)" : E.greenBg;
-  const statusDotColor = past ? E.subtle : E.green;
-  const statusTextColor = past ? E.subtle : E.green;
-  const statusBadgeBg = past ? `${E.subtle}1A` : `${E.green}1A`;
-  const statusBadgeBorder = past
-    ? `1px solid ${E.subtle}33`
-    : `1px solid ${E.green}33`;
 
   const handleDelete = async () => {
     if (
@@ -106,96 +93,85 @@ export default function EventDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 backdrop-blur-sm z-[60]"
-        style={{ background: `${E.dark}66` }}
+        className="fixed inset-0 backdrop-blur-sm z-[60] bg-dark/40"
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Drawer — bottom sheet on mobile, right panel on sm+ */}
       <aside
-        className="fixed top-0 right-0 bottom-0 w-[min(440px,95vw)] z-[61] flex flex-col"
-        style={{
-          background: E.surface,
-          boxShadow: `-20px 0 60px rgba(15,23,42,0.12)`,
-        }}
+        className={[
+          "fixed z-[61] flex flex-col bg-surface shadow-[-20px_0_60px_rgba(15,23,42,0.12)]",
+          // Mobile: bottom sheet
+          "bottom-0 left-0 right-0 rounded-t-[24px] max-h-[calc(100dvh-80px)]",
+          // sm+: right-side panel
+          "sm:top-0 sm:right-0 sm:bottom-0 sm:left-auto sm:rounded-none sm:rounded-l-[0px] sm:w-[min(440px,95vw)] sm:max-h-none",
+        ].join(" ")}
       >
         {/* Header */}
         <div
-          className="px-6 py-5 flex flex-col"
-          style={{
-            borderBottom: `1px solid ${E.border}`,
-            background: headerBg,
-          }}
+          className={[
+            "px-4 sm:px-6 py-4 sm:py-5 flex flex-col border-b border-border",
+            past ? "bg-dark/5" : "bg-green-bg",
+          ].join(" ")}
         >
+          {/* Mobile drag handle */}
+          <div className="w-10 h-1 rounded-full bg-border mx-auto mb-3 sm:hidden" />
+
           <div className="flex items-start justify-between gap-3 mb-3">
             <div
-              className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full"
-              style={{
-                background: statusBadgeBg,
-                border: statusBadgeBorder,
-              }}
+              className={[
+                "inline-flex items-center gap-2 px-2.5 py-1 rounded-full",
+                past
+                  ? "bg-subtle/10 border border-subtle/20"
+                  : "bg-green-bg border border-green/20",
+              ].join(" ")}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: statusDotColor }}
+                className={[
+                  "w-1.5 h-1.5 rounded-full",
+                  past ? "bg-subtle" : "bg-green",
+                ].join(" ")}
               />
               <span
-                className="text-[10.5px] font-bold uppercase tracking-[0.06em]"
-                style={{ color: statusTextColor }}
+                className={[
+                  "text-[10.5px] font-bold uppercase tracking-[0.06em]",
+                  past ? "text-subtle" : "text-green",
+                ].join(" ")}
               >
                 {past ? "Finalizada" : "Entrevista"}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl inline-flex items-center justify-center transition-all flex-shrink-0"
-              style={{ background: E.border, color: E.muted }}
+              className="w-11 h-11 rounded-xl inline-flex items-center justify-center transition-all flex-shrink-0 bg-border text-muted hover:text-text"
               aria-label="Cerrar"
             >
               <X className="w-4 h-4" strokeWidth={2.2} />
             </button>
           </div>
-          <h2
-            className="text-[18px] font-bold tracking-[-0.03em] leading-tight"
-            style={{ color: E.text }}
-          >
+          <h2 className="text-[17px] sm:text-[18px] font-bold tracking-[-0.03em] leading-tight text-text">
             {interview.title}
           </h2>
-          <p className="text-[12.5px] mt-2" style={{ color: E.muted }}>
+          <p className="text-[12.5px] mt-2 text-muted">
             {weekdayCap} {dayNum} de {month.toLowerCase()} · {startTime} –{" "}
             {endTime}
           </p>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
           {/* Postulante */}
           <div>
-            <p
-              className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5"
-              style={{ color: E.subtle }}
-            >
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5 text-subtle">
               Postulante
             </p>
-            <div
-              className="flex items-center gap-3 p-3 rounded-[14px]"
-              style={{
-                background: E.bg,
-                border: `1px solid ${E.border}`,
-              }}
-            >
+            <div className="flex items-center gap-3 p-3 rounded-[14px] bg-bg border border-border">
               <StudentAvatar name={interview.student.name} size={40} />
               <div className="flex-1 min-w-0">
-                <p
-                  className="text-[13.5px] font-bold truncate"
-                  style={{ color: E.text }}
-                >
+                <p className="text-[13.5px] font-bold truncate text-text">
                   {interview.student.name}
                 </p>
-                <p
-                  className="text-[11.5px] mt-0.5 truncate"
-                  style={{ color: E.muted }}
-                >
+                <p className="text-[11.5px] mt-0.5 truncate text-muted">
                   {interview.internship.title}
                 </p>
               </div>
@@ -204,36 +180,22 @@ export default function EventDrawer({
 
           {/* Modalidad */}
           <div>
-            <p
-              className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5"
-              style={{ color: E.subtle }}
-            >
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5 text-subtle">
               Modalidad
             </p>
-            <div
-              className="flex items-center gap-3 p-3 rounded-[14px]"
-              style={{
-                background: E.bg,
-                border: `1px solid ${E.border}`,
-              }}
-            >
+            <div className="flex items-center gap-3 p-3 rounded-[14px] bg-bg border border-border">
               {isOnline ? (
                 <Video
-                  className="w-4 h-4 flex-shrink-0"
-                  style={{ color: E.subtle }}
+                  className="w-4 h-4 flex-shrink-0 text-subtle"
                   strokeWidth={2}
                 />
               ) : (
                 <MapPin
-                  className="w-4 h-4 flex-shrink-0"
-                  style={{ color: E.subtle }}
+                  className="w-4 h-4 flex-shrink-0 text-subtle"
                   strokeWidth={2}
                 />
               )}
-              <span
-                className="text-[12.5px] font-medium flex-1"
-                style={{ color: E.text }}
-              >
+              <span className="text-[12.5px] font-medium flex-1 text-text">
                 {isOnline ? "Online" : "Presencial"}
               </span>
               {interview.meetingLink && (
@@ -241,8 +203,7 @@ export default function EventDrawer({
                   href={interview.meetingLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-white text-[11.5px] font-bold rounded-lg transition-colors"
-                  style={{ background: E.accent }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-white text-[11.5px] font-bold rounded-lg transition-colors bg-accent hover:bg-accent-hi"
                 >
                   <Video className="w-3 h-3" strokeWidth={2.4} />
                   Unirme
@@ -252,16 +213,14 @@ export default function EventDrawer({
             {interview.meetingLink && (
               <div className="flex items-center gap-2 mt-2 px-1">
                 <LinkIcon
-                  className="w-3 h-3 flex-shrink-0"
-                  style={{ color: E.subtle }}
+                  className="w-3 h-3 flex-shrink-0 text-subtle"
                   strokeWidth={2.2}
                 />
                 <a
                   href={interview.meetingLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] hover:underline truncate font-medium"
-                  style={{ color: E.accent }}
+                  className="text-[11px] hover:underline truncate font-medium text-accent"
                 >
                   {interview.meetingLink}
                 </a>
@@ -272,20 +231,10 @@ export default function EventDrawer({
           {/* Notas */}
           {interview.notes && (
             <div>
-              <p
-                className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5"
-                style={{ color: E.subtle }}
-              >
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5 text-subtle">
                 Notas
               </p>
-              <p
-                className="text-[12.5px] leading-relaxed p-3 rounded-[14px]"
-                style={{
-                  color: E.muted,
-                  background: E.bg,
-                  border: `1px solid ${E.border}`,
-                }}
-              >
+              <p className="text-[12.5px] leading-relaxed p-3 rounded-[14px] text-muted bg-bg border border-border">
                 {interview.notes}
               </p>
             </div>
@@ -293,40 +242,17 @@ export default function EventDrawer({
 
           {/* Estado chat */}
           <div>
-            <p
-              className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5"
-              style={{ color: E.subtle }}
-            >
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.07em] mb-2.5 text-subtle">
               Estado
             </p>
             {interview.sentToChat ? (
-              <div
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold"
-                style={{
-                  background: E.greenBg,
-                  border: `1px solid ${E.green}33`,
-                  color: E.green,
-                }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: E.green }}
-                />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-green-bg border border-green/20 text-green">
+                <span className="w-1.5 h-1.5 rounded-full bg-green" />
                 Enviada al candidato
               </div>
             ) : (
-              <div
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold"
-                style={{
-                  background: E.amberBg,
-                  border: `1px solid ${E.amber}33`,
-                  color: E.amber,
-                }}
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: E.amber }}
-                />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-amber-bg border border-amber/20 text-amber">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber" />
                 Sin enviar al candidato
               </div>
             )}
@@ -334,18 +260,11 @@ export default function EventDrawer({
         </div>
 
         {/* Footer */}
-        <div
-          className="px-6 py-4 flex gap-2.5"
-          style={{ borderTop: `1px solid ${E.border}` }}
-        >
+        <div className="px-4 sm:px-6 py-4 flex gap-2 sm:gap-2.5 border-t border-border">
           {/* Send to chat */}
           <button
             onClick={handleSendToChat}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-white text-[12.5px] font-bold rounded-xl transition-all"
-            style={{
-              background: `linear-gradient(135deg, ${E.accent}, ${E.accentHi})`,
-              boxShadow: `0 4px 12px -2px ${E.accentBdr}`,
-            }}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-white text-[12.5px] font-bold rounded-xl transition-all bg-gradient-to-br from-accent to-accent-hi shadow-[0_4px_12px_-2px_var(--color-accent-bdr)]"
           >
             <Send className="w-3.5 h-3.5" strokeWidth={2.4} />
             {interview.sentToChat ? "Reenviar al chat" : "Enviar al chat"}
@@ -357,12 +276,7 @@ export default function EventDrawer({
               onEdit(interview.id);
               onClose();
             }}
-            className="px-4 py-2.5 text-[12.5px] font-semibold rounded-xl transition-all"
-            style={{
-              background: E.surface,
-              border: `1px solid ${E.border}`,
-              color: E.muted,
-            }}
+            className="px-3 sm:px-4 py-2.5 text-[12.5px] font-semibold rounded-xl transition-all bg-surface border border-border text-muted hover:text-text"
           >
             Reagendar
           </button>
@@ -370,12 +284,7 @@ export default function EventDrawer({
           {/* Delete */}
           <button
             onClick={handleDelete}
-            className="px-4 py-2.5 text-[12.5px] font-semibold rounded-xl transition-all"
-            style={{
-              background: E.surface,
-              border: `1px solid ${E.border}`,
-              color: E.rose,
-            }}
+            className="px-3 sm:px-4 py-2.5 text-[12.5px] font-semibold rounded-xl transition-all bg-surface border border-border text-rose hover:bg-rose-bg"
           >
             Cancelar
           </button>

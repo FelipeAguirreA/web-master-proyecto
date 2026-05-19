@@ -24,7 +24,8 @@ type IconName =
   | "heart"
   | "grid"
   | "list"
-  | "dense";
+  | "dense"
+  | "edit";
 
 type IconProps = {
   name: IconName;
@@ -237,6 +238,15 @@ export function Icon({
       return (
         <svg {...v}>
           <path {...p} d="M3 6h18M3 10h18M3 14h18M3 18h18" />
+        </svg>
+      );
+    case "edit":
+      return (
+        <svg {...v}>
+          <path
+            {...p}
+            d="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"
+          />
         </svg>
       );
   }

@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 
 import { getAuthSession } from "@/server/lib/auth";
 import { prisma } from "@/server/lib/db";
-import { E } from "@/components/dashboard/palettes";
 import { ADMIN_EMAIL } from "@/lib/constants";
 import { SignOutButton } from "./SignOutButton";
 
@@ -45,154 +44,78 @@ export default async function CuentaSuspendidaPage() {
       }).format(profile.suspendedAt)
     : null;
 
+  const hasReason = Boolean(profile.suspensionReason);
+
   return (
+    /* data-palette="company" activa los tokens E (paleta B2B azul) globalmente */
     <div
-      style={{
-        minHeight: "100vh",
-        background: E.bg,
-        color: E.text,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-      }}
+      data-palette="company"
+      className="min-h-screen bg-bg text-text flex items-center justify-center p-5"
     >
-      <main
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          background: E.surface,
-          border: `1px solid ${E.border}`,
-          borderRadius: 16,
-          padding: "32px 28px",
-          boxShadow: "0 24px 64px -32px rgba(15,23,42,0.18)",
-        }}
-      >
+      <main className="w-full max-w-[520px] bg-surface border border-border rounded-2xl p-8 sm:p-[32px_28px] shadow-[0_24px_64px_-32px_rgba(15,23,42,0.18)]">
+        {/* Icono de alerta */}
         <div
           aria-hidden
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 14,
-            background: E.roseBg,
-            color: E.rose,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 28,
-            fontWeight: 800,
-            marginBottom: 18,
-          }}
+          className="w-14 h-14 rounded-[14px] bg-rose-bg text-rose inline-flex items-center justify-center text-[28px] font-extrabold mb-[18px]"
         >
           !
         </div>
 
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            letterSpacing: -0.4,
-            margin: 0,
-            color: E.text,
-          }}
-        >
+        <h1 className="text-[22px] font-extrabold tracking-[-0.4px] m-0 text-text">
           Tu cuenta está suspendida
         </h1>
 
-        <p
-          style={{
-            marginTop: 10,
-            fontSize: 14.5,
-            lineHeight: 1.55,
-            color: E.muted,
-          }}
-        >
-          Hola <strong style={{ color: E.text }}>{profile.companyName}</strong>.
-          El acceso al panel y a las publicaciones de prácticas fue suspendido
-          por el administrador de PractiX.
+        <p className="mt-2.5 text-[14.5px] leading-[1.55] text-muted">
+          Hola <strong className="text-text">{profile.companyName}</strong>. El
+          acceso al panel y a las publicaciones de prácticas fue suspendido por
+          el administrador de PractiX.
         </p>
 
+        {/* Motivo */}
         <div
-          style={{
-            marginTop: 18,
-            padding: "14px 16px",
-            background: profile.suspensionReason
-              ? E.amberBg
-              : "rgba(15,23,42,.04)",
-            borderLeft: `3px solid ${profile.suspensionReason ? E.amber : E.subtle}`,
-            borderRadius: 8,
-          }}
+          className={[
+            "mt-[18px] p-[14px_16px] rounded-lg border-l-[3px]",
+            hasReason
+              ? "bg-amber-bg border-l-amber"
+              : "bg-dark/[0.04] border-l-subtle",
+          ].join(" ")}
         >
           <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: 0.8,
-              textTransform: "uppercase",
-              color: profile.suspensionReason ? E.amber : E.subtle,
-            }}
+            className={[
+              "m-0 text-[11px] font-extrabold tracking-[0.8px] uppercase",
+              hasReason ? "text-amber" : "text-subtle",
+            ].join(" ")}
           >
             Motivo
           </p>
           <p
-            style={{
-              margin: "4px 0 0",
-              fontSize: 14,
-              color: profile.suspensionReason ? E.text : E.muted,
-              fontStyle: profile.suspensionReason ? "normal" : "italic",
-              lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
-            }}
+            className={[
+              "m-0 mt-1 text-[14px] leading-[1.55] whitespace-pre-wrap",
+              hasReason ? "text-text" : "text-muted italic",
+            ].join(" ")}
           >
             {profile.suspensionReason ??
               "El administrador no especificó un motivo público. Contactá al soporte para más información."}
           </p>
         </div>
 
+        {/* Fecha */}
         {suspendedAtLabel ? (
-          <p
-            style={{
-              marginTop: 14,
-              fontSize: 12.5,
-              color: E.subtle,
-            }}
-          >
+          <p className="mt-3.5 text-[12.5px] text-subtle">
             Suspendida el {suspendedAtLabel}
           </p>
         ) : null}
 
-        <div
-          style={{
-            marginTop: 22,
-            padding: "16px 18px",
-            background: E.accentBg,
-            border: `1px solid ${E.accentBdr}`,
-            borderRadius: 12,
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: E.text,
-            }}
-          >
+        {/* CTA apelar */}
+        <div className="mt-[22px] p-[16px_18px] bg-accent-bg border border-accent-bdr rounded-xl">
+          <p className="m-0 text-[13.5px] font-bold text-text">
             ¿Querés apelar o pedir más información?
           </p>
-          <p
-            style={{
-              margin: "6px 0 0",
-              fontSize: 14,
-              color: E.muted,
-              lineHeight: 1.55,
-            }}
-          >
+          <p className="m-0 mt-1.5 text-[14px] text-muted leading-[1.55]">
             Contactá al administrador a{" "}
             <a
               href={`mailto:${ADMIN_EMAIL}`}
-              style={{ color: E.accent, fontWeight: 700 }}
+              className="text-accent font-bold hover:underline"
             >
               {ADMIN_EMAIL}
             </a>
@@ -200,7 +123,8 @@ export default async function CuentaSuspendidaPage() {
           </p>
         </div>
 
-        <div style={{ marginTop: 22 }}>
+        {/* Sign out */}
+        <div className="mt-[22px]">
           <SignOutButton />
         </div>
       </main>

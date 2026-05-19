@@ -4,7 +4,6 @@ import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
-import { E } from "@/components/dashboard/palettes";
 import { Icon } from "@/components/dashboard/Icon";
 import { Avatar } from "@/components/dashboard/atoms/Avatar";
 import { ScoreVis } from "@/components/dashboard/atoms/ScoreVis";
@@ -47,43 +46,62 @@ type Internship = {
 type StageDef = {
   key: PipelineStatus;
   label: string;
-  color: string;
-  bg: string;
+  /** Tailwind text-color class for the stage dot / label */
+  colorClass: string;
+  /** Tailwind bg class for the stage dot */
+  dotClass: string;
 };
 
 const STAGES: StageDef[] = [
   {
     key: "PENDING",
     label: "Nuevos",
-    color: E.subtle,
-    bg: "rgba(15,23,42,.05)",
+    colorClass: "text-subtle",
+    dotClass: "bg-subtle",
   },
-  { key: "REVIEWING", label: "Revisión", color: E.blue, bg: E.blueBg },
-  { key: "INTERVIEW", label: "Entrevista", color: E.purple, bg: E.purpleBg },
-  { key: "ACCEPTED", label: "Aprobado", color: E.green, bg: E.greenBg },
+  {
+    key: "REVIEWING",
+    label: "Revisión",
+    colorClass: "text-blue",
+    dotClass: "bg-blue",
+  },
+  {
+    key: "INTERVIEW",
+    label: "Entrevista",
+    colorClass: "text-purple",
+    dotClass: "bg-purple",
+  },
+  {
+    key: "ACCEPTED",
+    label: "Aprobado",
+    colorClass: "text-green",
+    dotClass: "bg-green",
+  },
 ];
 
 const REJECTED_STAGE: StageDef = {
   key: "REJECTED",
   label: "Rechazados",
-  color: E.rose,
-  bg: E.roseBg,
+  colorClass: "text-rose",
+  dotClass: "bg-rose",
 };
 
+// avatar palette — hex justified: generative from name hash, no semantic token exists
+const AVATAR_PALETTE: Array<[string, string]> = [
+  ["#FFD4B8", "#FF9B6A"],
+  ["#B8E6D4", "#3DBE85"],
+  ["#D8C4FF", "#7C3AED"],
+  ["#B8C9FF", "#2C5CFA"],
+  ["#FFE6A8", "#D69E2E"],
+  ["#FFD4B8", "#C74A1E"],
+  ["#A8E0FF", "#0EA5E9"],
+];
+
 function avatarColors(name: string): [string, string] {
-  const palette: Array<[string, string]> = [
-    ["#FFD4B8", "#FF9B6A"],
-    ["#B8E6D4", "#3DBE85"],
-    ["#D8C4FF", "#7C3AED"],
-    ["#B8C9FF", "#2C5CFA"],
-    ["#FFE6A8", "#D69E2E"],
-    ["#FFD4B8", "#C74A1E"],
-    ["#A8E0FF", "#0EA5E9"],
-  ];
   let hash = 0;
   for (let i = 0; i < name.length; i++)
     hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return palette[hash % palette.length];
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
 function initialsFor(name: string): string {
@@ -128,12 +146,8 @@ export default function ATSKanbanPage() {
   const [minMatch, setMinMatch] = useState<number>(0);
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [busy, setBusy] = useState<string | null>(null);
-  // Locked mientras se inicia el chat (POST /conversations puede tardar 200-500ms)
   const [startingChat, setStartingChat] = useState<string | null>(null);
 
-  // Inicia (o recupera) la conversación con el candidato y navega al inbox
-  // con ese chat abierto. Solo posible si el candidato está en INTERVIEW —
-  // regla del backend (chat.service.ts: INTERVIEW_REQUIRED).
   const startChat = useCallback(
     async (candidateId: string) => {
       setStartingChat(candidateId);
@@ -250,9 +264,6 @@ export default function ATSKanbanPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return candidates.filter((c) => {
-      // Filtro por Scoring ATS (no por matchScore semántico). Si el ATS aún
-      // no se calculó (atsScore=null), sólo pasa cuando el umbral es 0 — sin
-      // valor no podemos garantizar que cumpla el corte que pidió el admin.
       if (minMatch > 0 && (c.atsScore ?? -1) < minMatch) return false;
       if (!q) return true;
       if (c.student.name.toLowerCase().includes(q)) return true;
@@ -284,11 +295,10 @@ export default function ATSKanbanPage() {
   ).length;
 
   const funnel = useMemo(() => {
-    const items = STAGES.map((s) => ({
+    return STAGES.map((s) => ({
       ...s,
       count: byStage[s.key].length,
     }));
-    return items;
   }, [byStage]);
 
   const activeCandidate = activeId
@@ -298,18 +308,8 @@ export default function ATSKanbanPage() {
   const bulkMode = selected.size > 0;
 
   return (
-    <div
-      style={{
-        background: E.bg,
-        minHeight: "100%",
-        padding: "20px 24px 80px",
-        fontFamily: "var(--font-onest), ui-sans-serif, system-ui",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
-      <Header
+    <div className="bg-bg min-h-full px-4 sm:px-6 md:px-8 py-5 pb-20 flex flex-col gap-4 font-[var(--font-onest),ui-sans-serif,system-ui]">
+      <ATSHeader
         internship={internship}
         loading={loading}
         view={view}
@@ -378,7 +378,7 @@ export default function ATSKanbanPage() {
 
 /* ───────────────── Header ───────────────── */
 
-function Header({
+function ATSHeader({
   internship,
   loading,
   view,
@@ -394,75 +394,33 @@ function Header({
   totalRejected: number;
 }) {
   return (
-    <header
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: 14,
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <nav
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 4,
-            fontSize: 11.5,
-            color: E.subtle,
-          }}
-        >
+    <header className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+      <div className="min-w-0 flex-1">
+        <nav className="flex items-center gap-1.5 mb-1 text-[11.5px] text-subtle">
           <Link
             href="/dashboard/empresa"
-            style={{
-              color: E.subtle,
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
+            className="text-subtle font-semibold hover:text-text transition-colors no-underline"
           >
             Mis prácticas
           </Link>
-          <Icon name="arr" size={11} color={E.subtle} />
-          <span style={{ color: E.text, fontWeight: 700 }}>Pipeline</span>
+          <Icon name="arr" size={11} color="currentColor" />
+          <span className="text-text font-bold">Pipeline</span>
         </nav>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            flexWrap: "wrap",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "clamp(1.25rem, 2vw, 1.55rem)",
-              fontWeight: 800,
-              color: E.text,
-              letterSpacing: -0.8,
-              lineHeight: 1.1,
-            }}
-          >
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h1 className="text-[clamp(1.25rem,2vw,1.55rem)] font-extrabold text-text tracking-[-0.8px] leading-[1.1]">
             {loading
               ? "Cargando…"
               : (internship?.title ?? "Práctica no encontrada")}
           </h1>
         </div>
-        <p style={{ fontSize: 12, color: E.subtle, marginTop: 6 }}>
+        <p className="text-[12px] text-subtle mt-1.5">
           {totalActive} activos · {totalRejected} rechazados
         </p>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div
-          style={{
-            display: "flex",
-            background: "rgba(15,23,42,.05)",
-            borderRadius: 9,
-            padding: 3,
-          }}
-        >
+      <div className="flex flex-row sm:flex-row items-center gap-2">
+        {/* View toggle */}
+        <div className="flex bg-black/5 rounded-[9px] p-[3px]">
           {(
             [
               { k: "kanban", i: "grid", l: "Kanban" },
@@ -473,26 +431,19 @@ function Header({
               key={v.k}
               type="button"
               onClick={() => onChangeView(v.k)}
-              style={{
-                padding: "6px 11px",
-                background: view === v.k ? E.surface : "transparent",
-                border: "none",
-                borderRadius: 7,
-                fontSize: 11.5,
-                fontWeight: 700,
-                color: view === v.k ? E.text : E.muted,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                boxShadow:
-                  view === v.k ? "0 1px 2px rgba(15,23,42,.08)" : "none",
-              }}
+              className={[
+                "px-[11px] py-1.5 rounded-[7px] text-[11.5px] font-bold inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 transition-all",
+                view === v.k
+                  ? "bg-surface text-text shadow-[0_1px_2px_rgba(15,23,42,.08)]"
+                  : "bg-transparent text-muted",
+              ].join(" ")}
             >
               <Icon
                 name={v.i}
                 size={12}
-                color={view === v.k ? E.text : E.muted}
+                color={
+                  view === v.k ? "var(--color-text)" : "var(--color-muted)"
+                }
               />
               {v.l}
             </button>
@@ -501,21 +452,9 @@ function Header({
         {internship && (
           <Link
             href={`/dashboard/empresa/ats/${internship.id}/config`}
-            style={{
-              padding: "8px 13px",
-              background: E.surface,
-              border: `1px solid ${E.border}`,
-              color: E.text,
-              borderRadius: 9,
-              fontSize: 12,
-              fontWeight: 700,
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-            }}
+            className="px-3 py-2 bg-surface border border-border text-text rounded-[9px] text-[12px] font-bold no-underline inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 hover:bg-bg transition-colors"
           >
-            <Icon name="set" size={13} color={E.text} />
+            <Icon name="set" size={13} color="currentColor" />
             Scoring ATS
           </Link>
         )}
@@ -532,7 +471,7 @@ function FunnelSummary({
   funnel: Array<{
     key: PipelineStatus;
     label: string;
-    color: string;
+    dotClass: string;
     count: number;
   }>;
 }) {
@@ -540,75 +479,33 @@ function FunnelSummary({
     total > 0 ? Math.round((n / total) * 100) : 0;
 
   return (
-    <section
-      style={{
-        background: E.surface,
-        border: `1px solid ${E.border}`,
-        borderRadius: 14,
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexWrap: "wrap",
-      }}
-    >
+    <section className="bg-surface border border-border rounded-[14px] px-4 py-3 flex items-center gap-2 flex-wrap">
       {funnel.map((s, i) => (
         <Fragment key={s.key}>
-          <div style={{ flex: "1 1 100px", minWidth: 90 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                marginBottom: 3,
-              }}
-            >
+          <div className="flex-[1_1_100px] min-w-[90px]">
+            <div className="flex items-center gap-1.5 mb-[3px]">
               <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: s.color,
-                }}
+                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dotClass}`}
               />
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  color: E.subtle,
-                  letterSpacing: 0.3,
-                  textTransform: "uppercase",
-                }}
-              >
+              <span className="text-[10px] font-extrabold text-subtle tracking-[0.3px] uppercase">
                 {s.label}
               </span>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <div className="flex items-baseline gap-1">
               <span
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  color: s.count > 0 ? E.text : E.faint,
-                  letterSpacing: -0.5,
-                }}
+                className={`text-[18px] font-black tracking-[-0.5px] ${s.count > 0 ? "text-text" : "text-faint"}`}
               >
                 {s.count}
               </span>
               {i > 0 && s.count > 0 && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    color: E.subtle,
-                    fontWeight: 700,
-                  }}
-                >
+                <span className="text-[10px] text-subtle font-bold">
                   {pct(s.count, funnel[i - 1].count || 1)}%
                 </span>
               )}
             </div>
           </div>
           {i < funnel.length - 1 && (
-            <Icon name="arr" size={14} color={E.faint} />
+            <Icon name="arr" size={14} color="var(--color-faint)" />
           )}
         </Fragment>
       ))}
@@ -630,76 +527,33 @@ function FilterBar({
   onMinMatch: (v: number) => void;
 }) {
   return (
-    <section
-      style={{
-        display: "flex",
-        gap: 8,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          flex: "1 1 240px",
-          maxWidth: 360,
-        }}
-      >
-        <span
-          style={{
-            position: "absolute",
-            left: 12,
-            top: "50%",
-            transform: "translateY(-50%)",
-            display: "flex",
-          }}
-        >
-          <Icon name="search" size={14} color={E.subtle} />
+    <section className="flex gap-2 flex-wrap items-center">
+      <div className="relative flex-[1_1_240px] max-w-sm">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 flex pointer-events-none">
+          <Icon name="search" size={14} color="var(--color-subtle)" />
         </span>
         <input
+          id="ats-candidates-search"
+          name="ats-candidates-search"
+          type="search"
+          role="searchbox"
+          aria-label="Buscar candidatos"
+          autoComplete="off"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Buscar por nombre, universidad o carrera…"
-          style={{
-            width: "100%",
-            background: E.surface,
-            border: `1px solid ${E.border}`,
-            borderRadius: 9,
-            padding: "8px 12px 8px 34px",
-            fontSize: 12.5,
-            color: E.text,
-            outline: "none",
-            fontFamily: "inherit",
-          }}
+          className="w-full bg-surface border border-border rounded-[9px] py-2 pl-9 pr-3 text-[12.5px] text-text outline-none font-[inherit] placeholder:text-muted focus:border-border-hi transition-colors"
         />
       </div>
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-          background: E.surface,
-          border: `1px solid ${E.border}`,
-          borderRadius: 9,
-          padding: "6px 10px",
-        }}
-      >
-        <span style={{ fontSize: 11, color: E.muted, fontWeight: 700 }}>
-          ATS ≥
-        </span>
+      <div className="inline-flex items-center gap-1.5 bg-surface border border-border rounded-[9px] px-2.5 py-1.5">
+        <span className="text-[11px] text-muted font-bold">ATS ≥</span>
         <select
+          id="ats-min-match"
+          name="ats-min-match"
+          aria-label="Match mínimo"
           value={minMatch}
           onChange={(e) => onMinMatch(Number(e.target.value))}
-          style={{
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            fontSize: 11.5,
-            fontWeight: 700,
-            color: E.text,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
+          className="bg-transparent border-none outline-none text-[11.5px] font-bold text-text cursor-pointer font-[inherit]"
         >
           <option value={0}>0%</option>
           <option value={50}>50%</option>
@@ -708,15 +562,8 @@ function FilterBar({
           <option value={90}>90%</option>
         </select>
       </div>
-      <div
-        style={{
-          marginLeft: "auto",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <span style={{ fontSize: 11, color: E.subtle, fontWeight: 600 }}>
+      <div className="ml-auto hidden md:flex items-center gap-2">
+        <span className="text-[11px] text-subtle font-semibold">
           Tip: arrastrá tarjetas entre columnas para mover de etapa
         </span>
       </div>
@@ -750,26 +597,10 @@ function KanbanBoard({
   busy: string | null;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 12,
-        flex: 1,
-        minHeight: 0,
-        alignItems: "stretch",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          overflowX: "auto",
-          flex: 1,
-          paddingBottom: 8,
-        }}
-      >
+    <div className="flex flex-col md:flex-row gap-3 flex-1 min-h-0 md:items-stretch">
+      <div className="flex flex-col md:flex-row md:overflow-x-auto gap-3 flex-1 pb-2">
         {STAGES.map((s) => (
-          <Column
+          <KanbanColumn
             key={s.key}
             stage={s}
             candidates={byStage[s.key]}
@@ -784,7 +615,7 @@ function KanbanBoard({
           />
         ))}
       </div>
-      <Column
+      <KanbanColumn
         stage={REJECTED_STAGE}
         candidates={rejected}
         isOver={overStage === "REJECTED"}
@@ -801,7 +632,7 @@ function KanbanBoard({
   );
 }
 
-function Column({
+function KanbanColumn({
   stage,
   candidates,
   isOver,
@@ -838,86 +669,28 @@ function Column({
         const id = e.dataTransfer.getData("text/plain");
         if (id) onDrop(id, stage.key);
       }}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minWidth: compact ? 200 : 240,
-        flex: compact ? "0 0 220px" : "0 0 260px",
-        maxWidth: compact ? 240 : 280,
-        background: isOver ? `${E.accentBg}AA` : "rgba(15,23,42,.025)",
-        borderRadius: 14,
-        padding: "10px 8px",
-        transition: "background .15s",
-        minHeight: 300,
-      }}
+      className={[
+        "flex flex-col rounded-[14px] p-2.5 min-h-[300px] transition-colors",
+        isOver ? "bg-accent-bg/70" : "bg-black/[0.025]",
+        compact
+          ? "w-full md:min-w-[200px] md:max-w-[240px] md:flex-[0_0_220px]"
+          : "w-full md:min-w-[240px] md:max-w-[280px] md:flex-[0_0_260px]",
+      ].join(" ")}
     >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "2px 6px 10px",
-          gap: 6,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
+      <header className="flex items-center justify-between px-1.5 pb-2.5 gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: stage.color,
-              flexShrink: 0,
-            }}
+            className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${stage.dotClass}`}
           />
-          <span
-            style={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              color: E.text,
-              letterSpacing: -0.1,
-              textTransform: "uppercase",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+          <span className="text-[11.5px] font-extrabold text-text tracking-[-0.1px] uppercase truncate">
             {stage.label}
           </span>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: E.subtle,
-              background: E.surface,
-              padding: "1px 7px",
-              borderRadius: 9,
-              border: `1px solid ${E.border}`,
-              flexShrink: 0,
-            }}
-          >
+          <span className="text-[11px] font-extrabold text-subtle bg-surface px-[7px] py-[1px] rounded-[9px] border border-border flex-shrink-0">
             {candidates.length}
           </span>
         </div>
       </header>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          padding: "0 4px",
-          overflowY: "auto",
-          flex: 1,
-        }}
-      >
+      <div className="flex flex-col gap-2 px-1 overflow-y-auto flex-1">
         {candidates.map((c) => (
           <CandCard
             key={c.id}
@@ -932,16 +705,7 @@ function Column({
           />
         ))}
         {candidates.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "24px 12px",
-              fontSize: 11,
-              color: E.subtle,
-              border: `1.5px dashed ${E.border}`,
-              borderRadius: 10,
-            }}
-          >
+          <div className="text-center py-6 px-3 text-[11px] text-subtle border-[1.5px] border-dashed border-border rounded-[10px]">
             Arrastrá postulantes aquí
           </div>
         )}
@@ -971,21 +735,18 @@ function CandCard({
   dense: boolean;
   busy: boolean;
 }) {
-  // Badge de las cards: mostramos el Scoring ATS (no el matchScore semántico
-  // del CV). Tres tramos visibles (verde / ámbar / rojo) + gris sólo cuando
-  // todavía no se calculó. Sin un tramo "gris a medias" — todo score con
-  // valor tiene color para que se distinga de un vistazo.
   const ats = c.atsScore != null ? Math.round(c.atsScore) : null;
-  const matchC =
-    ats == null ? E.subtle : ats >= 80 ? E.green : ats >= 50 ? E.amber : E.rose;
-  const matchBg =
+
+  // ATS score badge classes — three semantic tiers
+  const badgeClass =
     ats == null
-      ? "rgba(15,23,42,.05)"
+      ? "bg-black/5 text-subtle"
       : ats >= 80
-        ? E.greenBg
+        ? "bg-green-bg text-green"
         : ats >= 50
-          ? E.amberBg
-          : E.roseBg;
+          ? "bg-amber-bg text-amber"
+          : "bg-rose-bg text-rose";
+
   const [c1, c2] = avatarColors(c.student.name);
   const ini = initialsFor(c.student.name);
   const prof = c.student.studentProfile;
@@ -1002,60 +763,31 @@ function CandCard({
         if (bulkMode) onToggleSelect(c.id);
         else onOpen(c.id);
       }}
-      style={{
-        background: E.surface,
-        border: `1px solid ${selected ? E.accent : E.border}`,
-        borderRadius: 11,
-        padding: dense ? "10px 11px" : "12px 13px",
-        cursor: bulkMode ? "pointer" : "grab",
-        boxShadow: selected
-          ? `0 0 0 3px ${E.accent}30`
-          : "0 1px 2px rgba(15,23,42,.03)",
-        transition: "all .15s",
-        position: "relative",
-        opacity: busy ? 0.6 : 1,
-      }}
+      className={[
+        "relative bg-surface rounded-[11px] transition-all",
+        dense ? "px-[11px] py-2.5" : "px-[13px] py-3",
+        selected
+          ? "border border-accent shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-accent)_19%,transparent)]"
+          : "border border-border shadow-[0_1px_2px_rgba(15,23,42,.03)]",
+        bulkMode ? "cursor-pointer" : "cursor-grab",
+        busy ? "opacity-60" : "",
+      ].join(" ")}
     >
       {isTop && stage.key !== "REJECTED" && (
-        <span
-          style={{
-            position: "absolute",
-            top: -1,
-            right: 8,
-            fontSize: 9,
-            fontWeight: 900,
-            color: "#fff",
-            background: E.accent,
-            padding: "2px 7px",
-            borderRadius: "0 0 5px 5px",
-            letterSpacing: 0.5,
-          }}
-        >
+        <span className="absolute -top-px right-2 text-[9px] font-black text-white bg-accent px-[7px] py-[2px] rounded-b-[5px] tracking-[0.5px]">
           TOP
         </span>
       )}
 
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          marginBottom: 8,
-        }}
-      >
+      <header className="flex items-center gap-2.5 mb-2">
         {bulkMode && (
           <span
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              border: `1.6px solid ${selected ? E.accent : E.faint}`,
-              background: selected ? E.accent : "transparent",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
+            className={[
+              "w-4 h-4 rounded-[4px] flex items-center justify-center flex-shrink-0 border-[1.6px]",
+              selected
+                ? "border-accent bg-accent"
+                : "border-faint bg-transparent",
+            ].join(" ")}
           >
             {selected && <Icon name="check" size={10} color="#fff" />}
           </span>
@@ -1068,73 +800,25 @@ function CandCard({
           src={c.student.image}
           alt={c.student.name}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 12.5,
-              fontWeight: 800,
-              color: E.text,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+        <div className="flex-1 min-w-0">
+          <div className="text-[12.5px] font-extrabold text-text truncate">
             {c.student.name}
           </div>
-          <div
-            style={{
-              fontSize: 10.5,
-              color: E.subtle,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              marginTop: 1,
-            }}
-          >
+          <div className="text-[10.5px] text-subtle truncate mt-[1px]">
             {prof?.university ?? "—"}
             {prof?.career && ` · ${prof.career}`}
           </div>
         </div>
         <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: "2px 7px",
-            borderRadius: 6,
-            background: matchBg,
-            color: matchC,
-            fontSize: 11,
-            fontWeight: 900,
-            letterSpacing: -0.2,
-            flexShrink: 0,
-          }}
+          className={`inline-flex items-center px-[7px] py-[2px] rounded-[6px] text-[11px] font-black tracking-[-0.2px] flex-shrink-0 ${badgeClass}`}
         >
           {ats != null ? `${ats}%` : "—"}
         </span>
       </header>
 
-      <footer
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          fontSize: 10.5,
-          color: E.subtle,
-          gap: 6,
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 3,
-            minWidth: 0,
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-          }}
-        >
-          <Icon name="cal" size={11} color={E.subtle} />
+      <footer className="flex items-center justify-between text-[10.5px] text-subtle gap-1.5">
+        <span className="inline-flex items-center gap-[3px] min-w-0 overflow-hidden whitespace-nowrap text-ellipsis">
+          <Icon name="cal" size={11} color="currentColor" />
           hace {formatInStage(c.createdAt)}
         </span>
       </footer>
@@ -1165,41 +849,28 @@ function CandidateDrawer({
   const match = Math.round(candidate.matchScore ?? 0);
   const currentStage = deriveStage(candidate);
   const allStages = [...STAGES, REJECTED_STAGE];
+  const ats =
+    candidate.atsScore != null ? Math.round(candidate.atsScore) : null;
+  const hint =
+    ats == null
+      ? "Sin calcular · usá Recalcular desde Scoring ATS."
+      : ats >= 70
+        ? "Cumple bien los filtros configurados."
+        : ats >= 40
+          ? "Cumple parcialmente — revisar."
+          : "Pocos filtros cumplidos.";
 
   return (
     <>
+      {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(11,27,63,.5)",
-          zIndex: 60,
-        }}
+        className="fixed inset-0 bg-[rgba(11,27,63,.5)] z-[60]"
       />
-      <aside
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: "min(480px, 95vw)",
-          background: E.surface,
-          zIndex: 61,
-          boxShadow: "-20px 0 40px rgba(11,27,63,.18)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <header
-          style={{
-            padding: "18px 22px",
-            borderBottom: `1px solid ${E.border}`,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
+      {/* Drawer panel — right side panel on all sizes */}
+      <aside className="fixed top-0 right-0 bottom-0 w-[min(480px,95vw)] bg-surface z-[61] shadow-[-20px_0_40px_rgba(11,27,63,.18)] flex flex-col">
+        {/* Header */}
+        <header className="px-[22px] py-[18px] border-b border-border flex items-center gap-3">
           <Avatar
             size={48}
             ini={ini}
@@ -1208,18 +879,11 @@ function CandidateDrawer({
             src={candidate.student.image}
             alt={candidate.student.name}
           />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: E.text,
-                letterSpacing: -0.4,
-              }}
-            >
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[16px] font-extrabold text-text tracking-[-0.4px]">
               {candidate.student.name}
             </h2>
-            <p style={{ fontSize: 12, color: E.muted, marginTop: 2 }}>
+            <p className="text-[12px] text-muted mt-0.5">
               {prof?.university ?? "—"}
               {prof?.career && ` · ${prof.career}`}
             </p>
@@ -1227,42 +891,18 @@ function CandidateDrawer({
           <button
             type="button"
             onClick={onClose}
-            style={{
-              background: "rgba(15,23,42,.05)",
-              border: "none",
-              cursor: "pointer",
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="bg-black/5 border-none cursor-pointer w-8 h-8 rounded-[8px] flex items-center justify-center hover:bg-black/10 transition-colors"
           >
-            <Icon name="x" size={15} color={E.muted} />
+            <Icon name="x" size={15} color="var(--color-muted)" />
           </button>
         </header>
 
-        <div
-          style={{
-            padding: "14px 22px",
-            borderBottom: `1px solid ${E.border}`,
-            background: "rgba(15,23,42,.02)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: E.subtle,
-              letterSpacing: 0.4,
-              textTransform: "uppercase",
-              marginBottom: 7,
-            }}
-          >
+        {/* Stage mover */}
+        <div className="px-[22px] py-[14px] border-b border-border bg-black/[0.02]">
+          <div className="text-[10.5px] font-extrabold text-subtle tracking-[0.4px] uppercase mb-1.5">
             Mover a etapa
           </div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div className="flex gap-1 flex-wrap">
             {allStages.map((s) => {
               const active = s.key === currentStage;
               const isRejected = s.key === "REJECTED";
@@ -1272,17 +912,18 @@ function CandidateDrawer({
                   type="button"
                   disabled={busy || active}
                   onClick={() => onMove(candidate.id, s.key)}
-                  style={{
-                    padding: "5px 10px",
-                    background: active ? s.color : "transparent",
-                    border: `1px solid ${active ? s.color : E.border}`,
-                    color: active ? "#fff" : isRejected ? E.rose : E.muted,
-                    borderRadius: 7,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: busy || active ? "default" : "pointer",
-                    opacity: busy ? 0.6 : 1,
-                  }}
+                  className={[
+                    "px-2.5 py-1 rounded-[7px] text-[11px] font-bold border transition-all",
+                    active
+                      ? `${s.dotClass} text-white border-transparent`
+                      : isRejected
+                        ? "bg-transparent text-rose border-border"
+                        : "bg-transparent text-muted border-border",
+                    busy || active
+                      ? "cursor-default"
+                      : "cursor-pointer hover:border-border-hi",
+                    busy ? "opacity-60" : "",
+                  ].join(" ")}
                 >
                   {s.label}
                 </button>
@@ -1291,182 +932,57 @@ function CandidateDrawer({
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "18px 22px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: 14,
-              alignItems: "center",
-              marginBottom: 18,
-            }}
-          >
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-[22px] py-[18px]">
+          {/* Match semantic score */}
+          <div className="grid grid-cols-[auto_1fr] gap-3.5 items-center mb-[18px]">
             <ScoreVis score={match} style="ring" size={72} label={false} />
             <div>
-              <div
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: E.subtle,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                  marginBottom: 3,
-                }}
-              >
+              <div className="text-[10.5px] font-bold text-subtle uppercase tracking-[0.4px] mb-[3px]">
                 Match con la práctica
               </div>
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: E.text,
-                  letterSpacing: -0.8,
-                  lineHeight: 1,
-                }}
-              >
+              <div className="text-[24px] font-black text-text tracking-[-0.8px] leading-none">
                 {match}
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: E.muted,
-                    marginLeft: 4,
-                  }}
-                >
+                <span className="text-[13px] font-bold text-muted ml-1">
                   /100
                 </span>
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: E.subtle,
-                  fontWeight: 700,
-                  marginTop: 4,
-                }}
-              >
+              <div className="text-[11px] text-subtle font-bold mt-1">
                 Postuló hace {formatInStage(candidate.createdAt)}
               </div>
             </div>
           </div>
 
-          {/* Scoring ATS — score según los pesos configurados en
-              /ats/[jobId]/config. Mismo formato visual que el Match con IA. */}
-          {(() => {
-            const ats =
-              candidate.atsScore != null
-                ? Math.round(candidate.atsScore)
-                : null;
-            const hint =
-              ats == null
-                ? "Sin calcular · usá Recalcular desde Scoring ATS."
-                : ats >= 70
-                  ? "Cumple bien los filtros configurados."
-                  : ats >= 40
-                    ? "Cumple parcialmente — revisar."
-                    : "Pocos filtros cumplidos.";
-            return (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr",
-                  gap: 14,
-                  alignItems: "center",
-                  marginBottom: 18,
-                }}
-              >
-                <ScoreVis
-                  score={ats ?? 0}
-                  style="ring"
-                  size={72}
-                  label={false}
-                />
-                <div>
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      color: E.subtle,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.4,
-                      marginBottom: 3,
-                    }}
-                  >
-                    Scoring ATS
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 24,
-                      fontWeight: 900,
-                      color: E.text,
-                      letterSpacing: -0.8,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {ats ?? "—"}
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: E.muted,
-                        marginLeft: 4,
-                      }}
-                    >
-                      /100
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: E.subtle,
-                      fontWeight: 700,
-                      marginTop: 4,
-                    }}
-                  >
-                    {hint}
-                  </div>
-                </div>
+          {/* ATS score */}
+          <div className="grid grid-cols-[auto_1fr] gap-3.5 items-center mb-[18px]">
+            <ScoreVis score={ats ?? 0} style="ring" size={72} label={false} />
+            <div>
+              <div className="text-[10.5px] font-bold text-subtle uppercase tracking-[0.4px] mb-[3px]">
+                Scoring ATS
               </div>
-            );
-          })()}
+              <div className="text-[24px] font-black text-text tracking-[-0.8px] leading-none">
+                {ats ?? "—"}
+                <span className="text-[13px] font-bold text-muted ml-1">
+                  /100
+                </span>
+              </div>
+              <div className="text-[11px] text-subtle font-bold mt-1">
+                {hint}
+              </div>
+            </div>
+          </div>
 
-          <section style={{ marginBottom: 18 }}>
-            <h3
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: E.subtle,
-                letterSpacing: 0.4,
-                textTransform: "uppercase",
-                marginBottom: 8,
-              }}
-            >
+          {/* Contact */}
+          <section className="mb-[18px]">
+            <h3 className="text-[11px] font-extrabold text-subtle tracking-[0.4px] uppercase mb-2">
               Contacto
             </h3>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                fontSize: 12.5,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "8px 11px",
-                  background: "rgba(15,23,42,.03)",
-                  borderRadius: 8,
-                }}
-              >
-                <span style={{ color: E.subtle }}>Correo</span>
+            <div className="flex flex-col gap-1.5 text-[12.5px]">
+              <div className="flex justify-between px-[11px] py-2 bg-black/[0.03] rounded-[8px]">
+                <span className="text-subtle">Correo</span>
                 <a
                   href={`mailto:${candidate.student.email}`}
-                  style={{
-                    color: E.text,
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
+                  className="text-text font-semibold no-underline hover:underline"
                 >
                   {candidate.student.email}
                 </a>
@@ -1474,71 +990,26 @@ function CandidateDrawer({
             </div>
           </section>
 
+          {/* CV */}
           {prof?.cvUrl && (
-            <section style={{ marginBottom: 18 }}>
-              <h3
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: E.subtle,
-                  letterSpacing: 0.4,
-                  textTransform: "uppercase",
-                  marginBottom: 8,
-                }}
-              >
+            <section className="mb-[18px]">
+              <h3 className="text-[11px] font-extrabold text-subtle tracking-[0.4px] uppercase mb-2">
                 Archivos
               </h3>
               <a
                 href={prof.cvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
-                  padding: "11px 12px",
-                  background: E.surface,
-                  border: `1px solid ${E.border}`,
-                  borderRadius: 10,
-                  textDecoration: "none",
-                }}
+                className="flex items-center gap-2.5 px-3 py-[11px] bg-surface border border-border rounded-[10px] no-underline hover:border-border-hi transition-colors"
               >
-                <span
-                  style={{
-                    width: 34,
-                    height: 42,
-                    borderRadius: 5,
-                    background: `linear-gradient(180deg, ${E.accentBg}, ${E.surface})`,
-                    border: `1px solid ${E.accentBdr}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 9,
-                    fontWeight: 900,
-                    color: E.accent,
-                    letterSpacing: 0.5,
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="w-[34px] h-[42px] rounded-[5px] bg-accent-bg border border-accent-bdr flex items-center justify-center text-[9px] font-black text-accent tracking-[0.5px] flex-shrink-0">
                   CV
                 </span>
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: E.text,
-                    }}
-                  >
+                <div className="min-w-0">
+                  <div className="text-[12px] font-bold text-text">
                     CV del candidato
                   </div>
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      color: E.subtle,
-                      marginTop: 1,
-                    }}
-                  >
+                  <div className="text-[10.5px] text-subtle mt-[1px]">
                     Abrir en pestaña nueva
                   </div>
                 </div>
@@ -1547,16 +1018,9 @@ function CandidateDrawer({
           )}
         </div>
 
-        <footer
-          style={{
-            padding: "14px 22px",
-            borderTop: `1px solid ${E.border}`,
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          {/* Chat — habilitado solo en INTERVIEW (regla backend). */}
+        {/* Footer actions */}
+        <footer className="px-[22px] py-[14px] border-t border-border flex gap-2 flex-wrap">
+          {/* Chat — only enabled in INTERVIEW (backend rule) */}
           {(() => {
             const canChat = currentStage === "INTERVIEW";
             const tooltip = canChat
@@ -1568,25 +1032,18 @@ function CandidateDrawer({
                 disabled={!canChat || chatBusy}
                 onClick={() => onStartChat(candidate.id)}
                 title={tooltip}
-                style={{
-                  padding: "11px 14px",
-                  background: canChat ? E.surface : "rgba(15,23,42,.04)",
-                  border: `1px solid ${canChat ? E.border : "transparent"}`,
-                  color: canChat ? E.text : E.subtle,
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: !canChat || chatBusy ? "not-allowed" : "pointer",
-                  opacity: chatBusy ? 0.6 : 1,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
+                className={[
+                  "px-3.5 py-[11px] rounded-[10px] text-[13px] font-bold inline-flex items-center gap-1.5 transition-all min-h-[44px]",
+                  canChat
+                    ? "bg-surface border border-border text-text hover:bg-bg cursor-pointer"
+                    : "bg-black/[0.04] border border-transparent text-subtle cursor-not-allowed",
+                  chatBusy ? "opacity-60" : "",
+                ].join(" ")}
               >
                 <Icon
                   name="chat"
                   size={14}
-                  color={canChat ? E.text : E.subtle}
+                  color={canChat ? "var(--color-text)" : "var(--color-subtle)"}
                 />
                 {chatBusy ? "Abriendo…" : "Mensajear"}
               </button>
@@ -1601,18 +1058,12 @@ function CandidateDrawer({
                 const next = STAGES[idx + 1];
                 if (next) onMove(candidate.id, next.key);
               }}
-              style={{
-                flex: 1,
-                padding: "11px",
-                background: `linear-gradient(135deg, ${E.accent}, ${E.accentHi})`,
-                color: "#fff",
-                border: "none",
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: busy ? "default" : "pointer",
-                opacity: busy ? 0.6 : 1,
-              }}
+              className={[
+                "flex-1 py-[11px] bg-gradient-to-br from-accent to-accent-hi text-white border-none rounded-[10px] text-[13px] font-extrabold min-h-[44px]",
+                busy
+                  ? "opacity-60 cursor-default"
+                  : "cursor-pointer hover:opacity-90 transition-opacity",
+              ].join(" ")}
             >
               Avanzar etapa
             </button>
@@ -1621,18 +1072,12 @@ function CandidateDrawer({
             type="button"
             disabled={busy || currentStage === "REJECTED"}
             onClick={() => onMove(candidate.id, "REJECTED")}
-            style={{
-              padding: "11px 14px",
-              background: E.surface,
-              border: `1px solid ${E.border}`,
-              color: E.rose,
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor:
-                busy || currentStage === "REJECTED" ? "default" : "pointer",
-              opacity: busy ? 0.6 : 1,
-            }}
+            className={[
+              "px-3.5 py-[11px] bg-surface border border-border text-rose rounded-[10px] text-[13px] font-bold min-h-[44px]",
+              busy || currentStage === "REJECTED"
+                ? "cursor-default opacity-60"
+                : "cursor-pointer hover:bg-rose-bg transition-colors",
+            ].join(" ")}
           >
             Descartar
           </button>
@@ -1654,49 +1099,17 @@ function BulkBar({
   onMove: (stage: PipelineStatus) => void;
 }) {
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 24,
-        left: "50%",
-        transform: "translateX(-50%)",
-        background: E.dark,
-        color: "#fff",
-        padding: "10px 12px 10px 18px",
-        borderRadius: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        zIndex: 50,
-        boxShadow: "0 20px 50px rgba(11,27,63,.4)",
-        flexWrap: "wrap",
-      }}
-    >
-      <span style={{ fontSize: 13, fontWeight: 800 }}>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-dark text-white px-3 py-2.5 pl-[18px] rounded-[14px] flex items-center gap-2.5 z-50 shadow-[0_20px_50px_rgba(11,27,63,.4)] flex-wrap">
+      <span className="text-[13px] font-extrabold">
         {count} {count === 1 ? "seleccionado" : "seleccionados"}
       </span>
-      <span
-        style={{
-          width: 1,
-          height: 20,
-          background: "rgba(255,255,255,.15)",
-        }}
-      />
+      <span className="w-px h-5 bg-white/15" />
       {STAGES.map((s) => (
         <button
           key={s.key}
           type="button"
           onClick={() => onMove(s.key)}
-          style={{
-            padding: "7px 12px",
-            background: "rgba(255,255,255,.08)",
-            border: "1px solid rgba(255,255,255,.14)",
-            color: "#fff",
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
+          className="px-3 py-[7px] bg-white/[0.08] border border-white/[0.14] text-white rounded-[8px] text-[12px] font-bold cursor-pointer hover:bg-white/15 transition-colors min-h-[44px] sm:min-h-0"
         >
           {s.label}
         </button>
@@ -1704,42 +1117,16 @@ function BulkBar({
       <button
         type="button"
         onClick={() => onMove("REJECTED")}
-        style={{
-          padding: "7px 12px",
-          background: "rgba(190,18,60,.2)",
-          border: "1px solid rgba(190,18,60,.4)",
-          color: "#fff",
-          borderRadius: 8,
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-        }}
+        className="px-3 py-[7px] bg-rose/20 border border-rose/40 text-white rounded-[8px] text-[12px] font-bold cursor-pointer inline-flex items-center gap-1.5 hover:bg-rose/30 transition-colors min-h-[44px] sm:min-h-0"
       >
         <Icon name="x" size={12} color="#fff" />
         Descartar
       </button>
-      <span
-        style={{
-          width: 1,
-          height: 20,
-          background: "rgba(255,255,255,.15)",
-        }}
-      />
+      <span className="w-px h-5 bg-white/15" />
       <button
         type="button"
         onClick={onClear}
-        style={{
-          padding: "7px 10px",
-          background: "transparent",
-          border: "none",
-          color: "rgba(255,255,255,.6)",
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
+        className="px-2.5 py-[7px] bg-transparent border-none text-white/60 text-[12px] font-bold cursor-pointer hover:text-white transition-colors"
       >
         Cancelar
       </button>
@@ -1761,34 +1148,14 @@ function TableView({
   onOpenCandidate: (id: string) => void;
 }) {
   return (
-    <div
-      style={{
-        background: E.surface,
-        border: `1px solid ${E.border}`,
-        borderRadius: 14,
-        overflow: "hidden",
-      }}
-    >
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+    <div className="bg-surface border border-border rounded-[14px] overflow-x-auto">
+      <table className="w-full border-collapse min-w-[640px]">
         <thead>
-          <tr
-            style={{
-              background: "rgba(15,23,42,.03)",
-              borderBottom: `1px solid ${E.border}`,
-            }}
-          >
-            {["", "Postulante", "Etapa", "Match", "Postuló"].map((h, i) => (
+          <tr className="bg-black/[0.03] border-b border-border">
+            {["", "Postulante", "Etapa", "Score ATS", "Postuló"].map((h, i) => (
               <th
                 key={i}
-                style={{
-                  textAlign: "left",
-                  padding: "10px 14px",
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  color: E.subtle,
-                  letterSpacing: 0.4,
-                  textTransform: "uppercase",
-                }}
+                className="text-left px-3.5 py-2.5 text-[10.5px] font-extrabold text-subtle tracking-[0.4px] uppercase"
               >
                 {h}
               </th>
@@ -1800,18 +1167,15 @@ function TableView({
             const stage = [...STAGES, REJECTED_STAGE].find(
               (s) => s.key === deriveStage(c),
             )!;
-            // Columna "Score" de la tabla: igual que las cards del board,
-            // pintamos el Scoring ATS (no el matchScore semántico). Tramos
-            // alineados con la card (verde ≥80, ámbar ≥50, rojo el resto).
             const ats = c.atsScore != null ? Math.round(c.atsScore) : null;
-            const matchC =
+            const scoreClass =
               ats == null
-                ? E.subtle
+                ? "text-subtle"
                 : ats >= 80
-                  ? E.green
+                  ? "text-green"
                   : ats >= 50
-                    ? E.amber
-                    : E.rose;
+                    ? "text-amber"
+                    : "text-rose";
             const [c1, c2] = avatarColors(c.student.name);
             const ini = initialsFor(c.student.name);
             const prof = c.student.studentProfile;
@@ -1820,48 +1184,28 @@ function TableView({
               <tr
                 key={c.id}
                 onClick={() => onOpenCandidate(c.id)}
-                style={{
-                  borderBottom: `1px solid ${E.border}`,
-                  cursor: "pointer",
-                  transition: "background .15s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(15,23,42,.025)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
+                className="border-b border-border cursor-pointer hover:bg-black/[0.025] transition-colors"
               >
                 <td
-                  style={{ padding: "10px 14px", width: 30 }}
+                  className="px-3.5 py-2.5 w-[30px]"
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleSelect(c.id);
                   }}
                 >
                   <span
-                    style={{
-                      display: "inline-flex",
-                      width: 16,
-                      height: 16,
-                      borderRadius: 4,
-                      border: `1.6px solid ${isSel ? E.accent : E.faint}`,
-                      background: isSel ? E.accent : "transparent",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
+                    className={[
+                      "inline-flex w-4 h-4 rounded-[4px] border-[1.6px] items-center justify-center",
+                      isSel
+                        ? "border-accent bg-accent"
+                        : "border-faint bg-transparent",
+                    ].join(" ")}
                   >
                     {isSel && <Icon name="check" size={10} color="#fff" />}
                   </span>
                 </td>
-                <td style={{ padding: "10px 14px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 9,
-                    }}
-                  >
+                <td className="px-3.5 py-2.5">
+                  <div className="flex items-center gap-2.5">
                     <Avatar
                       size={30}
                       ini={ini}
@@ -1871,63 +1215,34 @@ function TableView({
                       alt={c.student.name}
                     />
                     <div>
-                      <div
-                        style={{
-                          fontSize: 12.5,
-                          fontWeight: 700,
-                          color: E.text,
-                        }}
-                      >
+                      <div className="text-[12.5px] font-bold text-text">
                         {c.student.name}
                       </div>
-                      <div style={{ fontSize: 10.5, color: E.subtle }}>
+                      <div className="text-[10.5px] text-subtle">
                         {prof?.university ?? "—"}
                         {prof?.career && ` · ${prof.career}`}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td style={{ padding: "10px 14px" }}>
+                <td className="px-3.5 py-2.5">
                   <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: stage.color,
-                    }}
+                    className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold ${stage.colorClass}`}
                   >
                     <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: stage.color,
-                      }}
+                      className={`w-1.5 h-1.5 rounded-full ${stage.dotClass}`}
                     />
                     {stage.label}
                   </span>
                 </td>
-                <td style={{ padding: "10px 14px" }}>
+                <td className="px-3.5 py-2.5">
                   <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: matchC,
-                      letterSpacing: -0.3,
-                    }}
+                    className={`text-[13px] font-black tracking-[-0.3px] ${scoreClass}`}
                   >
                     {ats != null ? `${ats}%` : "—"}
                   </span>
                 </td>
-                <td
-                  style={{
-                    padding: "10px 14px",
-                    fontSize: 11.5,
-                    color: E.muted,
-                  }}
-                >
+                <td className="px-3.5 py-2.5 text-[11.5px] text-muted">
                   hace {formatInStage(c.createdAt)}
                 </td>
               </tr>
@@ -1937,12 +1252,7 @@ function TableView({
             <tr>
               <td
                 colSpan={5}
-                style={{
-                  padding: "32px 14px",
-                  textAlign: "center",
-                  fontSize: 12,
-                  color: E.subtle,
-                }}
+                className="px-3.5 py-8 text-center text-[12px] text-subtle"
               >
                 Sin postulantes que coincidan con los filtros.
               </td>
@@ -1958,29 +1268,12 @@ function TableView({
 
 function Spinner() {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 40,
-        color: E.muted,
-        fontSize: 13,
-        gap: 10,
-      }}
-    >
+    <div className="flex items-center justify-center gap-2.5 py-10 text-muted text-[13px]">
       <span
-        style={{
-          width: 18,
-          height: 18,
-          border: `2px solid ${E.accent}33`,
-          borderTopColor: E.accent,
-          borderRadius: "50%",
-          animation: "ats-spin .9s linear infinite",
-        }}
+        className="w-[18px] h-[18px] rounded-full border-2 border-accent/20 border-t-accent"
+        style={{ animation: "ats-spin .9s linear infinite" }}
       />
       Cargando pipeline…
-      <style>{`@keyframes ats-spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

@@ -7,7 +7,6 @@ import {
   MONTHS_ES,
   isInterviewPast,
 } from "./calendarHelpers";
-import { E } from "@/components/dashboard/palettes";
 
 type Interview = {
   id: string;
@@ -73,13 +72,8 @@ function StudentAvatar({ name, size = 36 }: { name: string; size?: number }) {
     .toUpperCase();
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.35,
-        background: `linear-gradient(135deg, ${E.accentHi}, ${E.accent})`,
-      }}
+      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 bg-gradient-to-br from-accent-hi to-accent"
+      style={{ width: size, height: size, fontSize: size * 0.35 }}
     >
       {initials}
     </div>
@@ -133,70 +127,55 @@ export default function DayView({
   return (
     <div className="flex flex-col h-full">
       {/* Day header */}
-      <div
-        className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
-        style={{ borderBottom: `1px solid ${E.border}` }}
-      >
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 border-b border-border">
         <div
-          className="inline-flex items-center justify-center w-11 h-11 rounded-[12px] text-[17px] font-bold"
-          style={
+          className={[
+            "inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[12px] text-base sm:text-[17px] font-bold",
             isToday
-              ? {
-                  background: E.accent,
-                  color: "#fff",
-                  boxShadow: `0 6px 16px -4px ${E.accentBdr}`,
-                }
-              : { background: E.bg, color: E.text }
-          }
+              ? "bg-accent text-white shadow-[0_6px_16px_-4px_var(--color-accent-bdr)]"
+              : "bg-bg text-text",
+          ].join(" ")}
         >
           {dayNum}
         </div>
         <div>
           <p
-            className="text-[10.5px] font-bold uppercase tracking-[0.07em]"
-            style={{ color: isToday ? E.accent : E.subtle }}
+            className={[
+              "text-[10.5px] font-bold uppercase tracking-[0.07em]",
+              isToday ? "text-accent" : "text-subtle",
+            ].join(" ")}
           >
             {isToday ? "Hoy" : weekdayCap}
           </p>
-          <p
-            className="text-[14.5px] font-bold tracking-[-0.02em]"
-            style={{ color: E.text }}
-          >
+          <p className="text-[13px] sm:text-[14.5px] font-bold tracking-[-0.02em] text-text">
             {isToday
               ? `${weekdayCap} ${dayNum} de ${month.toLowerCase()}`
               : `${dayNum} de ${month.toLowerCase()}`}
           </p>
         </div>
-        <div
-          className="ml-auto text-[12px] font-medium"
-          style={{ color: E.subtle }}
-        >
+        <div className="ml-auto text-xs sm:text-[12px] font-medium text-subtle">
           {dayIvs.length} {dayIvs.length === 1 ? "entrevista" : "entrevistas"}
         </div>
       </div>
 
       {/* Scrollable timeline */}
       <div ref={containerRef} className="flex-1 overflow-y-auto">
-        {/* paddingTop gives the 00:00 label room so it isn't clipped by the
-            top edge of the scroll container. */}
+        {/* paddingTop gives the 00:00 label room so it isn't clipped */}
         <div
           className="grid relative"
           style={{
-            gridTemplateColumns: "72px 1fr",
+            gridTemplateColumns: "56px 1fr",
             height: TOTAL_H + 12,
             paddingTop: 12,
           }}
         >
           {/* Hour gutter */}
-          <div
-            className="relative"
-            style={{ borderRight: `1px solid ${E.border}` }}
-          >
+          <div className="relative border-r border-border">
             {HOURS.map((h, i) => (
               <div
                 key={h}
-                className="absolute right-3 text-[11px] font-semibold"
-                style={{ top: i * CELL_H - 8, color: E.subtle }}
+                className="absolute right-2 text-[10px] sm:text-[11px] font-semibold text-subtle"
+                style={{ top: i * CELL_H - 8 }}
               >
                 {h}:00
               </div>
@@ -209,32 +188,18 @@ export default function DayView({
             {HOURS.map((_, i) => (
               <div
                 key={i}
-                className="absolute left-0 right-0"
-                style={{
-                  top: i * CELL_H,
-                  height: CELL_H,
-                  borderBottom: `1px dashed ${E.border}`,
-                }}
+                className="absolute left-0 right-0 border-b border-dashed border-border"
+                style={{ top: i * CELL_H, height: CELL_H }}
               />
             ))}
 
             {/* Now line */}
             {nowInRange && (
               <div
-                className="absolute left-0 right-0 z-10 pointer-events-none"
-                style={{
-                  top: (currentNow - START_MIN) * PX_PER_MIN,
-                  borderTop: `2px solid ${E.accent}`,
-                }}
+                className="absolute left-0 right-0 z-10 pointer-events-none border-t-2 border-accent"
+                style={{ top: (currentNow - START_MIN) * PX_PER_MIN }}
               >
-                <span
-                  className="absolute -left-1.5 -top-2 w-3 h-3 rounded-full"
-                  style={{
-                    display: "block",
-                    background: E.accent,
-                    boxShadow: `0 0 0 4px ${E.accentBg}`,
-                  }}
-                />
+                <span className="absolute -left-1.5 -top-2 w-3 h-3 rounded-full block bg-accent shadow-[0_0_0_4px_var(--color-accent-bg)]" />
               </div>
             )}
 
@@ -253,49 +218,43 @@ export default function DayView({
               const endLabel = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
 
               const past = isInterviewPast(iv.scheduledAt, iv.durationMins);
-              const borderColor = past ? E.subtle : E.green;
-              const bgColor = past ? "rgba(15,23,42,0.05)" : E.greenBg;
-              const timeColor = past ? E.subtle : E.green;
-              const btnBg = past ? E.subtle : E.green;
 
               return (
                 <button
                   key={iv.id}
                   onClick={() => onSelectInterview(iv)}
-                  className="absolute left-3 right-3 flex items-center gap-3 rounded-[12px] px-4 cursor-pointer text-left transition-all z-[2]"
-                  style={{
-                    top,
-                    height,
-                    borderLeft: `4px solid ${borderColor}`,
-                    background: bgColor,
-                  }}
+                  className={[
+                    "absolute left-2 sm:left-3 right-2 sm:right-3 flex items-center gap-3 rounded-[12px] px-3 sm:px-4 cursor-pointer text-left transition-all z-[2]",
+                    past
+                      ? "border-l-4 border-l-subtle bg-dark/5"
+                      : "border-l-4 border-l-green bg-green-bg",
+                  ].join(" ")}
+                  style={{ top, height }}
                 >
                   <StudentAvatar name={iv.student.name} size={36} />
                   <div className="flex-1 min-w-0">
                     <p
-                      className="text-[10.5px] font-bold leading-none mb-1"
-                      style={{ color: timeColor }}
+                      className={[
+                        "text-[10.5px] font-bold leading-none mb-1",
+                        past ? "text-subtle" : "text-green",
+                      ].join(" ")}
                     >
                       {startLabel} – {endLabel}
                     </p>
-                    <p
-                      className="text-[13px] font-bold truncate leading-tight"
-                      style={{ color: E.text }}
-                    >
+                    <p className="text-[12px] sm:text-[13px] font-bold truncate leading-tight text-text">
                       {iv.title}
                     </p>
                     {height > 60 && (
-                      <p
-                        className="text-[11px] mt-0.5 truncate"
-                        style={{ color: E.muted }}
-                      >
+                      <p className="text-[10.5px] sm:text-[11px] mt-0.5 truncate text-muted">
                         {iv.student.name} · {iv.internship.title}
                       </p>
                     )}
                   </div>
                   <span
-                    className="px-3 py-1.5 text-white text-[11.5px] font-bold rounded-lg flex-shrink-0 transition-colors"
-                    style={{ background: btnBg }}
+                    className={[
+                      "px-3 py-1.5 text-white text-[11.5px] font-bold rounded-lg flex-shrink-0 transition-colors",
+                      past ? "bg-subtle" : "bg-green",
+                    ].join(" ")}
                   >
                     Abrir
                   </span>

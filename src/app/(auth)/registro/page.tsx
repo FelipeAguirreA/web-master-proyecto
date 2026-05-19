@@ -74,12 +74,12 @@ const STEPS = ["Tu cuenta", "Tu perfil", "Listo"];
 const ACTIVE_STEP = 1; // index
 
 const LABEL_CLS =
-  "block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6D6A63] mb-2";
+  "block text-[11px] font-semibold uppercase tracking-[0.08em] text-muted mb-2";
 
 function inputCls(hasError?: boolean) {
   return hasError
-    ? "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FFF0ED] border border-[#FF6A3D]/30 focus:outline-none focus:border-[#FF6A3D] focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]"
-    : "w-full rounded-xl px-4 py-3 text-[14px] bg-[#FAFAF8] border border-transparent hover:border-black/[0.05] focus:outline-none focus:border-[#FF6A3D]/40 focus:bg-white focus:shadow-[0_0_0_4px_rgba(255,106,61,0.08)] transition-all placeholder:text-[#9B9891] text-[#0A0909]";
+    ? "w-full rounded-xl border border-rose/30 bg-rose-bg/50 px-4 py-3 text-base text-text placeholder:text-subtle focus:border-rose focus:outline-none focus:shadow-[0_0_0_4px_var(--color-rose)/0.08] sm:text-[14px] transition-all"
+    : "w-full rounded-xl border border-transparent bg-bg px-4 py-3 text-base text-text placeholder:text-subtle hover:border-border focus:border-accent/40 focus:bg-surface focus:outline-none focus:shadow-[0_0_0_4px_var(--color-accent)/0.08] sm:text-[14px] transition-all";
 }
 
 export default function RegistroPage() {
@@ -234,56 +234,42 @@ export default function RegistroPage() {
   };
 
   return (
-    <div
-      className="relative min-h-screen bg-[#FAFAF8] text-[#0A0909] antialiased overflow-x-hidden flex flex-col items-center justify-center px-4 py-12"
-      style={{ fontFamily: "var(--font-onest), ui-sans-serif, system-ui" }}
-    >
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-bg px-4 py-12 text-text antialiased">
       {/* Ambient mesh */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
-        <div
-          className="absolute top-[-15%] left-[-10%] w-[55%] h-[50%] rounded-full opacity-55"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(255,166,122,0.45), rgba(255,166,122,0) 70%)",
-            filter: "blur(40px)",
-          }}
-        />
-        <div
-          className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[50%] rounded-full opacity-50"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(255,210,180,0.5), rgba(255,210,180,0) 70%)",
-            filter: "blur(50px)",
-          }}
-        />
+        <div className="absolute -top-[15%] -left-[10%] h-[50%] w-[55%] rounded-full opacity-55 [background:radial-gradient(closest-side,rgba(255,166,122,0.45),rgba(255,166,122,0)_70%)] [filter:blur(40px)]" />
+        <div className="absolute -bottom-[10%] -right-[10%] h-[50%] w-[55%] rounded-full opacity-50 [background:radial-gradient(closest-side,rgba(255,210,180,0.5),rgba(255,210,180,0)_70%)] [filter:blur(50px)]" />
       </div>
 
       {/* Volver al inicio */}
       <Link
         href="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6D6A63] hover:text-[#0A0909] transition-colors group"
+        className="group absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted no-underline transition-colors hover:text-text"
       >
-        <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
         Volver al inicio
       </Link>
 
       {/* Logo */}
-      <Link href="/" className="relative z-10 flex items-center gap-2 mb-2">
-        <span className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-[#FF6A3D] to-[#FF9B6A] shadow-[0_4px_12px_-2px_rgba(255,106,61,0.5),inset_0_1px_0_rgba(255,255,255,0.4)]">
-          <span className="text-white font-bold text-[17px] leading-none tracking-tight">
+      <Link
+        href="/"
+        className="relative z-10 mb-2 flex items-center gap-2 no-underline"
+      >
+        <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-hi shadow-[0_4px_12px_-2px_var(--color-accent)/0.5,inset_0_1px_0_rgba(255,255,255,0.4)]">
+          <span className="text-[17px] font-bold leading-none tracking-tight text-white">
             P
           </span>
         </span>
-        <span className="text-[19px] font-semibold tracking-[-0.015em] text-[#0A0909]">
+        <span className="text-[19px] font-semibold tracking-[-0.015em] text-text">
           PractiX
         </span>
       </Link>
-      <p className="relative z-10 text-[13px] text-[#6D6A63] mb-8">
+      <p className="relative z-10 mb-8 text-[13px] text-muted">
         Completá tu perfil para activar tu cuenta
       </p>
 
       {/* Step indicator */}
-      <div className="relative z-10 flex items-center gap-0 mb-8">
+      <div className="relative z-10 mb-8 flex items-center gap-0">
         {STEPS.map((step, i) => {
           const isActive = i === ACTIVE_STEP;
           const isDone = i < ACTIVE_STEP;
@@ -291,23 +277,23 @@ export default function RegistroPage() {
             <div key={step} className="flex items-center">
               <div className="flex flex-col items-center">
                 <div
-                  className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold transition-all ${
+                  className={`relative flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-bold transition-all ${
                     isActive
-                      ? "bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white shadow-[0_4px_12px_-2px_rgba(255,106,61,0.45),inset_0_1px_0_rgba(255,255,255,0.3)]"
+                      ? "bg-gradient-to-br from-accent to-accent-hi text-white shadow-[0_4px_12px_-2px_var(--color-accent)/0.45,inset_0_1px_0_rgba(255,255,255,0.3)]"
                       : isDone
-                        ? "bg-[#0A0909] text-white"
-                        : "bg-white border border-black/[0.08] text-[#9B9891]"
+                        ? "bg-text text-white"
+                        : "border border-border bg-surface text-subtle"
                   }`}
                 >
                   {isDone ? "✓" : i + 1}
                 </div>
                 <span
-                  className={`text-[10px] font-semibold tracking-[0.08em] uppercase mt-1.5 ${
+                  className={`mt-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
                     isActive
-                      ? "text-[#FF6A3D]"
+                      ? "text-accent"
                       : isDone
-                        ? "text-[#0A0909]"
-                        : "text-[#9B9891]"
+                        ? "text-text"
+                        : "text-subtle"
                   }`}
                 >
                   {step}
@@ -315,7 +301,7 @@ export default function RegistroPage() {
               </div>
               {i < STEPS.length - 1 && (
                 <div
-                  className={`w-14 h-px mx-2 mb-5 ${isDone ? "bg-[#0A0909]/30" : "bg-black/[0.08]"}`}
+                  className={`mx-2 mb-5 h-px w-14 ${isDone ? "bg-text/30" : "bg-border"}`}
                 />
               )}
             </div>
@@ -324,23 +310,23 @@ export default function RegistroPage() {
       </div>
 
       {/* Card */}
-      <div className="relative z-10 bg-white rounded-[20px] sm:rounded-[24px] border border-black/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] p-5 sm:p-7 w-full max-w-[440px]">
+      <div className="relative z-10 w-full max-w-[440px] rounded-[20px] border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] sm:rounded-[24px] sm:p-7">
         <div className="mb-6">
-          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-[#0A0909]">
+          <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-text">
             Completá tu perfil
           </h1>
-          <p className="text-[13px] text-[#6D6A63] mt-1 leading-[1.5]">
+          <p className="mt-1 text-[13px] leading-[1.5] text-muted">
             Solo necesitamos estos datos una vez para activar tu cuenta.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {/* Nombre + Apellido */}
+          {/* Nombre + Apellido — 2 cols en sm */}
           <div>
             <label htmlFor="register-name" className={LABEL_CLS}>
               Nombre completo
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <input
                   id="register-name"
@@ -351,12 +337,11 @@ export default function RegistroPage() {
                   onChange={handleChange("name")}
                   placeholder="Alex"
                   aria-label="Nombre"
+                  aria-invalid={!!errors.name}
                   className={inputCls(!!errors.name)}
                 />
                 {errors.name && (
-                  <p className="text-[11.5px] text-[#C74A1E] mt-1">
-                    {errors.name}
-                  </p>
+                  <p className="mt-1 text-[11.5px] text-rose">{errors.name}</p>
                 )}
               </div>
               <div>
@@ -369,10 +354,11 @@ export default function RegistroPage() {
                   onChange={handleChange("lastName")}
                   placeholder="Martínez"
                   aria-label="Apellido"
+                  aria-invalid={!!errors.lastName}
                   className={inputCls(!!errors.lastName)}
                 />
                 {errors.lastName && (
-                  <p className="text-[11.5px] text-[#C74A1E] mt-1">
+                  <p className="mt-1 text-[11.5px] text-rose">
                     {errors.lastName}
                   </p>
                 )}
@@ -380,21 +366,18 @@ export default function RegistroPage() {
             </div>
           </div>
 
-          {/* Rol + documento */}
+          {/* Tipo de documento */}
           <div>
-            {/* <span> en vez de <label>: este texto etiqueta una sección
-                con 2 <button> de toggle + 1 <input> debajo. No hay un único
-                form control al que apunte un htmlFor — el "label" es
-                conceptual sobre el grupo. */}
+            {/* <span> en vez de <label>: etiqueta conceptual sobre un grupo de controles */}
             <span className={LABEL_CLS}>Tipo de documento</span>
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="mb-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("rut")}
-                className={`relative flex flex-col items-center gap-1.5 py-3.5 rounded-xl border transition-all ${
+                className={`relative flex min-h-[44px] flex-col items-center gap-1.5 rounded-xl border py-3.5 transition-all ${
                   docType === "rut"
-                    ? "border-[#FF6A3D]/40 bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] text-[#0A0909]"
-                    : "border-black/[0.06] bg-white text-[#6D6A63] hover:border-black/[0.12]"
+                    ? "border-accent/40 bg-gradient-to-br from-cream to-accent-lo/60 text-text"
+                    : "border-border bg-surface text-muted hover:border-border-hi"
                 }`}
               >
                 <span className="text-[22px] leading-none">🇨🇱</span>
@@ -403,10 +386,10 @@ export default function RegistroPage() {
               <button
                 type="button"
                 onClick={() => handleDocTypeChange("passport")}
-                className={`relative flex flex-col items-center gap-1.5 py-3.5 rounded-xl border transition-all ${
+                className={`relative flex min-h-[44px] flex-col items-center gap-1.5 rounded-xl border py-3.5 transition-all ${
                   docType === "passport"
-                    ? "border-[#FF6A3D]/40 bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] text-[#0A0909]"
-                    : "border-black/[0.06] bg-white text-[#6D6A63] hover:border-black/[0.12]"
+                    ? "border-accent/40 bg-gradient-to-br from-cream to-accent-lo/60 text-text"
+                    : "border-border bg-surface text-muted hover:border-border-hi"
                 }`}
               >
                 <span className="text-[22px] leading-none">🌐</span>
@@ -423,14 +406,13 @@ export default function RegistroPage() {
               placeholder={docType === "rut" ? "12.345.678-9" : "AB123456"}
               maxLength={docType === "rut" ? 12 : 20}
               aria-label={docType === "rut" ? "RUT" : "Documento de identidad"}
+              aria-invalid={!!errors.document}
               className={inputCls(!!errors.document)}
             />
             {errors.document ? (
-              <p className="text-[11.5px] text-[#C74A1E] mt-1">
-                {errors.document}
-              </p>
+              <p className="mt-1 text-[11.5px] text-rose">{errors.document}</p>
             ) : (
-              <p className="text-[11.5px] text-[#9B9891] mt-1.5 leading-[1.45]">
+              <p className="mt-1.5 text-[11.5px] leading-[1.45] text-subtle">
                 {docType === "rut"
                   ? "Formato: 12.345.678-9"
                   : "Pasaporte o documento (6–20 caracteres)"}
@@ -444,10 +426,10 @@ export default function RegistroPage() {
               Teléfono
             </label>
             <div
-              className={`flex rounded-xl overflow-hidden border transition-all ${
+              className={`flex overflow-hidden rounded-xl border transition-all ${
                 errors.phone
-                  ? "border-[#FF6A3D]/30 bg-[#FFF0ED]"
-                  : "border-transparent bg-[#FAFAF8] hover:border-black/[0.05] focus-within:border-[#FF6A3D]/40 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(255,106,61,0.08)]"
+                  ? "border-rose/30 bg-rose-bg/50"
+                  : "border-transparent bg-bg hover:border-border focus-within:border-accent/40 focus-within:bg-surface focus-within:shadow-[0_0_0_4px_var(--color-accent)/0.08]"
               }`}
             >
               <select
@@ -456,11 +438,7 @@ export default function RegistroPage() {
                 value={country.code}
                 onChange={handleCountryChange}
                 aria-label="Código de país del teléfono"
-                className={`pl-3 pr-2 py-3 text-[13px] cursor-pointer focus:outline-none border-r transition-colors ${
-                  errors.phone
-                    ? "border-[#FF6A3D]/20 bg-transparent text-[#0A0909]"
-                    : "border-black/[0.06] bg-transparent text-[#0A0909]"
-                }`}
+                className="cursor-pointer border-r border-border bg-transparent py-3 pl-3 pr-2 text-[13px] text-text focus:outline-none"
               >
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -477,18 +455,17 @@ export default function RegistroPage() {
                 onChange={handleChange("phone")}
                 placeholder="912345678"
                 aria-label="Número de teléfono"
-                className="flex-1 px-4 py-3 text-[14px] bg-transparent focus:outline-none placeholder:text-[#9B9891] text-[#0A0909]"
+                aria-invalid={!!errors.phone}
+                className="h-11 flex-1 bg-transparent px-4 py-3 text-base text-text placeholder:text-subtle focus:outline-none sm:text-[14px]"
               />
             </div>
             {errors.phone && (
-              <p className="text-[11.5px] text-[#C74A1E] mt-1">
-                {errors.phone}
-              </p>
+              <p className="mt-1 text-[11.5px] text-rose">{errors.phone}</p>
             )}
           </div>
 
-          <div className="pt-1 space-y-2.5">
-            <label className="flex items-start gap-2.5 cursor-pointer group">
+          <div className="space-y-2.5 pt-1">
+            <label className="group flex cursor-pointer items-start gap-2.5">
               <input
                 type="checkbox"
                 id="register-is-adult"
@@ -497,19 +474,19 @@ export default function RegistroPage() {
                   setForm((prev) => ({ ...prev, isAdult: e.target.checked }));
                   clearError("isAdult");
                 }}
-                className="mt-0.5 w-4 h-4 rounded border-[#E5E1D8] text-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 cursor-pointer"
+                className="mt-0.5 h-4 w-4 cursor-pointer rounded border-border accent-accent focus:ring-2 focus:ring-accent/20"
               />
-              <span className="text-[12.5px] text-[#4A4843] leading-[1.5]">
+              <span className="text-[12.5px] leading-[1.5] text-text">
                 Declaro que tengo 18 años o más.
               </span>
             </label>
             {errors.isAdult && (
-              <p className="text-[11.5px] text-[#C74A1E] -mt-1 ml-6">
+              <p className="ml-6 -mt-1 text-[11.5px] text-rose">
                 {errors.isAdult}
               </p>
             )}
 
-            <label className="flex items-start gap-2.5 cursor-pointer group">
+            <label className="group flex cursor-pointer items-start gap-2.5">
               <input
                 type="checkbox"
                 id="register-accept-terms"
@@ -521,15 +498,15 @@ export default function RegistroPage() {
                   }));
                   clearError("acceptedTerms");
                 }}
-                className="mt-0.5 w-4 h-4 rounded border-[#E5E1D8] text-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/20 cursor-pointer"
+                className="mt-0.5 h-4 w-4 cursor-pointer rounded border-border accent-accent focus:ring-2 focus:ring-accent/20"
               />
-              <span className="text-[12.5px] text-[#4A4843] leading-[1.5]">
+              <span className="text-[12.5px] leading-[1.5] text-text">
                 Acepto la{" "}
                 <Link
                   href="/privacidad"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#FF6A3D] hover:underline font-medium"
+                  className="font-medium text-accent hover:underline"
                 >
                   Política de Privacidad
                 </Link>{" "}
@@ -538,7 +515,7 @@ export default function RegistroPage() {
                   href="/terminos"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#FF6A3D] hover:underline font-medium"
+                  className="font-medium text-accent hover:underline"
                 >
                   Términos de Uso
                 </Link>{" "}
@@ -546,14 +523,17 @@ export default function RegistroPage() {
               </span>
             </label>
             {errors.acceptedTerms && (
-              <p className="text-[11.5px] text-[#C74A1E] -mt-1 ml-6">
+              <p className="ml-6 -mt-1 text-[11.5px] text-rose">
                 {errors.acceptedTerms}
               </p>
             )}
           </div>
 
           {serverError && (
-            <div className="bg-[#FFF0ED] border border-[#FF6A3D]/20 text-[#C74A1E] text-[12.5px] px-3 py-2.5 rounded-lg leading-[1.4]">
+            <div
+              role="alert"
+              className="rounded-lg border border-rose/20 bg-rose-bg px-3 py-2.5 text-[12.5px] leading-[1.4] text-rose"
+            >
               {serverError}
             </div>
           )}
@@ -561,22 +541,22 @@ export default function RegistroPage() {
           <button
             type="submit"
             disabled={loading}
-            className="group relative w-full inline-flex items-center justify-center gap-1.5 bg-gradient-to-br from-[#FF6A3D] to-[#FF8A52] text-white font-semibold py-3.5 rounded-xl text-[14px] shadow-[0_4px_16px_-4px_rgba(255,106,61,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_8px_24px_-6px_rgba(255,106,61,0.7),inset_0_1px_0_rgba(255,255,255,0.3)] transition-all disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden"
+            className="group relative flex min-h-[44px] w-full items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-gradient-to-br from-accent to-accent-hi px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_4px_16px_-4px_var(--color-accent)/0.55,inset_0_1px_0_rgba(255,255,255,0.3)] transition-all hover:shadow-[0_8px_24px_-6px_var(--color-accent)/0.7,inset_0_1px_0_rgba(255,255,255,0.3)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             <span
               aria-hidden
-              className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
             />
             <span className="relative">
               {loading ? "Guardando…" : "Continuar"}
             </span>
           </button>
 
-          <p className="text-center text-[12.5px] text-[#6D6A63]">
+          <p className="text-center text-[12.5px] text-muted">
             ¿Ya tenés una cuenta?{" "}
             <Link
               href="/login"
-              className="text-[#FF6A3D] font-semibold hover:text-[#E85A2D] transition-colors"
+              className="font-semibold text-accent no-underline transition-opacity hover:opacity-75"
             >
               Iniciar sesión
             </Link>
@@ -586,20 +566,20 @@ export default function RegistroPage() {
 
       {/* PractiX Insight — warm card */}
       <div className="relative z-10 mt-5 w-full max-w-[440px]">
-        <div className="relative bg-gradient-to-br from-[#FFF8F2] to-[#FFECD9] rounded-2xl p-4 border border-[#FF6A3D]/10 overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-accent-bdr bg-gradient-to-br from-cream to-accent-lo/60 p-4">
           <div
             aria-hidden
-            className="absolute -top-6 -right-6 w-20 h-20 bg-[#FF6A3D]/12 rounded-full blur-xl"
+            className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-accent/[0.12] blur-xl"
           />
           <div className="relative flex items-start gap-3">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white shadow-[0_2px_8px_-1px_rgba(255,106,61,0.3)]">
-              <Sparkles className="w-4 h-4 text-[#FF6A3D]" />
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-surface shadow-[0_2px_8px_-1px_var(--color-accent)/0.3]">
+              <Sparkles className="h-4 w-4 text-accent" />
             </span>
             <div>
-              <p className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[#FF6A3D] mb-1">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent">
                 PractiX Insight
               </p>
-              <p className="text-[12px] text-[#4A4843] leading-[1.55]">
+              <p className="text-[12px] leading-[1.55] text-text">
                 Completá tu perfil para que nuestra IA te recomiende prácticas
                 que se ajusten a tus habilidades en menos de 24 horas.
               </p>
@@ -609,25 +589,25 @@ export default function RegistroPage() {
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 mt-8 text-[11.5px] text-[#6D6A63] text-center">
+      <div className="relative z-10 mt-8 text-center text-[11.5px] text-muted">
         © {new Date().getFullYear()} PractiX ·{" "}
         <Link
           href="/privacidad"
-          className="hover:text-[#0A0909] transition-colors"
+          className="text-muted no-underline transition-colors hover:text-text"
         >
           Privacidad
         </Link>{" "}
         ·{" "}
         <Link
           href="/terminos"
-          className="hover:text-[#0A0909] transition-colors"
+          className="text-muted no-underline transition-colors hover:text-text"
         >
           Términos
         </Link>{" "}
         ·{" "}
         <a
           href="mailto:soporte@practix.cl"
-          className="hover:text-[#0A0909] transition-colors"
+          className="text-muted no-underline transition-colors hover:text-text"
         >
           Contacto
         </a>

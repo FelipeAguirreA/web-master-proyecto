@@ -49,16 +49,7 @@ export default async function Home() {
   const session = await getAuthSession();
 
   return (
-    <div
-      style={{
-        fontFamily:
-          "var(--font-onest), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif",
-        background: "#FAFAF8",
-        color: "#0A0909",
-        minHeight: "100vh",
-        overflowX: "hidden",
-      }}
-    >
+    <div className="font-sans bg-bg text-text min-h-screen overflow-x-hidden">
       <PublicNav
         isLoggedIn={!!session}
         isAdmin={session?.user.email === ADMIN_EMAIL}

@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     }
 
     const internship = await prisma.internship.findFirst({
-      where: { id: internshipId, companyId: company.id },
+      where: { id: internshipId, companyId: company.id, deletedAt: null },
     });
     if (!internship) {
       return NextResponse.json(

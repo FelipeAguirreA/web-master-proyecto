@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 import { Icon } from "../Icon";
 
 type SectionHeadProps = {
@@ -10,54 +9,19 @@ type SectionHeadProps = {
 
 export function SectionHead({ title, sub, action }: SectionHeadProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "space-between",
-        gap: 14,
-        marginBottom: 14,
-        flexWrap: "wrap",
-      }}
-    >
+    <div className="flex items-end justify-between gap-3.5 mb-3.5 flex-wrap">
       <div>
-        <h2
-          style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: D.text,
-            letterSpacing: -0.6,
-            lineHeight: 1.2,
-          }}
-        >
+        <h2 className="text-[18px] font-extrabold text-text tracking-[-0.6px] leading-[1.2]">
           {title}
         </h2>
-        {sub && (
-          <p
-            style={{
-              fontSize: 12.5,
-              color: D.muted,
-              marginTop: 3,
-            }}
-          >
-            {sub}
-          </p>
-        )}
+        {sub && <p className="text-[12.5px] text-muted mt-[3px]">{sub}</p>}
       </div>
       {action && (
         <Link
           href={action.href}
-          style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: D.accent,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            textDecoration: "none",
-          }}
+          className="text-[12.5px] font-bold text-accent inline-flex items-center gap-1 no-underline"
         >
-          {action.label} <Icon name="arr" size={13} color={D.accent} />
+          {action.label} <Icon name="arr" size={13} color="currentColor" />
         </Link>
       )}
     </div>

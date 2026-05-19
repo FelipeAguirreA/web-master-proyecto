@@ -100,6 +100,7 @@ export async function getRecommendations(userId: string) {
   const internships = await prisma.internship.findMany({
     where: {
       isActive: true,
+      deletedAt: null,
       company: { companyStatus: "APPROVED" },
       ...(excludedIds.length > 0 && { id: { notIn: excludedIds } }),
     },

@@ -1,5 +1,3 @@
-import { A } from "./tokens";
-
 type IconName =
   | "user"
   | "mail"
@@ -16,6 +14,7 @@ type IconName =
 type Props = {
   name: IconName;
   size?: number;
+  /** Hex or CSS var string. Defaults to var(--color-subtle). */
   color?: string;
   strokeWidth?: number;
 };
@@ -23,7 +22,7 @@ type Props = {
 export function AuthIcon({
   name,
   size = 16,
-  color = A.subtle,
+  color = "var(--color-subtle)",
   strokeWidth = 1.8,
 }: Props) {
   const p = {

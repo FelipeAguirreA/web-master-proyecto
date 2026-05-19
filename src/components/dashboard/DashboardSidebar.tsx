@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { paletteFor, type Palette } from "./palettes";
 import { Icon } from "./Icon";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
@@ -51,16 +50,13 @@ type Props = {
   role?: "STUDENT" | "COMPANY";
   unreadInbox?: number;
   cvPct?: number | null;
-  palette?: Palette;
 };
 
 export function DashboardSidebar({
   role = "STUDENT",
   unreadInbox = 0,
   cvPct = null,
-  palette,
 }: Props) {
-  const p = palette ?? paletteFor(role);
   const pathname = usePathname();
   const items = role === "COMPANY" ? COMPANY_NAV : STUDENT_NAV;
 
@@ -83,90 +79,37 @@ export function DashboardSidebar({
   const isActive = (item: NavItem) => item.href === activeHref;
 
   return (
-    <aside
-      className="practix-sidebar"
-      style={{
-        position: "sticky",
-        top: 0,
-        alignSelf: "flex-start",
-        width: 232,
-        height: "100vh",
-        borderRight: `1px solid ${p.border}`,
-        background: p.surface,
-        display: "flex",
-        flexDirection: "column",
-        flexShrink: 0,
-      }}
-    >
+    <aside className="practix-sidebar sticky top-0 self-start w-[232px] h-screen border-r border-border bg-surface flex flex-col shrink-0 hidden md:flex">
       <Link
         href="/"
-        style={{
-          padding: "18px 18px 14px",
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          textDecoration: "none",
-        }}
+        className="px-[18px] pt-[18px] pb-[14px] flex items-center gap-[9px] no-underline"
       >
         <div
+          className={[
+            "w-8 h-8 rounded-[9px] flex items-center justify-center font-[800] text-[14px] text-white shrink-0",
+            // Company uses dark→accent gradient, student uses accent→accent-hi
+            role === "COMPANY"
+              ? "[background:linear-gradient(135deg,var(--color-accent),var(--color-dark))]"
+              : "[background:linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))]",
+          ].join(" ")}
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 9,
-            background:
-              role === "COMPANY"
-                ? `linear-gradient(135deg,${p.accent},${p.dark})`
-                : `linear-gradient(135deg,${p.accent},${p.accentHi})`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 800,
-            fontSize: 14,
-            color: "#fff",
-            boxShadow: `0 4px 14px ${p.accent}55`,
-            flexShrink: 0,
+            boxShadow:
+              "0 4px 14px color-mix(in srgb, var(--color-accent) 33%, transparent)",
           }}
         >
           P
         </div>
-        <span
-          style={{
-            fontWeight: 700,
-            fontSize: 15.5,
-            color: p.text,
-            letterSpacing: -0.4,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
+        <span className="font-[700] text-[15.5px] text-text tracking-[-0.4px] inline-flex items-center gap-[6px]">
           PractiX
           {role === "COMPANY" && (
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 800,
-                color: p.accent,
-                background: p.accentBg,
-                padding: "2px 5px",
-                borderRadius: 4,
-                letterSpacing: 0.4,
-              }}
-            >
+            <span className="text-[9px] font-[800] text-accent bg-accent-bg px-[5px] py-[2px] rounded-[4px] tracking-[0.4px]">
               EMPRESA
             </span>
           )}
         </span>
       </Link>
 
-      <nav
-        style={{
-          padding: "8px 12px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-        }}
-      >
+      <nav className="px-3 py-2 flex flex-col gap-0.5">
         {items.map((it) => {
           const active = isActive(it);
           const badge =
@@ -177,40 +120,22 @@ export function DashboardSidebar({
             <Link
               key={it.label}
               href={it.href}
-              className="practix-sidebar-item"
+              className={[
+                "practix-sidebar-item flex items-center gap-3 px-3 py-[9px] rounded-[10px] text-[13.5px] relative transition-all duration-150 no-underline",
+                active
+                  ? "font-[700] text-accent bg-accent-bg"
+                  : "font-[500] text-muted bg-transparent hover:bg-black/[0.04] hover:text-text",
+              ].join(" ")}
               data-active={active ? "1" : "0"}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "9px 12px",
-                borderRadius: 10,
-                fontSize: 13.5,
-                fontWeight: active ? 700 : 500,
-                color: active ? p.accent : p.muted,
-                background: active ? p.accentBg : "transparent",
-                position: "relative",
-                transition: "all .15s",
-                textDecoration: "none",
-              }}
             >
               <Icon
                 name={it.icon}
                 size={17}
-                color={active ? p.accent : p.muted}
+                color={active ? "var(--color-accent)" : "var(--color-muted)"}
               />
-              <span style={{ flex: 1 }}>{it.label}</span>
+              <span className="flex-1">{it.label}</span>
               {badge && (
-                <span
-                  style={{
-                    background: p.text,
-                    color: "#fff",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    padding: "2px 7px",
-                    borderRadius: 10,
-                  }}
-                >
+                <span className="bg-text text-white text-[10px] font-[800] px-[7px] py-[2px] rounded-[10px]">
                   {badge}
                 </span>
               )}
@@ -219,88 +144,43 @@ export function DashboardSidebar({
         })}
       </nav>
 
-      <div
-        style={{
-          marginTop: "auto",
-          padding: "14px 12px 16px",
-        }}
-      >
+      <div className="mt-auto px-3 pb-4 pt-[14px]">
         {role === "STUDENT" && (
           <div
+            className="border border-accent-bdr rounded-[14px] p-[14px] mb-[10px]"
             style={{
-              background: `linear-gradient(135deg,${p.accentBg},#fff)`,
-              border: `1px solid ${p.accentBdr}`,
-              borderRadius: 14,
-              padding: 14,
-              marginBottom: 10,
+              background: "linear-gradient(135deg,var(--color-accent-bg),#fff)",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
+            <div className="flex items-center gap-2 mb-2">
               <span
+                className="w-6 h-6 rounded-[7px] bg-surface flex items-center justify-center"
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 7,
-                  background: p.surface,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: `0 2px 6px ${p.accent}30`,
+                  boxShadow:
+                    "0 2px 6px color-mix(in srgb, var(--color-accent) 19%, transparent)",
                 }}
               >
-                <Icon name="spark" size={13} color={p.accent} />
+                <Icon name="spark" size={13} color="var(--color-accent)" />
               </span>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 0.6,
-                  color: p.accent,
-                  textTransform: "uppercase",
-                }}
-              >
+              <span className="text-[10px] font-[800] tracking-[0.6px] text-accent uppercase">
                 Tu CV
               </span>
             </div>
-            <p
-              style={{
-                fontSize: 12,
-                color: p.muted,
-                lineHeight: 1.55,
-                marginBottom: 9,
-              }}
-            >
+            <p className="text-[12px] text-muted leading-[1.55] mb-[9px]">
               {cvPct === null ? (
                 "Sube tu CV para empezar a recibir matches."
               ) : cvPct >= 90 ? (
                 "Tu CV está en el top. Excelente trabajo."
               ) : (
                 <>
-                  Súbelo a <b style={{ color: p.text }}>90%+</b> para entrar al
-                  top de Falabella y NotCo.
+                  Súbelo a <b className="text-text">90%+</b> para entrar al top
+                  de Falabella y NotCo.
                 </>
               )}
             </p>
             <Link
               href="/perfil"
-              style={{
-                display: "block",
-                textAlign: "center",
-                background: p.text,
-                color: "#fff",
-                fontSize: 12,
-                fontWeight: 700,
-                padding: "8px 12px",
-                borderRadius: 9,
-                textDecoration: "none",
-              }}
+              className="block text-center bg-text text-white text-[12px] font-[700] px-3 py-2 rounded-[9px] no-underline"
             >
               {cvPct === null ? "Subir CV" : "Mejorar CV"}
             </Link>
@@ -308,64 +188,23 @@ export function DashboardSidebar({
         )}
         {role === "COMPANY" && (
           <div
+            className="rounded-[14px] p-[14px] text-white relative overflow-hidden mb-[10px]"
             style={{
-              background: `linear-gradient(135deg, ${p.dark}, ${p.accent})`,
-              borderRadius: 14,
-              padding: 14,
-              color: "#fff",
-              position: "relative",
-              overflow: "hidden",
-              marginBottom: 10,
+              background:
+                "linear-gradient(135deg,var(--color-dark),var(--color-accent))",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: -30,
-                right: -30,
-                width: 80,
-                height: 80,
-                background: "rgba(255,255,255,.1)",
-                borderRadius: "50%",
-              }}
-            />
-            <p
-              style={{
-                fontSize: 10.5,
-                fontWeight: 800,
-                letterSpacing: 0.5,
-                color: "rgba(255,255,255,.7)",
-                marginBottom: 4,
-              }}
-            >
+            {/* Decorative circle */}
+            <div className="absolute top-[-30px] right-[-30px] w-20 h-20 bg-white/10 rounded-full" />
+            <p className="text-[10.5px] font-[800] tracking-[0.5px] text-white/70 mb-1">
               PLAN GROWTH
             </p>
-            <p
-              style={{
-                fontSize: 11.5,
-                fontWeight: 600,
-                lineHeight: 1.4,
-                color: "rgba(255,255,255,.9)",
-                marginBottom: 9,
-                position: "relative",
-              }}
-            >
+            <p className="text-[11.5px] font-[600] leading-[1.4] text-white/90 mb-[9px] relative">
               Verifica tu empresa para publicar más prácticas.
             </p>
             <Link
               href="/dashboard/empresa/perfil"
-              style={{
-                padding: "6px 11px",
-                background: "#fff",
-                color: p.dark,
-                border: "none",
-                borderRadius: 7,
-                fontSize: 11.5,
-                fontWeight: 800,
-                cursor: "pointer",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
+              className="px-[11px] py-[6px] bg-white text-dark border-none rounded-[7px] text-[11.5px] font-[800] cursor-pointer no-underline inline-block"
             >
               Mi empresa
             </Link>
@@ -373,36 +212,24 @@ export function DashboardSidebar({
         )}
         <Link
           href={role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil"}
-          className="practix-sidebar-item"
+          className={[
+            "practix-sidebar-item flex items-center gap-[10px] px-3 py-[9px] rounded-[10px] text-[13px] text-muted font-[500] no-underline hover:bg-black/[0.04] hover:text-text",
+            pathname ===
+            (role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil")
+              ? "text-accent bg-accent-bg"
+              : "",
+          ].join(" ")}
           data-active={
             pathname ===
             (role === "COMPANY" ? "/dashboard/empresa/perfil" : "/perfil")
               ? "1"
               : "0"
           }
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "9px 12px",
-            borderRadius: 10,
-            fontSize: 13,
-            color: p.muted,
-            fontWeight: 500,
-            textDecoration: "none",
-          }}
         >
-          <Icon name="user" size={16} color={p.muted} />
+          <Icon name="user" size={16} color="var(--color-muted)" />
           Mi perfil
         </Link>
       </div>
-      <style>{`
-        .practix-sidebar-item[data-active="0"]:hover { background: rgba(15,23,42,.04); color: ${p.text}; }
-        .practix-sidebar-item[data-active="0"]:hover svg { stroke: ${p.text}; }
-        @media (max-width:900px) {
-          .practix-sidebar { display: none !important; }
-        }
-      `}</style>
     </aside>
   );
 }

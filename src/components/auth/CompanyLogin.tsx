@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { A } from "./tokens";
 import { AuthField } from "./AuthField";
 import { AuthIcon } from "./AuthIcon";
 import { SubmitButton } from "./SubmitButton";
@@ -48,12 +47,10 @@ export function CompanyLogin({ callbackUrl }: Props) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "flex", flexDirection: "column", gap: 14 }}
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
       <AuthField
         label="Correo corporativo"
+        name="email"
         type="email"
         placeholder="nombre@empresa.cl"
         icon={<AuthIcon name="mail" />}
@@ -64,6 +61,7 @@ export function CompanyLogin({ callbackUrl }: Props) {
       />
       <AuthField
         label="Contraseña"
+        name="password"
         type="password"
         placeholder="••••••••"
         icon={<AuthIcon name="lock" />}
@@ -73,51 +71,21 @@ export function CompanyLogin({ callbackUrl }: Props) {
         required
       />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 10,
-          marginTop: 2,
-        }}
-      >
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            cursor: "pointer",
-          }}
-        >
+      <div className="mt-0.5 flex items-center justify-between gap-2.5">
+        <label className="flex cursor-pointer items-center gap-1.5">
           <input
             type="checkbox"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
-            style={{
-              width: 15,
-              height: 15,
-              accentColor: A.accent,
-            }}
+            className="h-[15px] w-[15px] accent-accent"
           />
-          <span
-            style={{
-              fontSize: 12.5,
-              color: A.muted,
-              fontWeight: 600,
-            }}
-          >
+          <span className="text-[12.5px] font-semibold text-muted">
             Recuérdame
           </span>
         </label>
         <Link
           href="/forgot-password"
-          style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: A.accent,
-            textDecoration: "none",
-          }}
+          className="text-[12.5px] font-bold text-accent no-underline transition-opacity hover:opacity-75"
         >
           ¿Olvidaste tu clave?
         </Link>
@@ -125,16 +93,8 @@ export function CompanyLogin({ callbackUrl }: Props) {
 
       {error && (
         <div
-          style={{
-            padding: "10px 12px",
-            background: A.roseBg,
-            border: `1px solid ${A.rose}25`,
-            borderRadius: 11,
-            fontSize: 12.5,
-            color: A.rose,
-            fontWeight: 600,
-            lineHeight: 1.5,
-          }}
+          role="alert"
+          className="rounded-[11px] border border-rose/[0.15] bg-rose-bg px-3 py-2.5 text-[12.5px] font-semibold leading-relaxed text-rose"
         >
           {error}
         </div>

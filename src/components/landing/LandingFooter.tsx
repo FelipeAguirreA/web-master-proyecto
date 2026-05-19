@@ -1,34 +1,17 @@
 import Link from "next/link";
-import { C } from "./tokens";
 
 // Variante chica del footer: solo copyright + "Hecho con ♥ en Chile".
 // Pensado para páginas donde el footer grande (con columnas de navegación)
 // distrae del contenido — legal, errores, flujos de auth.
 export function LandingFooterMini() {
   return (
-    <footer
-      style={{
-        background: C.bgAlt,
-        borderTop: `1px solid ${C.border}`,
-        padding: "20px 32px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 10,
-        }}
-      >
-        <p style={{ fontSize: 12.5, color: C.subtle, margin: 0 }}>
+    <footer className="bg-surface border-t border-border py-5 px-4 sm:px-6 md:px-8">
+      <div className="max-w-[1100px] mx-auto flex justify-between items-center flex-wrap gap-[10px]">
+        <p className="text-[12.5px] text-subtle m-0">
           © {new Date().getFullYear()} PractiX · Todos los derechos reservados
         </p>
-        <p style={{ fontSize: 12.5, color: C.subtle, margin: 0 }}>
-          Hecho con <span style={{ color: C.accent }}>♥</span> en Chile
+        <p className="text-[12.5px] text-subtle m-0">
+          Hecho con <span className="text-accent">♥</span> en Chile
         </p>
       </div>
     </footer>
@@ -50,7 +33,6 @@ const COLS = [
     links: [
       { label: "Prácticas", href: "/practicas" },
       { label: "FAQ", href: "#faq" },
-      { label: "Universidades", href: "#" },
       { label: "Ayuda", href: "mailto:soporte@practix.cl" },
     ],
   },
@@ -59,102 +41,41 @@ const COLS = [
     links: [
       { label: "Privacidad", href: "/privacidad" },
       { label: "Términos", href: "/terminos" },
-      { label: "Cookies", href: "/privacidad#cookies" },
     ],
   },
 ];
 
 export function LandingFooter() {
   return (
-    <footer
-      style={{
-        background: C.bgAlt,
-        borderTop: `1px solid ${C.border}`,
-        padding: "56px 32px 32px",
-      }}
-    >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div
-          className="practix-footer-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.8fr 1fr 1fr 1fr",
-            gap: 40,
-            marginBottom: 44,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 9,
-                marginBottom: 16,
-              }}
-            >
-              <span
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: `linear-gradient(135deg,${C.accent},${C.accentHi})`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 14,
-                  color: "#fff",
-                }}
-              >
+    <footer className="bg-surface border-t border-border pt-14 pb-8 px-4 sm:px-6 md:px-8">
+      <div className="max-w-[1100px] mx-auto">
+        {/* grid: brand col full-width on mobile, then 2-col, then 4-col */}
+        <div className="grid grid-cols-2 md:grid-cols-[1.8fr_1fr_1fr_1fr] gap-10 mb-11">
+          {/* brand */}
+          <div className="col-span-2 md:col-span-1">
+            <div className="flex items-center gap-[9px] mb-4">
+              <span className="w-[30px] h-[30px] rounded-lg bg-[linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))] flex items-center justify-center font-extrabold text-sm text-white">
                 P
               </span>
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: 16,
-                  color: C.text,
-                  letterSpacing: -0.4,
-                }}
-              >
+              <span className="font-bold text-base text-text tracking-[-0.4px]">
                 PractiX
               </span>
             </div>
-            <p
-              style={{
-                fontSize: 13.5,
-                color: C.muted,
-                lineHeight: 1.65,
-                maxWidth: 280,
-              }}
-            >
+            <p className="text-[13.5px] text-muted leading-[1.65] max-w-[280px]">
               Matching semántico para prácticas profesionales. Sin filtros
               arbitrarios. Solo afinidad real entre tu perfil y la práctica.
             </p>
           </div>
           {COLS.map((col) => (
             <div key={col.title}>
-              <div
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  color: C.subtle,
-                  marginBottom: 16,
-                }}
-              >
+              <div className="text-[10.5px] font-bold tracking-[1px] uppercase text-subtle mb-4">
                 {col.title}
               </div>
               {col.links.map((l) => (
-                <div key={l.label} style={{ marginBottom: 11 }}>
+                <div key={l.label} className="mb-[11px]">
                   <Link
                     href={l.href}
-                    className="practix-footer-link"
-                    style={{
-                      fontSize: 13.5,
-                      color: C.muted,
-                      transition: "color .2s",
-                    }}
+                    className="practix-footer-link text-[13.5px] text-muted transition-colors duration-200"
                   >
                     {l.label}
                   </Link>
@@ -163,31 +84,17 @@ export function LandingFooter() {
             </div>
           ))}
         </div>
-        <div
-          style={{
-            borderTop: `1px solid ${C.border}`,
-            paddingTop: 24,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 10,
-          }}
-        >
-          <p style={{ fontSize: 12.5, color: C.subtle }}>
+        <div className="border-t border-border pt-6 flex justify-between items-center flex-wrap gap-[10px]">
+          <p className="text-[12.5px] text-subtle">
             © {new Date().getFullYear()} PractiX · Todos los derechos reservados
           </p>
-          <p style={{ fontSize: 12.5, color: C.subtle }}>
-            Hecho con <span style={{ color: C.accent }}>♥</span> en Chile
+          <p className="text-[12.5px] text-subtle">
+            Hecho con <span className="text-accent">♥</span> en Chile
           </p>
         </div>
       </div>
       <style>{`
-        .practix-footer-link:hover { color: ${C.accent} !important; }
-        @media (max-width:768px){
-          .practix-footer-grid{grid-template-columns:1fr 1fr !important}
-          .practix-footer-grid > *:first-child{grid-column:span 2}
-        }
+        .practix-footer-link:hover { color: var(--color-accent) !important; }
       `}</style>
     </footer>
   );

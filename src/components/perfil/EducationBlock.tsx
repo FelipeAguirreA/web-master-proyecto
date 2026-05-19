@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
 import { Block } from "./Block";
 
@@ -15,18 +14,6 @@ type Props = {
     semester: number | null;
   }) => Promise<void>;
 };
-
-const INPUT_STYLE = {
-  width: "100%",
-  padding: "10px 12px",
-  border: `1px solid ${D.border}`,
-  borderRadius: 10,
-  fontSize: 13.5,
-  color: D.text,
-  background: D.bg,
-  fontFamily: "inherit",
-  outline: "none",
-} as const;
 
 export function EducationBlock({
   university,
@@ -75,90 +62,62 @@ export function EducationBlock({
       saving={saving}
     >
       {editing ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-          }}
-        >
-          <div style={{ gridColumn: "1 / -1" }}>
-            <FieldLabel>Universidad</FieldLabel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-2">
+            <FieldLabel htmlFor="perfil-university">Universidad</FieldLabel>
             <input
+              id="perfil-university"
+              name="university"
               type="text"
+              autoComplete="organization"
+              aria-label="Universidad"
               value={uni}
               onChange={(e) => setUni(e.target.value)}
               placeholder="Ej: PUC, U. de Chile, USACH…"
               maxLength={120}
-              style={INPUT_STYLE}
+              className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
-            <FieldLabel>Carrera</FieldLabel>
+            <FieldLabel htmlFor="perfil-career">Carrera</FieldLabel>
             <input
+              id="perfil-career"
+              name="career"
               type="text"
+              aria-label="Carrera"
               value={carr}
               onChange={(e) => setCarr(e.target.value)}
               placeholder="Ing. Comercial, Derecho, Diseño…"
               maxLength={120}
-              style={INPUT_STYLE}
+              className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
             />
           </div>
           <div>
-            <FieldLabel>Semestre actual</FieldLabel>
+            <FieldLabel htmlFor="perfil-semester">Semestre actual</FieldLabel>
             <input
+              id="perfil-semester"
+              name="semester"
               type="number"
+              aria-label="Semestre actual"
               min={1}
               max={20}
               value={sem}
               onChange={(e) => setSem(e.target.value)}
               placeholder="7"
-              style={INPUT_STYLE}
+              className="w-full px-3 py-2.5 border border-border rounded-[10px] text-[13.5px] text-text bg-bg font-[inherit] outline-none focus:border-accent transition-colors"
             />
           </div>
         </div>
       ) : university || career || semester ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto 1fr",
-            gap: 14,
-          }}
-        >
-          <span
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: "rgba(0,0,0,.05)",
-              color: D.muted,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="doc" size={18} color={D.muted} />
+        <div className="grid grid-cols-[auto_1fr] gap-3.5">
+          <span className="w-10 h-10 rounded-[10px] bg-black/5 text-muted flex items-center justify-center shrink-0">
+            <Icon name="doc" size={18} color="var(--color-muted)" />
           </span>
           <div>
-            <h3
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: D.text,
-                lineHeight: 1.3,
-              }}
-            >
+            <h3 className="text-sm font-bold text-text leading-[1.3]">
               {career || "Carrera por completar"}
             </h3>
-            <p
-              style={{
-                fontSize: 12.5,
-                color: D.muted,
-                fontWeight: 600,
-                marginTop: 3,
-              }}
-            >
+            <p className="text-[12.5px] text-muted font-semibold mt-[3px]">
               {university || "Universidad por completar"}
               {semester && (
                 <>
@@ -170,14 +129,7 @@ export function EducationBlock({
           </div>
         </div>
       ) : (
-        <p
-          style={{
-            fontSize: 13.5,
-            color: D.subtle,
-            lineHeight: 1.65,
-            fontStyle: "italic",
-          }}
-        >
+        <p className="text-[13.5px] text-subtle leading-[1.65] italic">
           Aún no has agregado tu información educativa. Click en
           &ldquo;Editar&rdquo; para completarla.
         </p>
@@ -186,18 +138,17 @@ export function EducationBlock({
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: React.ReactNode;
+  htmlFor?: string;
+}) {
   return (
     <label
-      style={{
-        display: "block",
-        fontSize: 10.5,
-        fontWeight: 800,
-        color: D.subtle,
-        letterSpacing: 0.6,
-        textTransform: "uppercase",
-        marginBottom: 6,
-      }}
+      htmlFor={htmlFor}
+      className="block text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-1.5"
     >
       {children}
     </label>

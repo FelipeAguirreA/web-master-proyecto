@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
 import { Block } from "./Block";
 
@@ -40,121 +39,51 @@ export function ContactCard({ email, phone, onSavePhone }: Props) {
       onSave={handleSave}
       saving={saving}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          fontSize: 12.5,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: 9,
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: D.bg,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="send" size={13} color={D.muted} />
+      <div className="flex flex-col gap-3 text-[12.5px]">
+        {/* Email row */}
+        <div className="flex gap-[9px] items-center">
+          <span className="w-7 h-7 rounded-lg bg-bg inline-flex items-center justify-center shrink-0">
+            <Icon name="send" size={13} color="var(--color-muted)" />
           </span>
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: D.subtle,
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-              }}
-            >
+          <div className="min-w-0">
+            <div className="text-[10px] font-extrabold text-subtle tracking-[0.5px] uppercase">
               Email
             </div>
-            <div
-              style={{
-                color: D.text,
-                fontWeight: 600,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
+            <div className="text-text font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
               {email}
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 9,
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              background: D.bg,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="bell" size={13} color={D.muted} />
+        {/* Phone row */}
+        <div className="flex gap-[9px] items-center">
+          <span className="w-7 h-7 rounded-lg bg-bg inline-flex items-center justify-center shrink-0">
+            <Icon name="bell" size={13} color="var(--color-muted)" />
           </span>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: D.subtle,
-                letterSpacing: 0.5,
-                textTransform: "uppercase",
-              }}
-            >
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-extrabold text-subtle tracking-[0.5px] uppercase">
               Teléfono
             </div>
             {editing ? (
               <input
+                id="perfil-phone"
+                name="phone"
                 type="tel"
+                autoComplete="tel"
+                aria-label="Teléfono"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="+56 9 …"
                 maxLength={20}
-                style={{
-                  width: "100%",
-                  marginTop: 4,
-                  padding: "6px 10px",
-                  border: `1px solid ${D.border}`,
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  color: D.text,
-                  background: D.surface,
-                  fontFamily: "inherit",
-                  outline: "none",
-                }}
+                className="w-full mt-1 px-2.5 py-1.5 border border-border rounded-lg text-[12.5px] text-text bg-surface font-[inherit] outline-none focus:border-accent transition-colors"
               />
             ) : (
               <div
-                style={{
-                  color: phone ? D.text : D.subtle,
-                  fontWeight: phone ? 600 : 500,
-                  fontStyle: phone ? "normal" : "italic",
-                }}
+                className={
+                  phone
+                    ? "text-text font-semibold"
+                    : "text-subtle font-medium italic"
+                }
               >
                 {phone || "Sin teléfono"}
               </div>

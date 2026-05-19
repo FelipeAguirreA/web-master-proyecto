@@ -71,9 +71,9 @@ export default function MessageBubble({
             ) : null}
           </div>
         )}
-        <div className="max-w-[68%]">
+        <div className="max-w-[85%] sm:max-w-[75%]">
           <div
-            className={`px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words ${
+            className={`px-3 py-2 sm:px-3.5 sm:py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
               isMine
                 ? "text-white rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] shadow-[0_4px_12px_rgba(255,106,61,0.18)] bg-gradient-to-br from-[#FF6A3D] to-[#FF8A5D]"
                 : "bg-white text-[#0A0909] border border-[#E8E5DD] rounded-tl-[14px] rounded-tr-[14px] rounded-br-[14px] rounded-bl-[4px] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"

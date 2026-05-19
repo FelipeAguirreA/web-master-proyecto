@@ -25,11 +25,8 @@ export default function AdminLayout({
 
   if (status === "loading") {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center bg-[#FAFAF8]"
-        style={{ fontFamily: "var(--font-onest), system-ui, sans-serif" }}
-      >
-        <div className="w-8 h-8 border-2 border-[#FF6A3D]/25 border-t-[#FF6A3D] rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="w-8 h-8 border-2 border-accent/25 border-t-accent rounded-full animate-spin" />
       </div>
     );
   }

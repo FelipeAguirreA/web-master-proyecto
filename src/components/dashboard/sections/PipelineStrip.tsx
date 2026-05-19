@@ -1,4 +1,3 @@
-import { D } from "../tokens";
 import { CoLogo } from "../atoms/CoLogo";
 import { SectionHead } from "./SectionHead";
 
@@ -19,11 +18,15 @@ export type PipelineColumn = {
   items: PipelineItem[];
 };
 
-const STAGE_COLOR: Record<PipelineColumn["stage"], string> = {
-  Postulé: D.subtle,
-  "En revisión": D.amber,
-  Entrevista: D.accent,
-  Oferta: D.green,
+/**
+ * Clases Tailwind para el punto de color de cada columna.
+ * Genuinamente estático — no depende de props dinámicas.
+ */
+const STAGE_DOT_CLASS: Record<PipelineColumn["stage"], string> = {
+  Postulé: "bg-subtle",
+  "En revisión": "bg-amber",
+  Entrevista: "bg-accent",
+  Oferta: "bg-green",
 };
 
 export function PipelineStrip({
@@ -39,89 +42,29 @@ export function PipelineStrip({
         title="Mis postulaciones"
         sub="Pipeline de tus prácticas activas"
       />
-      <div
-        className="practix-pipeline-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: 12,
-        }}
-      >
+      {/* Mobile: 2 cols / Desktop: 4 cols */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {columns.map((col) => (
           <div
             key={col.stage}
-            style={{
-              background: D.surface,
-              border: `1px solid ${D.border}`,
-              borderRadius: 16,
-              padding: 14,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              minHeight: 160,
-            }}
+            className="bg-surface border border-border rounded-[16px] p-3.5 flex flex-col gap-2.5 min-h-[160px]"
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                }}
-              >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-[7px]">
                 <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: STAGE_COLOR[col.stage],
-                  }}
+                  className={`w-[7px] h-[7px] rounded-full ${STAGE_DOT_CLASS[col.stage]}`}
                 />
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    color: D.text,
-                    letterSpacing: 0.2,
-                    textTransform: "uppercase",
-                  }}
-                >
+                <span className="text-[11.5px] font-extrabold text-text tracking-[0.2px] uppercase">
                   {col.stage}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: D.muted,
-                  background: "rgba(0,0,0,.04)",
-                  padding: "2px 7px",
-                  borderRadius: 6,
-                }}
-              >
+              <span className="text-[11px] font-extrabold text-muted bg-black/[.04] py-0.5 px-[7px] rounded-[6px]">
                 {col.count}
               </span>
             </div>
+
             {col.items.length === 0 ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11.5,
-                  color: D.faint,
-                  fontStyle: "italic",
-                  textAlign: "center",
-                  lineHeight: 1.5,
-                }}
-              >
+              <div className="flex-1 flex items-center justify-center text-[11.5px] text-faint italic text-center leading-[1.5]">
                 Sin postulaciones aún
               </div>
             ) : (
@@ -130,21 +73,7 @@ export function PipelineStrip({
                   key={it.id}
                   type="button"
                   onClick={() => onItemClick?.(it.id)}
-                  className="practix-pipeline-item"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 9,
-                    padding: 8,
-                    background: D.bg,
-                    borderRadius: 10,
-                    transition: "background .15s",
-                    cursor: "pointer",
-                    border: "none",
-                    width: "100%",
-                    textAlign: "left",
-                    fontFamily: "inherit",
-                  }}
+                  className="group flex items-center gap-[9px] p-2 bg-bg hover:bg-accent-bg rounded-[10px] transition-colors duration-150 cursor-pointer border-none w-full text-left font-[inherit]"
                 >
                   <CoLogo
                     logo={it.logo}
@@ -153,27 +82,17 @@ export function PipelineStrip({
                     logoFg={it.logoFg}
                     size={28}
                   />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: D.text,
-                        lineHeight: 1.25,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] font-bold text-text leading-[1.25] truncate">
                       {it.title}
                     </div>
                     <div
-                      style={{
-                        fontSize: 10.5,
-                        color: col.stage === "Entrevista" ? D.accent : D.subtle,
-                        fontWeight: col.stage === "Entrevista" ? 700 : 500,
-                        marginTop: 1,
-                      }}
+                      className={[
+                        "text-[10.5px] mt-px font-medium",
+                        col.stage === "Entrevista"
+                          ? "text-accent font-bold"
+                          : "text-subtle",
+                      ].join(" ")}
                     >
                       {it.ago}
                     </div>
@@ -184,11 +103,6 @@ export function PipelineStrip({
           </div>
         ))}
       </div>
-      <style>{`
-        .practix-pipeline-item:hover { background: ${D.accentBg} !important; }
-        @media (max-width:900px) { .practix-pipeline-grid { grid-template-columns: 1fr 1fr !important; } }
-        @media (max-width:600px) { .practix-pipeline-grid { grid-template-columns: 1fr !important; } }
-      `}</style>
     </section>
   );
 }

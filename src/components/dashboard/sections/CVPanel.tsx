@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 import { Icon } from "../Icon";
 import { ScoreVis } from "../atoms/ScoreVis";
 
@@ -12,155 +11,79 @@ export type CVTip = {
 
 export function CVPanel({ cvPct, tips }: { cvPct: number; tips: CVTip[] }) {
   return (
-    <section
-      style={{
-        background: `linear-gradient(135deg,${D.cream}, #fff)`,
-        border: `1px solid ${D.accentBdr}`,
-        borderRadius: 18,
-        padding: 18,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: -40,
-          right: -30,
-          width: 160,
-          height: 160,
-          background: `radial-gradient(circle, ${D.accent}25, transparent 65%)`,
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            marginBottom: 14,
-          }}
-        >
+    <section className="bg-gradient-to-br from-cream to-surface border border-accent-bdr rounded-[18px] p-[18px] relative overflow-hidden">
+      {/* Glow decorativo — radial genuinamente dinámico con token */}
+      <div className="absolute -top-10 -right-[30px] w-40 h-40 pointer-events-none [background:radial-gradient(circle,color-mix(in_srgb,var(--color-accent)_15%,transparent)_0%,transparent_65%)]" />
+
+      <div className="relative">
+        <div className="flex items-center gap-3.5 mb-3.5">
           <ScoreVis score={cvPct} style="ring" size={70} label={false} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h3
-              style={{
-                fontSize: 14.5,
-                fontWeight: 800,
-                color: D.text,
-                letterSpacing: -0.3,
-              }}
-            >
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[14.5px] font-extrabold text-text tracking-[-0.3px]">
               Tu CV
             </h3>
-            <p
-              style={{
-                fontSize: 12,
-                color: D.muted,
-                lineHeight: 1.5,
-                marginTop: 2,
-              }}
-            >
+            <p className="text-[12px] text-muted leading-[1.5] mt-0.5">
               {cvPct >= 90 ? (
                 <>Tu CV está en el top. Excelente trabajo.</>
               ) : cvPct === 0 ? (
                 <>
-                  <Link
-                    href="/perfil"
-                    style={{ color: D.accent, fontWeight: 700 }}
-                  >
+                  <Link href="/perfil" className="text-accent font-bold">
                     Sube tu CV
                   </Link>{" "}
                   para empezar a recibir matches.
                 </>
               ) : (
                 <>
-                  Súbelo a <b style={{ color: D.accent }}>92%</b> para entrar al
-                  top de Falabella.
+                  Súbelo a <b className="text-accent">92%</b> para entrar al top
+                  de Falabella.
                 </>
               )}
             </p>
           </div>
         </div>
-        <ul
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            listStyle: "none",
-            padding: 0,
-          }}
-        >
+
+        <ul className="flex flex-col gap-2 list-none p-0">
           {tips.map((t, i) => (
             <li
               key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "9px 11px",
-                background: t.done ? D.greenBg : D.surface,
-                border: `1px solid ${t.done ? "transparent" : D.border}`,
-                borderRadius: 11,
-              }}
+              className={[
+                "flex items-center gap-2.5 py-[9px] px-[11px] rounded-[11px]",
+                t.done
+                  ? "bg-green-bg border border-transparent"
+                  : "bg-surface border border-border",
+              ].join(" ")}
             >
               <span
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  background: t.done ? D.green : D.surface,
-                  border: `1px solid ${t.done ? "transparent" : D.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
+                className={[
+                  "w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0",
+                  t.done
+                    ? "bg-green border border-transparent"
+                    : "bg-surface border border-border",
+                ].join(" ")}
               >
                 {t.done ? (
                   <Icon name="check" size={11} color="#fff" strokeWidth={3} />
                 ) : (
-                  <Icon name="plus" size={11} color={D.muted} />
+                  <Icon name="plus" size={11} color="var(--color-muted)" />
                 )}
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <div
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: t.done ? D.muted : D.text,
-                    textDecoration: t.done ? "line-through" : "none",
-                    lineHeight: 1.3,
-                  }}
+                  className={[
+                    "text-[12.5px] font-semibold leading-[1.3]",
+                    t.done ? "text-muted line-through" : "text-text",
+                  ].join(" ")}
                 >
                   {t.title}
                 </div>
                 {!t.done && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: D.subtle,
-                      marginTop: 1,
-                      lineHeight: 1.4,
-                    }}
-                  >
+                  <div className="text-[11px] text-subtle mt-px leading-[1.4]">
                     {t.body}
                   </div>
                 )}
               </div>
               {!t.done && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: D.accent,
-                    background: D.accentBg,
-                    padding: "2px 7px",
-                    borderRadius: 6,
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="text-[11px] font-extrabold text-accent bg-accent-bg py-0.5 px-[7px] rounded-[6px] shrink-0">
                   {t.pts}
                 </span>
               )}

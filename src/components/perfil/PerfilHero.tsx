@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { D } from "../dashboard/tokens";
 import { Icon } from "../dashboard/Icon";
 import { Avatar } from "../dashboard/atoms/Avatar";
 
@@ -44,53 +43,38 @@ export function PerfilHero({
         : "Estudiante";
 
   return (
-    <section
-      style={{
-        background: D.dark,
-        color: "#fff",
-        borderRadius: 22,
-        padding: "26px 28px",
-        marginBottom: 14,
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
+    <section className="bg-dark text-white rounded-[22px] px-5 py-6 sm:px-7 sm:py-7 mb-3.5 relative overflow-hidden">
+      {/* Decorative radial glow — dynamic accent color kept as CSS var */}
       <div
+        className="absolute pointer-events-none"
         style={{
-          position: "absolute",
           top: -80,
           right: -50,
           width: 340,
           height: 340,
-          background: `radial-gradient(circle, ${D.accent}40, transparent 65%)`,
-          pointerEvents: "none",
+          background:
+            "radial-gradient(circle, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent 65%)",
         }}
       />
+      {/* Dot grid texture */}
       <div
+        className="absolute inset-0 pointer-events-none"
         style={{
-          position: "absolute",
-          inset: 0,
           backgroundImage:
             "radial-gradient(circle at 1px 1px,rgba(255,255,255,.04) 1px,transparent 0)",
           backgroundSize: "22px 22px",
-          pointerEvents: "none",
         }}
       />
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          gap: 22,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ position: "relative", flexShrink: 0 }}>
+
+      {/* Content */}
+      <div className="relative flex gap-5 sm:gap-[22px] items-start flex-wrap">
+        {/* Avatar + upload button */}
+        <div className="relative shrink-0">
           <Avatar
             ini={initial}
             size={88}
-            c1={D.accentLo}
-            c2={D.accent}
+            c1="var(--color-accent-lo)"
+            c2="var(--color-accent)"
             src={image}
             alt={fullName}
           />
@@ -98,100 +82,64 @@ export function PerfilHero({
             type="button"
             title="Cambiar foto"
             onClick={() => fileRef.current?.click()}
-            style={{
-              position: "absolute",
-              bottom: -2,
-              right: -2,
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              background: D.surface,
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 10px rgba(0,0,0,.25)",
-            }}
+            className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-surface border-none cursor-pointer flex items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,.25)]"
           >
-            <Icon name="plus" size={14} color={D.text} />
+            <Icon name="plus" size={14} color="var(--color-text)" />
           </button>
           <input
             ref={fileRef}
+            id="perfil-avatar-upload"
+            name="avatar"
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            aria-label="Subir foto de perfil"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) onPickAvatar(file);
               e.target.value = "";
             }}
-            style={{ display: "none" }}
+            className="hidden"
           />
         </div>
 
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 6,
-              flexWrap: "wrap",
-            }}
-          >
+        {/* Name / headline / stats */}
+        <div className="flex-1 min-w-[220px]">
+          {/* Badges row */}
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             {university && (
               <span
+                className="text-[11px] font-extrabold tracking-[0.5px] px-2 py-[2px] rounded-[5px]"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: D.accentHi,
+                  color: "var(--color-accent-hi)",
                   background: "rgba(255,154,106,.18)",
-                  padding: "2px 8px",
-                  borderRadius: 5,
-                  letterSpacing: 0.5,
                 }}
               >
                 {university}
               </span>
             )}
             {city && (
-              <span
-                style={{
-                  fontSize: 11.5,
-                  color: "rgba(255,255,255,.55)",
-                }}
-              >
-                {city}
-              </span>
+              <span className="text-[11.5px] text-white/55">{city}</span>
             )}
           </div>
-          <h1
-            style={{
-              fontSize: "clamp(1.5rem,2.6vw,1.9rem)",
-              fontWeight: 800,
-              letterSpacing: -1,
-              lineHeight: 1.1,
-              marginBottom: 5,
-            }}
-          >
+
+          {/* Name */}
+          <h1 className="text-[clamp(1.5rem,2.6vw,1.9rem)] font-extrabold tracking-[-1px] leading-[1.1] mb-[5px]">
             {fullName || "Tu nombre"}
           </h1>
-          <p
-            style={{
-              fontSize: 13.5,
-              color: "rgba(255,255,255,.7)",
-              marginBottom: 14,
-            }}
-          >
+
+          {/* Headline */}
+          <p className="text-[13.5px] text-white/70 mb-3.5">
             {headline}
             {university && (
               <>
                 {" "}
-                · <b style={{ color: "#fff" }}>{university}</b>
+                · <b className="text-white">{university}</b>
               </>
             )}
           </p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+
+          {/* Stat pills */}
+          <div className="flex gap-2.5 flex-wrap">
             <StatPill k="CV" v={`${cvPct}%`} sub="Completo" />
             <StatPill
               k="Estado"
@@ -201,33 +149,18 @@ export function PerfilHero({
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            minWidth: 160,
-          }}
-        >
-          {onCvDownload && hasCv && (
+        {/* Optional action column */}
+        {onCvDownload && hasCv && (
+          <div className="flex flex-col gap-2 min-w-[160px]">
             <button
               type="button"
               onClick={onCvDownload}
-              style={{
-                padding: "10px 16px",
-                background: "rgba(255,255,255,.08)",
-                border: "1px solid rgba(255,255,255,.14)",
-                color: "#fff",
-                borderRadius: 11,
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
+              className="px-4 py-2.5 bg-white/[0.08] border border-white/[0.14] text-white rounded-[11px] text-[13px] font-bold cursor-pointer min-h-[44px]"
             >
               Descargar CV
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -235,46 +168,15 @@ export function PerfilHero({
 
 function StatPill({ k, v, sub }: { k: string; v: string; sub?: string }) {
   return (
-    <div
-      style={{
-        padding: "10px 14px",
-        background: "rgba(255,255,255,.06)",
-        border: "1px solid rgba(255,255,255,.1)",
-        borderRadius: 12,
-        minWidth: 110,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          letterSpacing: 0.5,
-          color: "rgba(255,255,255,.55)",
-          textTransform: "uppercase",
-        }}
-      >
+    <div className="px-3.5 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl min-w-[110px]">
+      <div className="text-[10.5px] font-bold tracking-[0.5px] text-white/55 uppercase">
         {k}
       </div>
-      <div
-        style={{
-          fontSize: 20,
-          fontWeight: 900,
-          letterSpacing: -0.6,
-          color: "#fff",
-          marginTop: 2,
-        }}
-      >
+      <div className="text-xl font-black tracking-[-0.6px] text-white mt-0.5">
         {v}
       </div>
       {sub && (
-        <div
-          style={{
-            fontSize: 10.5,
-            color: D.accentHi,
-            fontWeight: 700,
-            marginTop: 1,
-          }}
-        >
+        <div className="text-[10.5px] font-bold text-accent-hi mt-[1px]">
           {sub}
         </div>
       )}

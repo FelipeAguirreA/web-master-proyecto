@@ -42,7 +42,7 @@ export async function POST(
     }
 
     const internship = await prisma.internship.findFirst({
-      where: { id: jobId, companyId: company.id },
+      where: { id: jobId, companyId: company.id, deletedAt: null },
       include: {
         atsConfig: { include: { modules: { orderBy: { order: "asc" } } } },
       },

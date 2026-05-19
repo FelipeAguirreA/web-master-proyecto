@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { D } from "../tokens";
 import { Icon } from "../Icon";
 import { CoLogo } from "../atoms/CoLogo";
 import { Tag } from "../atoms/Tag";
@@ -35,44 +34,23 @@ type Props = {
 export function PracticaCard({ p, featured = false }: Props) {
   return (
     <article
-      className="practix-pcard"
-      style={{
-        background: D.surface,
-        border: `1px solid ${featured ? D.accentBdr : D.border}`,
-        borderRadius: 18,
-        padding: 20,
-        position: "relative",
-        transition: "all .2s",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
+      className={[
+        "group relative flex flex-col gap-3.5 p-5 rounded-[18px] bg-surface transition-all duration-200",
+        "border hover:shadow-[0_14px_38px_-16px_color-mix(in_srgb,var(--color-accent)_20%,transparent)]",
+        featured
+          ? "border-accent-bdr"
+          : "border-border hover:border-accent-bdr",
+      ].join(" ")}
     >
+      {/* Badge NUEVO */}
       {p.isNew && (
-        <span
-          style={{
-            position: "absolute",
-            top: -1,
-            right: 14,
-            background: D.accent,
-            color: "#fff",
-            fontSize: 9.5,
-            fontWeight: 800,
-            letterSpacing: 0.6,
-            padding: "3px 9px",
-            borderRadius: "0 0 8px 8px",
-          }}
-        >
+        <span className="absolute -top-px right-3.5 bg-accent text-white text-[9.5px] font-extrabold tracking-[0.6px] px-[9px] py-[3px] rounded-b-[8px]">
           NUEVO
         </span>
       )}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-        }}
-      >
+
+      {/* Header: logo + empresa + título */}
+      <header className="flex items-start gap-3">
         <CoLogo
           logo={p.logo}
           logoUrl={p.logoUrl}
@@ -80,223 +58,87 @@ export function PracticaCard({ p, featured = false }: Props) {
           logoFg={p.logoFg}
           size={44}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 4,
-              flexWrap: "wrap",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: D.muted,
-                letterSpacing: 0.2,
-              }}
-            >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-[12px] font-bold text-muted tracking-[0.2px]">
               {p.co}
             </span>
             {p.top && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  background: D.accentBg,
-                  color: D.accent,
-                  padding: "2px 7px",
-                  borderRadius: 5,
-                  letterSpacing: 0.3,
-                }}
-              >
+              <span className="text-[10px] font-semibold bg-accent-bg text-accent px-[7px] py-0.5 rounded-[5px] tracking-[0.3px]">
                 {p.top}
               </span>
             )}
           </div>
-          <h3
-            style={{
-              fontSize: 15.5,
-              fontWeight: 700,
-              color: D.text,
-              letterSpacing: -0.3,
-              lineHeight: 1.25,
-            }}
-          >
+          <h3 className="text-[15.5px] font-bold text-text tracking-[-0.3px] leading-[1.25]">
             {p.title}
           </h3>
         </div>
       </header>
 
+      {/* Descripción */}
       {p.description && (
-        <p
-          style={{
-            fontSize: 12.5,
-            color: D.muted,
-            lineHeight: 1.55,
-            margin: 0,
-            display: "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
+        <p className="text-[12.5px] text-muted leading-[1.55] m-0 line-clamp-2">
           {p.description}
         </p>
       )}
 
+      {/* Tags */}
       {p.tags.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="flex gap-1.5 flex-wrap">
           {p.tags.slice(0, 4).map((t) => (
             <Tag key={t}>{t}</Tag>
           ))}
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          fontSize: 12,
-          color: D.muted,
-          flexWrap: "wrap",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <Icon name="pin" size={13} color={D.subtle} />
+      {/* Meta: modalidad + duración + salario */}
+      <div className="flex items-center gap-3.5 text-[12px] text-muted flex-wrap">
+        <span className="inline-flex items-center gap-[5px]">
+          <Icon name="pin" size={13} color="var(--color-subtle)" />
           {p.mode}
         </span>
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
-          <Icon name="briefc" size={13} color={D.subtle} />
+        <span className="inline-flex items-center gap-[5px]">
+          <Icon name="briefc" size={13} color="var(--color-subtle)" />
           {p.dur}
         </span>
         {p.salary && (
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              fontWeight: 700,
-              color: D.text,
-            }}
-          >
+          <span className="inline-flex items-center gap-[5px] font-bold text-text">
             {p.salary}
           </span>
         )}
       </div>
 
+      {/* AI insight (solo featured) */}
       {featured && p.ai && (
-        <div
-          style={{
-            background: `linear-gradient(135deg,${D.accentBg},#fff)`,
-            border: `1px solid ${D.accentBdr}`,
-            borderRadius: 12,
-            padding: "11px 14px",
-            display: "flex",
-            gap: 10,
-            alignItems: "flex-start",
-          }}
-        >
-          <span
-            style={{
-              flexShrink: 0,
-              width: 22,
-              height: 22,
-              borderRadius: 7,
-              background: D.surface,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 2px 6px ${D.accent}30`,
-            }}
-          >
-            <Icon name="spark" size={12} color={D.accent} />
+        <div className="bg-gradient-to-br from-accent-bg to-surface border border-accent-bdr rounded-[12px] p-3 flex gap-2.5 items-start">
+          <span className="shrink-0 w-[22px] h-[22px] rounded-[7px] bg-surface flex items-center justify-center shadow-[0_2px_6px_color-mix(in_srgb,var(--color-accent)_19%,transparent)]">
+            <Icon name="spark" size={12} color="var(--color-accent)" />
           </span>
-          <p
-            style={{
-              fontSize: 12,
-              color: D.text,
-              lineHeight: 1.55,
-            }}
-          >
-            <b style={{ color: D.accent }}>Por qué te elegimos:</b> {p.ai}
+          <p className="text-[12px] text-text leading-[1.55]">
+            <b className="text-accent">Por qué te elegimos:</b> {p.ai}
           </p>
         </div>
       )}
 
-      <footer
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: "auto",
-          paddingTop: 4,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
+      {/* Footer: score + CTA */}
+      <footer className="flex items-center justify-between gap-2.5 mt-auto pt-1">
+        <div className="flex items-center gap-2.5">
           {p.applied ? (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: D.accentBg,
-                color: D.accent,
-                padding: "6px 11px",
-                borderRadius: 8,
-                fontSize: 11.5,
-                fontWeight: 700,
-                letterSpacing: 0.2,
-              }}
-            >
-              <Icon name="check" size={12} color={D.accent} />
+            <span className="inline-flex items-center gap-1.5 bg-accent-bg text-accent px-[11px] py-[6px] rounded-[8px] text-[11.5px] font-bold tracking-[0.2px]">
+              <Icon name="check" size={12} color="currentColor" />
               Postulación enviada
             </span>
           ) : (
             <>
               <ScoreVis score={p.score} style="ring" size={56} label={false} />
               <div>
-                {p.applicants !== null && p.applicants !== undefined && (
-                  <div
-                    style={{
-                      fontSize: 11.5,
-                      color: D.muted,
-                      fontWeight: 600,
-                    }}
-                  >
+                {p.applicants != null && (
+                  <div className="text-[11.5px] text-muted font-semibold">
                     {p.applicants} postulantes
                   </div>
                 )}
                 {p.deadline && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: D.accent,
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div className="text-[11px] text-accent font-bold">
                     {p.deadline}
                   </div>
                 )}
@@ -304,29 +146,19 @@ export function PracticaCard({ p, featured = false }: Props) {
             </>
           )}
         </div>
+
         <Link
           href={`/practicas/${p.id}`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            background: p.applied ? "transparent" : D.text,
-            color: p.applied ? D.text : "#fff",
-            border: p.applied ? `1px solid ${D.border}` : "none",
-            padding: "9px 14px",
-            borderRadius: 10,
-            fontSize: 12.5,
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-            textDecoration: "none",
-          }}
+          className={[
+            "inline-flex items-center gap-[5px] px-3.5 py-[9px] rounded-[10px] text-[12.5px] font-bold whitespace-nowrap no-underline",
+            p.applied
+              ? "bg-transparent text-text border border-border"
+              : "bg-text text-white border-none",
+          ].join(" ")}
         >
           {p.applied ? "Ver detalle" : "Ver"}
         </Link>
       </footer>
-      <style>{`
-        .practix-pcard:hover { border-color: ${D.accentBdr}; box-shadow: 0 14px 38px -16px ${D.accent}33; }
-      `}</style>
     </article>
   );
 }

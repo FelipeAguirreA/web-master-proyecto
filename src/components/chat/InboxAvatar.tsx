@@ -58,7 +58,7 @@ export default function InboxAvatar({
         width: size,
         height: size,
         fontSize: Math.max(11, Math.round(size * 0.38)),
-      }}
+      }} /* dynamic: size prop drives px dimensions and scaled fontSize — no Tailwind equivalent */
     >
       {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -66,11 +66,15 @@ export default function InboxAvatar({
           src={image}
           alt={name}
           onError={() => setBroken(true)}
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover"
         />
       ) : isCompany ? (
         <Building2
-          style={{ width: size * 0.5, height: size * 0.5 }}
+          style={{
+            width: size * 0.5,
+            height: size * 0.5,
+          }} /* dynamic: icon scales with size prop */
           strokeWidth={2.2}
         />
       ) : (

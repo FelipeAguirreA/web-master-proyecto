@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { A } from "@/components/auth/tokens";
 import { RoleToggle } from "@/components/auth/RoleToggle";
 import { StudentLogin } from "@/components/auth/StudentLogin";
 import { CompanyLogin } from "@/components/auth/CompanyLogin";
@@ -13,48 +12,13 @@ import { RegistroExitoso } from "@/components/auth/RegistroExitoso";
 type Mode = "login" | "register";
 type Role = "student" | "company";
 
-function Logo({
-  size = 28,
-  light = false,
-}: {
-  size?: number;
-  light?: boolean;
-}) {
+function Logo() {
   return (
-    <Link
-      href="/"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 9,
-        textDecoration: "none",
-      }}
-    >
-      <div
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size * 0.28,
-          background: `linear-gradient(135deg,${A.accent},${A.accentHi})`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: 800,
-          fontSize: size * 0.44,
-          color: "#fff",
-          boxShadow: `0 6px 18px ${A.accent}55`,
-        }}
-      >
+    <Link href="/" className="flex items-center gap-2 no-underline">
+      <div className="flex h-7 w-7 items-center justify-center rounded-[28%] bg-gradient-to-br from-accent to-accent-hi text-[12px] font-extrabold text-white shadow-[0_6px_18px_var(--color-accent)/0.33]">
         P
       </div>
-      <span
-        style={{
-          fontWeight: 800,
-          fontSize: size * 0.52,
-          color: light ? "#fff" : A.text,
-          letterSpacing: -0.5,
-        }}
-      >
+      <span className="text-[14.5px] font-extrabold tracking-tight text-text">
         PractiX
       </span>
     </Link>
@@ -91,70 +55,26 @@ function LoginContent() {
   const [role, setRole] = useState<Role>(initialRole);
   const [registered, setRegistered] = useState(false);
 
-  // Estudiantes no tienen form de registro: signIn con Google crea la cuenta
-  // automáticamente. Si están en mode=register como student, mostramos el Google
-  // login igual; el headline solo cambia para reflejar la intención de "crear".
   const showStudentForm = role === "student";
   const showCompanyLogin = role === "company" && mode === "login";
   const showCompanyRegister = role === "company" && mode === "register";
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: A.bg,
-        color: A.text,
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "var(--font-onest), ui-sans-serif, system-ui",
-      }}
-    >
-      <nav
-        style={{
-          padding: "24px 32px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: `1px solid ${A.border}`,
-        }}
-      >
-        <Logo size={28} />
+    <div className="flex min-h-screen flex-col bg-bg font-[var(--font-onest),ui-sans-serif,system-ui] text-text">
+      {/* Nav */}
+      <nav className="flex items-center justify-between border-b border-border px-6 py-6 sm:px-8">
+        <Logo />
         <Link
           href="/"
-          style={{
-            fontSize: 13,
-            color: A.muted,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
+          className="text-[13px] font-semibold text-muted no-underline transition-opacity hover:opacity-75"
         >
           ← Volver al sitio
         </Link>
       </nav>
 
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "48px 24px",
-          background: `radial-gradient(ellipse at top, ${A.accentBg}, transparent 60%), ${A.bg}`,
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 480,
-            background: A.surface,
-            border: `1px solid ${A.border}`,
-            borderRadius: 24,
-            padding: "40px 36px",
-            boxShadow:
-              "0 30px 80px -30px rgba(10,9,9,.18), 0 8px 22px -10px rgba(10,9,9,.08)",
-          }}
-          className="practix-auth-card"
-        >
+      {/* Main */}
+      <main className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6 sm:py-12 [background:radial-gradient(ellipse_at_top,var(--color-accent-bg),transparent_60%),var(--color-bg)]">
+        <div className="w-full max-w-[480px] rounded-[20px] border border-border bg-surface p-6 shadow-[0_30px_80px_-30px_rgba(10,9,9,0.18),0_8px_22px_-10px_rgba(10,9,9,0.08)] sm:rounded-[24px] sm:p-8 md:p-9">
           {registered ? (
             <RegistroExitoso
               onContinue={() => {
@@ -163,26 +83,9 @@ function LoginContent() {
               }}
             />
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 18,
-              }}
-            >
-              <header
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
+            <div className="flex flex-col gap-[18px]">
+              <header className="flex flex-col gap-2.5">
+                <div className="flex justify-center">
                   <RoleToggle
                     role={role}
                     onChange={(r) => {
@@ -191,26 +94,10 @@ function LoginContent() {
                     }}
                   />
                 </div>
-                <h1
-                  style={{
-                    fontSize: "clamp(1.55rem,3vw,2rem)",
-                    fontWeight: 800,
-                    letterSpacing: -1.2,
-                    color: A.text,
-                    lineHeight: 1.1,
-                    marginTop: 8,
-                    textWrap: "balance",
-                  }}
-                >
+                <h1 className="mt-2 text-balance text-[clamp(1.55rem,3vw,2rem)] font-extrabold leading-[1.1] tracking-[-1.2px] text-text">
                   {getTitle(mode, role)}
                 </h1>
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: A.muted,
-                    lineHeight: 1.55,
-                  }}
-                >
+                <p className="text-sm leading-[1.55] text-muted">
                   {getSubtitle(mode, role)}
                 </p>
               </header>
@@ -221,16 +108,7 @@ function LoginContent() {
                 <CompanyRegister onSuccess={() => setRegistered(true)} />
               )}
 
-              {/* Footer link: cambia entre login/register para empresas;
-                  para estudiantes solo invita a empresas si están de prestado */}
-              <p
-                style={{
-                  fontSize: 13,
-                  color: A.muted,
-                  textAlign: "center",
-                  marginTop: 4,
-                }}
-              >
+              <p className="mt-1 text-[13px] text-center text-muted">
                 {role === "student" ? (
                   <>
                     ¿Representas una empresa?{" "}
@@ -240,16 +118,7 @@ function LoginContent() {
                         setRole("company");
                         setMode("login");
                       }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: A.accent,
-                        padding: 0,
-                        fontFamily: "inherit",
-                      }}
+                      className="border-none bg-transparent p-0 text-[13px] font-extrabold text-accent"
                     >
                       Acceder como empresa
                     </button>
@@ -260,16 +129,7 @@ function LoginContent() {
                     <button
                       type="button"
                       onClick={() => setMode("register")}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: A.accent,
-                        padding: 0,
-                        fontFamily: "inherit",
-                      }}
+                      className="border-none bg-transparent p-0 text-[13px] font-extrabold text-accent"
                     >
                       Registra tu empresa
                     </button>
@@ -280,16 +140,7 @@ function LoginContent() {
                     <button
                       type="button"
                       onClick={() => setMode("login")}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: A.accent,
-                        padding: 0,
-                        fontFamily: "inherit",
-                      }}
+                      className="border-none bg-transparent p-0 text-[13px] font-extrabold text-accent"
                     >
                       Inicia sesión
                     </button>
@@ -301,53 +152,28 @@ function LoginContent() {
         </div>
       </main>
 
-      <footer
-        style={{
-          padding: "20px 32px",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 14,
-          fontSize: 11.5,
-          color: A.subtle,
-          flexWrap: "wrap",
-        }}
-      >
+      {/* Footer */}
+      <footer className="flex flex-wrap items-center justify-center gap-3.5 px-6 py-5 text-[11.5px] text-subtle sm:px-8">
         <span>© {new Date().getFullYear()} PractiX</span>
         <Link
           href="/privacidad"
-          style={{
-            color: A.subtle,
-            textDecoration: "none",
-          }}
+          className="text-subtle no-underline transition-opacity hover:opacity-75"
         >
           Privacidad
         </Link>
         <Link
           href="/terminos"
-          style={{
-            color: A.subtle,
-            textDecoration: "none",
-          }}
+          className="text-subtle no-underline transition-opacity hover:opacity-75"
         >
           Términos
         </Link>
         <a
           href="mailto:soporte@practix.cl"
-          style={{
-            color: A.subtle,
-            textDecoration: "none",
-          }}
+          className="text-subtle no-underline transition-opacity hover:opacity-75"
         >
           Ayuda
         </a>
       </footer>
-
-      <style>{`
-        @media (max-width: 600px) {
-          .practix-auth-card { padding: 28px 22px !important; border-radius: 18px !important; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -356,26 +182,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: A.bg,
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              border: `2px solid ${A.accent}25`,
-              borderTopColor: A.accent,
-              borderRadius: "50%",
-              animation: "practix-auth-spin .9s linear infinite",
-            }}
-          />
-          <style>{`@keyframes practix-auth-spin { to { transform: rotate(360deg); } }`}</style>
+        <div className="flex min-h-screen items-center justify-center bg-bg">
+          <div className="h-8 w-8 animate-[auth-spin_0.9s_linear_infinite] rounded-full border-2 border-accent/[0.25] border-t-accent" />
         </div>
       }
     >

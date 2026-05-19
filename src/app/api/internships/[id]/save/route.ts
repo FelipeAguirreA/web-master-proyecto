@@ -21,6 +21,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     where: {
       id,
       isActive: true,
+      deletedAt: null,
       company: { companyStatus: "APPROVED" },
     },
     select: { id: true },

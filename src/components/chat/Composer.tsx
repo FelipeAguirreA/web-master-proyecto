@@ -9,10 +9,6 @@ const TEMPLATES: { label: string; body: string }[] = [
     body: "Hola, gracias por postular a la práctica.",
   },
   {
-    label: "Agendar",
-    body: "¿Tienes disponibilidad esta semana para una primera entrevista? Te dejo dos opciones: mañana 11:00 o jueves 16:00.",
-  },
-  {
     label: "Pedir info",
     body: "¿Puedes contarme un poco más sobre tu experiencia previa y por qué te interesa este rol?",
   },
@@ -78,6 +74,10 @@ export default function Composer({
       )}
       <div className="flex items-end gap-2 bg-[rgba(15,23,42,0.035)] border border-[#E8E5DD] rounded-xl pl-3 pr-2 py-2 focus-within:border-[#FFD4B5] focus-within:bg-white transition-colors">
         <textarea
+          id="chat-composer-input"
+          name="message"
+          aria-label="Escribir mensaje"
+          autoComplete="off"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKey}
@@ -88,7 +88,6 @@ export default function Composer({
           }
           rows={1}
           className="flex-1 bg-transparent border-none resize-none text-[13px] text-[#0A0909] placeholder:text-[#9B9891] outline-none py-[7px] max-h-[120px] leading-relaxed font-[inherit]"
-          style={{ fontFamily: "inherit" }}
         />
         <button
           type="button"

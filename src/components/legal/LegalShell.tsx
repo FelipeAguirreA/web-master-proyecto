@@ -3,24 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-import { D } from "@/components/dashboard/palettes";
 import { LandingFooterMini } from "@/components/landing/LandingFooter";
 import { getDoc, type LegalDocKey } from "@/lib/legal/content";
-
-// Paleta local: mismas claves que `D` pero ajustadas al mock legal-app.jsx
-// (que tira un poco más oscuro en muted/subtle para texto largo de lectura).
-const LC = {
-  bg: "#FAFAF8",
-  surface: "#FFFFFF",
-  text: "#0A0909",
-  muted: "#5C5856",
-  subtle: "#8A847F",
-  border: "rgba(10,9,9,.08)",
-  accent: D.accent,
-  accentHi: D.accentHi,
-  accentBg: D.accentBg,
-  accentBdr: D.accentBdr,
-};
 
 export function LegalShell({ doc: docKey }: { doc: LegalDocKey }) {
   const doc = getDoc(docKey);
@@ -102,99 +86,47 @@ export function LegalShell({ doc: docKey }: { doc: LegalDocKey }) {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: LC.bg,
-        color: LC.text,
-      }}
-    >
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          background: "rgba(250,250,248,.92)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: `1px solid ${LC.border}`,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            padding: "14px 28px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-          }}
-        >
+    <div className="min-h-screen bg-bg text-text">
+      {/* ── Header sticky ────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-border bg-bg/92 backdrop-blur-[20px]">
+        <div className="mx-auto max-w-[1100px] px-4 sm:px-7 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+          {/* Logo */}
           <Link
             href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              color: LC.text,
-              textDecoration: "none",
-            }}
+            className="flex items-center gap-2.5 text-text no-underline"
           >
             <span
+              className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center text-white font-black text-[14px]"
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 9,
-                background: `linear-gradient(135deg,${LC.accent},${LC.accentHi})`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontWeight: 900,
-                fontSize: 14,
-                boxShadow: `0 4px 14px ${LC.accent}55`,
+                background:
+                  "linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))",
+                boxShadow:
+                  "0 4px 14px color-mix(in srgb,var(--color-accent) 33%,transparent)",
               }}
             >
               P
             </span>
-            <span
-              style={{ fontWeight: 800, fontSize: 16, letterSpacing: -0.4 }}
-            >
+            <span className="font-extrabold text-[16px] tracking-[-0.4px]">
               PractiX
             </span>
           </Link>
 
+          {/* Tab switcher */}
           <div
             role="tablist"
             aria-label="Documento legal"
-            style={{
-              display: "inline-flex",
-              background: "rgba(10,9,9,.04)",
-              padding: 3,
-              borderRadius: 30,
-              gap: 2,
-            }}
+            className="inline-flex bg-dark/[0.04] p-[3px] rounded-full gap-0.5"
           >
             <Link
               href="/privacidad"
               role="tab"
               aria-selected={docKey === "privacidad"}
-              style={{
-                padding: "7px 16px",
-                borderRadius: 30,
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: "none",
-                background:
-                  docKey === "privacidad" ? LC.surface : "transparent",
-                color: docKey === "privacidad" ? LC.text : LC.muted,
-                boxShadow:
-                  docKey === "privacidad"
-                    ? "0 2px 6px rgba(0,0,0,.06)"
-                    : "none",
-              }}
+              className={[
+                "px-4 py-[7px] rounded-full text-[12.5px] font-bold no-underline transition-all",
+                docKey === "privacidad"
+                  ? "bg-surface text-text shadow-[0_2px_6px_rgba(0,0,0,.06)]"
+                  : "bg-transparent text-muted",
+              ].join(" ")}
             >
               Privacidad
             </Link>
@@ -202,347 +134,181 @@ export function LegalShell({ doc: docKey }: { doc: LegalDocKey }) {
               href="/terminos"
               role="tab"
               aria-selected={docKey === "terminos"}
-              style={{
-                padding: "7px 16px",
-                borderRadius: 30,
-                fontSize: 12.5,
-                fontWeight: 700,
-                textDecoration: "none",
-                background: docKey === "terminos" ? LC.surface : "transparent",
-                color: docKey === "terminos" ? LC.text : LC.muted,
-                boxShadow:
-                  docKey === "terminos" ? "0 2px 6px rgba(0,0,0,.06)" : "none",
-              }}
+              className={[
+                "px-4 py-[7px] rounded-full text-[12.5px] font-bold no-underline transition-all",
+                docKey === "terminos"
+                  ? "bg-surface text-text shadow-[0_2px_6px_rgba(0,0,0,.06)]"
+                  : "bg-transparent text-muted",
+              ].join(" ")}
             >
               Términos
             </Link>
           </div>
 
+          {/* Back link */}
           <Link
             href="/"
-            style={{
-              fontSize: 13,
-              color: LC.muted,
-              fontWeight: 700,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
-              textDecoration: "none",
-            }}
+            className="text-[13px] text-muted font-bold inline-flex items-center gap-[5px] no-underline"
           >
             ← Volver al sitio
           </Link>
         </div>
       </header>
 
-      <section
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          padding: "40px 28px 28px",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-            background: LC.accentBg,
-            border: `1px solid ${LC.accentBdr}`,
-            color: LC.accent,
-            borderRadius: 30,
-            padding: "4px 13px",
-            fontSize: 11,
-            fontWeight: 800,
-            marginBottom: 14,
-            letterSpacing: 0.4,
-            textTransform: "uppercase",
-          }}
-        >
+      {/* ── Hero header ──────────────────────────────────────────── */}
+      <section className="mx-auto max-w-[1100px] px-4 sm:px-7 pt-10 pb-7">
+        <span className="inline-flex items-center gap-[7px] bg-accent-bg border border-accent-bdr text-accent rounded-full px-[13px] py-[4px] text-[11px] font-extrabold mb-3.5 tracking-[0.4px] uppercase">
           Legal · Chile
         </span>
-        <h1
-          style={{
-            fontSize: "clamp(2rem,4vw,2.8rem)",
-            fontWeight: 800,
-            color: LC.text,
-            letterSpacing: -1.6,
-            lineHeight: 1.05,
-            marginBottom: 10,
-            margin: 0,
-          }}
-        >
+        <h1 className="text-[clamp(2rem,4vw,2.8rem)] font-extrabold text-text tracking-[-1.6px] leading-[1.05] m-0">
           {doc.title}
         </h1>
-        <p
-          style={{
-            fontSize: 14,
-            color: LC.subtle,
-            margin: "12px 0 14px",
-            fontWeight: 600,
-          }}
-        >
+        <p className="text-[14px] text-subtle font-semibold mt-3 mb-3.5">
           Última actualización: {doc.updated}
         </p>
-        <p
-          style={{
-            fontSize: 16,
-            color: LC.muted,
-            lineHeight: 1.7,
-            maxWidth: 680,
-            margin: 0,
-          }}
-        >
+        <p className="text-[16px] text-muted leading-[1.7] max-w-[680px] m-0">
           {doc.intro}
         </p>
       </section>
 
-      <section
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          padding: "12px 28px 80px",
-          display: "grid",
-          gridTemplateColumns: "220px 1fr",
-          gap: 48,
-          alignItems: "flex-start",
-        }}
-        className="legal-grid"
-      >
-        <aside
-          style={{ position: "sticky", top: 88, alignSelf: "flex-start" }}
-          className="legal-toc"
-        >
-          <div
-            style={{
-              fontSize: 10.5,
-              fontWeight: 800,
-              color: LC.subtle,
-              letterSpacing: 0.5,
-              textTransform: "uppercase",
-              marginBottom: 12,
-              padding: "0 12px",
-            }}
-          >
+      {/* ── TOC + Content grid ───────────────────────────────────── */}
+      <section className="mx-auto max-w-[1100px] px-4 sm:px-7 pt-3 pb-20">
+        {/* Mobile TOC — visible solo en <md, colapsa arriba del contenido */}
+        <div className="md:hidden mb-6 pb-4 border-b border-border">
+          <div className="text-[10.5px] font-extrabold text-subtle tracking-[0.5px] uppercase mb-3 px-3">
             En esta página
           </div>
-          <nav style={{ display: "flex", flexDirection: "column" }}>
+          <nav className="flex flex-col">
             {doc.sections.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => goto(s.id)}
-                style={{
-                  padding: "8px 12px",
-                  background: "transparent",
-                  border: "none",
-                  borderLeft: `2px solid ${active === s.id ? LC.accent : "transparent"}`,
-                  color: active === s.id ? LC.text : LC.subtle,
-                  fontSize: 12.5,
-                  fontWeight: active === s.id ? 800 : 500,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  lineHeight: 1.4,
-                  transition: "all .15s",
-                  fontFamily: "inherit",
-                }}
+                className={[
+                  "px-3 py-2 bg-transparent border-none text-[12.5px] text-left cursor-pointer leading-[1.4] transition-all font-inherit border-l-2",
+                  active === s.id
+                    ? "border-l-accent text-text font-extrabold"
+                    : "border-l-transparent text-subtle font-medium",
+                ].join(" ")}
               >
                 {s.t}
               </button>
             ))}
           </nav>
-        </aside>
+        </div>
 
-        <div style={{ maxWidth: 680 }}>
-          {doc.sections.map((s, i) => (
-            <article
-              key={s.id}
-              ref={(el) => {
-                refs.current[s.id] = el;
-              }}
-              style={{ marginBottom: 42, scrollMarginTop: 100 }}
-            >
-              <h2
-                style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  color: LC.text,
-                  letterSpacing: -0.8,
-                  lineHeight: 1.2,
-                  marginBottom: 14,
-                  paddingTop: 8,
-                }}
-              >
-                {s.t}
-              </h2>
-              {s.paragraphs?.map((p, j) => (
-                <p
-                  key={j}
-                  style={{
-                    fontSize: 15,
-                    color: LC.muted,
-                    lineHeight: 1.75,
-                    marginBottom: 14,
-                  }}
-                >
-                  {p}
-                </p>
-              ))}
-              {s.lists?.map((lst, j) => (
-                <div key={j} style={{ marginBottom: 14 }}>
-                  {lst.title && (
-                    <h3
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        color: LC.text,
-                        letterSpacing: 0.2,
-                        marginTop: 6,
-                        marginBottom: 10,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {lst.title}
-                    </h3>
-                  )}
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 9,
-                      paddingLeft: 0,
-                      margin: 0,
-                    }}
-                  >
-                    {lst.items.map((it, k) => (
-                      <li
-                        key={k}
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          fontSize: 14.5,
-                          color: LC.muted,
-                          lineHeight: 1.65,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: LC.accent,
-                            marginTop: 9,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span style={{ flex: 1 }}>{it}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {s.paragraphs2?.map((p, j) => (
-                <p
-                  key={`p2-${j}`}
-                  style={{
-                    fontSize: 15,
-                    color: LC.muted,
-                    lineHeight: 1.75,
-                    marginBottom: 14,
-                  }}
-                >
-                  {p}
-                </p>
-              ))}
-              {i < doc.sections.length - 1 && (
-                <hr
-                  style={{
-                    border: "none",
-                    borderTop: `1px solid ${LC.border}`,
-                    marginTop: 28,
-                  }}
-                />
-              )}
-            </article>
-          ))}
-
-          <div
-            style={{
-              marginTop: 32,
-              padding: "22px 26px",
-              background: LC.accentBg,
-              border: `1px solid ${LC.accentBdr}`,
-              borderRadius: 18,
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ flex: "1 1 280px" }}>
-              <h3
-                style={{
-                  fontSize: 15,
-                  fontWeight: 800,
-                  color: LC.text,
-                  marginBottom: 5,
-                  margin: 0,
-                }}
-              >
-                {docKey === "privacidad"
-                  ? "¿Quieres revisar los Términos de Uso?"
-                  : "¿Quieres revisar la Política de Privacidad?"}
-              </h3>
-              <p
-                style={{
-                  fontSize: 13.5,
-                  color: LC.muted,
-                  lineHeight: 1.55,
-                  marginTop: 5,
-                  marginBottom: 0,
-                }}
-              >
-                Te recomendamos leer ambos documentos antes de aceptar al
-                registrarte.
-              </p>
+        {/* Desktop: sidebar + content */}
+        <div className="md:grid md:grid-cols-[220px_1fr] md:gap-12 md:items-start">
+          {/* Desktop TOC sidebar */}
+          <aside className="hidden md:block sticky top-[88px] self-start">
+            <div className="text-[10.5px] font-extrabold text-subtle tracking-[0.5px] uppercase mb-3 px-3">
+              En esta página
             </div>
-            <Link
-              href={`/${otherKey}`}
-              style={{
-                padding: "11px 20px",
-                background: `linear-gradient(135deg,${LC.accent},${LC.accentHi})`,
-                color: "#fff",
-                border: "none",
-                borderRadius: 11,
-                fontSize: 13.5,
-                fontWeight: 800,
-                textDecoration: "none",
-                boxShadow: `0 6px 18px ${LC.accent}55`,
-              }}
-            >
-              {docKey === "privacidad" ? "Ir a Términos" : "Ir a Privacidad"}
-            </Link>
+            <nav className="flex flex-col">
+              {doc.sections.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => goto(s.id)}
+                  className={[
+                    "px-3 py-2 bg-transparent border-none text-[12.5px] text-left cursor-pointer leading-[1.4] transition-all font-inherit border-l-2",
+                    active === s.id
+                      ? "border-l-accent text-text font-extrabold"
+                      : "border-l-transparent text-subtle font-medium",
+                  ].join(" ")}
+                >
+                  {s.t}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Content */}
+          <div className="max-w-[680px]">
+            {doc.sections.map((s, i) => (
+              <article
+                key={s.id}
+                ref={(el) => {
+                  refs.current[s.id] = el;
+                }}
+                className="mb-[42px] scroll-mt-[100px]"
+              >
+                <h2 className="text-[22px] font-extrabold text-text tracking-[-0.8px] leading-[1.2] mb-3.5 pt-2">
+                  {s.t}
+                </h2>
+                {s.paragraphs?.map((p, j) => (
+                  <p
+                    key={j}
+                    className="text-[15px] text-muted leading-[1.75] mb-3.5"
+                  >
+                    {p}
+                  </p>
+                ))}
+                {s.lists?.map((lst, j) => (
+                  <div key={j} className="mb-3.5">
+                    {lst.title && (
+                      <h3 className="text-[13px] font-extrabold text-text tracking-[0.2px] mt-1.5 mb-2.5 uppercase">
+                        {lst.title}
+                      </h3>
+                    )}
+                    <ul className="list-none flex flex-col gap-[9px] p-0 m-0">
+                      {lst.items.map((it, k) => (
+                        <li
+                          key={k}
+                          className="flex gap-2.5 text-[14.5px] text-muted leading-[1.65]"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent mt-[9px] shrink-0" />
+                          <span className="flex-1">{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                {s.paragraphs2?.map((p, j) => (
+                  <p
+                    key={`p2-${j}`}
+                    className="text-[15px] text-muted leading-[1.75] mb-3.5"
+                  >
+                    {p}
+                  </p>
+                ))}
+                {i < doc.sections.length - 1 && (
+                  <hr className="border-0 border-t border-border mt-7" />
+                )}
+              </article>
+            ))}
+
+            {/* Cross-doc CTA */}
+            <div className="mt-8 p-[22px_26px] bg-accent-bg border border-accent-bdr rounded-[18px] flex flex-wrap items-center gap-4">
+              <div className="flex-[1_1_280px]">
+                <h3 className="text-[15px] font-extrabold text-text m-0 mb-0">
+                  {docKey === "privacidad"
+                    ? "¿Quieres revisar los Términos de Uso?"
+                    : "¿Quieres revisar la Política de Privacidad?"}
+                </h3>
+                <p className="text-[13.5px] text-muted leading-[1.55] mt-[5px] mb-0">
+                  Te recomendamos leer ambos documentos antes de aceptar al
+                  registrarte.
+                </p>
+              </div>
+              <Link
+                href={`/${otherKey}`}
+                className="min-h-[44px] px-5 flex items-center rounded-[11px] text-[13.5px] font-extrabold text-white no-underline transition-opacity hover:opacity-90"
+                style={{
+                  background:
+                    "linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))",
+                  boxShadow:
+                    "0 6px 18px color-mix(in srgb,var(--color-accent) 33%,transparent)",
+                }}
+              >
+                {docKey === "privacidad" ? "Ir a Términos" : "Ir a Privacidad"}
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       <LandingFooterMini />
-
-      <style jsx>{`
-        @media (max-width: 720px) {
-          :global(.legal-grid) {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-          :global(.legal-toc) {
-            position: static !important;
-            top: auto !important;
-            border-bottom: 1px solid ${LC.border};
-            padding-bottom: 16px;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -1,5 +1,3 @@
-import { C } from "./tokens";
-
 const PAINS = [
   {
     icon: "📄",
@@ -20,149 +18,44 @@ const PAINS = [
 
 export function LandingProblem() {
   return (
-    <section
-      style={{
-        background: C.bgAlt,
-        padding: "100px 32px",
-        borderBottom: `1px solid ${C.border}`,
-      }}
-    >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div className="rv" style={{ maxWidth: 620, marginBottom: 56 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              background: C.accentBg,
-              border: `1px solid ${C.accentBdr}`,
-              borderRadius: 40,
-              padding: "4px 14px",
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: 1,
-              color: C.accent,
-              marginBottom: 18,
-              textTransform: "uppercase",
-            }}
-          >
+    <section className="bg-surface py-[100px] px-4 sm:px-6 md:px-8 border-b border-border">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="rv max-w-[620px] mb-14">
+          <span className="inline-flex items-center gap-[7px] bg-accent-bg border border-accent-bdr rounded-[40px] px-[14px] py-1 text-[10.5px] font-bold tracking-[1px] text-accent mb-[18px] uppercase">
             El problema
           </span>
-          <h2
-            style={{
-              fontSize: "clamp(1.8rem,3.8vw,3rem)",
-              fontWeight: 800,
-              letterSpacing: -1.5,
-              color: C.text,
-              lineHeight: 1.1,
-              marginBottom: 14,
-              textWrap: "balance",
-            }}
-          >
+          <h2 className="text-[clamp(1.8rem,3.8vw,3rem)] font-extrabold tracking-[-1.5px] text-text leading-[1.1] mb-[14px] text-balance">
             El proceso de prácticas
             <br />
             está roto.
           </h2>
-          <p style={{ fontSize: 17, color: C.muted, lineHeight: 1.65 }}>
+          <p className="text-[17px] text-muted leading-[1.65]">
             Dedicas horas a postularte a prácticas que nunca responden. No
             porque no sirvas, sino porque el sistema no sabe leer tu CV.
           </p>
         </div>
-        <div
-          className="practix-problem-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
-            gap: 16,
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {PAINS.map((p, i) => (
             <div
               key={i}
-              className={`practix-problem-card rv d${i + 1}`}
-              style={{
-                background: C.surface,
-                border: `1px solid ${C.border}`,
-                borderRadius: 20,
-                padding: "32px 28px",
-                overflow: "hidden",
-                position: "relative",
-                transition: "transform .3s,box-shadow .3s",
-              }}
+              className={`practix-problem-card rv d${i + 1} bg-surface border border-border rounded-[20px] p-7 sm:p-8 overflow-hidden relative transition-[transform,box-shadow] duration-300`}
             >
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: 130,
-                  height: 130,
-                  background: `radial-gradient(circle,${C.accentBg} 0%,transparent 70%)`,
-                  pointerEvents: "none",
-                }}
-              />
-              <div style={{ fontSize: 32, marginBottom: 20 }}>{p.icon}</div>
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: C.text,
-                  marginBottom: 10,
-                  letterSpacing: -0.4,
-                }}
-              >
+              <div className="absolute top-0 right-0 w-[130px] h-[130px] bg-[radial-gradient(circle,var(--color-accent-bg)_0%,transparent_70%)] pointer-events-none" />
+              <div className="text-[32px] mb-5">{p.icon}</div>
+              <h3 className="text-[17px] font-bold text-text mb-[10px] tracking-[-0.4px]">
                 {p.title}
               </h3>
-              <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.68 }}>
-                {p.body}
-              </p>
+              <p className="text-sm text-muted leading-[1.68]">{p.body}</p>
             </div>
           ))}
         </div>
-        <div
-          className="rv"
-          style={{
-            marginTop: 52,
-            padding: "30px 34px 30px 30px",
-            background: `linear-gradient(135deg,${C.accentBg},${C.bg})`,
-            border: `1px solid ${C.accentBdr}`,
-            borderRadius: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 22,
-            flexWrap: "wrap",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              flexShrink: 0,
-              width: 3,
-              alignSelf: "stretch",
-              background: C.accent,
-              borderRadius: 2,
-              minHeight: 44,
-            }}
-          />
+        <div className="rv mt-[52px] py-[30px] px-[30px] sm:px-[34px] bg-[linear-gradient(135deg,var(--color-accent-bg),var(--color-bg))] border border-accent-bdr rounded-[20px] flex items-center gap-[22px] flex-wrap relative overflow-hidden">
+          <div className="shrink-0 w-[3px] self-stretch bg-accent rounded-sm min-h-[44px]" />
           <div>
-            <p
-              style={{
-                fontSize: 17,
-                fontWeight: 700,
-                color: C.text,
-                marginBottom: 4,
-              }}
-            >
+            <p className="text-[17px] font-bold text-text mb-1">
               PractiX resuelve los tres de un solo paso.
             </p>
-            <p
-              style={{
-                fontSize: 14.5,
-                color: C.muted,
-                lineHeight: 1.65,
-              }}
-            >
+            <p className="text-[14.5px] text-muted leading-[1.65]">
               Sube tu CV una vez. La IA entiende tu perfil en profundidad y solo
               te muestra prácticas donde tu match ya es alto, antes de
               postularte.
@@ -171,8 +64,7 @@ export function LandingProblem() {
         </div>
       </div>
       <style>{`
-        .practix-problem-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px -16px ${C.accent}22; }
-        @media (max-width:768px){ .practix-problem-grid{grid-template-columns:1fr !important} }
+        .practix-problem-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px -16px color-mix(in sRGB, var(--color-accent) 13%, transparent); }
       `}</style>
     </section>
   );

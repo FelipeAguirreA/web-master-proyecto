@@ -104,6 +104,7 @@ export default function InternshipCard({
             <img
               src={internship.company.logo}
               alt={internship.company.companyName}
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
             />
           ) : (

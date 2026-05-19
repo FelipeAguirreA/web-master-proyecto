@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { A } from "./tokens";
 
 type Props = {
   label: string;
+  /** `name` del input — necesario para que el browser haga autofill correctamente y para que la advertencia de a11y de Chrome desaparezca. */
+  name: string;
   type?: string;
   placeholder?: string;
   icon?: ReactNode;
@@ -18,6 +19,7 @@ type Props = {
 
 export function AuthField({
   label,
+  name,
   type = "text",
   placeholder,
   icon,
@@ -31,50 +33,37 @@ export function AuthField({
   const [focus, setFocus] = useState(false);
   const [show, setShow] = useState(false);
   const isPw = type === "password";
-  const borderColor = error ? A.rose : focus ? A.accent : "transparent";
-  const focusShadow = error
-    ? `0 0 0 4px ${A.rose}1c`
-    : focus
-      ? `0 0 0 4px ${A.accent}1c`
-      : "none";
+
+  const inputCls = [
+    "h-11 w-full rounded-[11px] border-[1.5px] text-sm font-medium text-text outline-none transition-all",
+    isPw ? "pr-20" : "pr-3.5",
+    icon ? "pl-10" : "pl-3.5",
+    error
+      ? "border-rose bg-rose-bg/40 shadow-[0_0_0_4px_var(--color-rose)/0.11]"
+      : focus
+        ? "border-accent bg-surface shadow-[0_0_0_4px_var(--color-accent)/0.11]"
+        : "border-transparent bg-dark/[0.025]",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <label
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        minWidth: 0,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 700,
-          color: A.text,
-          letterSpacing: 0.1,
-        }}
-      >
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-[12px] font-bold tracking-[0.1px] text-text">
         {label}
         {required && " *"}
       </span>
-      <div style={{ position: "relative" }}>
+
+      <div className="relative">
         {icon && (
-          <span
-            style={{
-              position: "absolute",
-              left: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: A.subtle,
-              display: "flex",
-              pointerEvents: "none",
-            }}
-          >
+          <span className="pointer-events-none absolute left-3.5 top-1/2 flex -translate-y-1/2 text-subtle">
             {icon}
           </span>
         )}
+
         <input
+          id={name}
+          name={name}
           type={isPw ? (show ? "text" : "password") : type}
           placeholder={placeholder}
           value={value}
@@ -82,62 +71,36 @@ export function AuthField({
           autoComplete={autoComplete}
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
-          style={{
-            width: "100%",
-            padding: `13px ${isPw ? 80 : 14}px 13px ${icon ? 40 : 14}px`,
-            background: focus ? A.surface : "rgba(0,0,0,.025)",
-            border: `1.5px solid ${borderColor}`,
-            borderRadius: 11,
-            fontSize: 14,
-            color: A.text,
-            fontWeight: 500,
-            boxShadow: focusShadow,
-            transition: "all .15s",
-            outline: "none",
-            fontFamily: "inherit",
-          }}
+          aria-invalid={!!error}
+          aria-describedby={
+            error ? `${name}-error` : hint ? `${name}-hint` : undefined
+          }
+          className={inputCls}
         />
+
         {isPw && (
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            style={{
-              position: "absolute",
-              right: 10,
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 11,
-              fontWeight: 700,
-              color: A.muted,
-              padding: "4px 8px",
-              borderRadius: 6,
-            }}
+            aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[11px] font-bold text-muted transition-colors hover:text-text"
           >
             {show ? "Ocultar" : "Mostrar"}
           </button>
         )}
       </div>
+
       {error ? (
         <span
-          style={{
-            fontSize: 11,
-            color: A.rose,
-            lineHeight: 1.4,
-            fontWeight: 600,
-          }}
+          id={`${name}-error`}
+          className="text-[11px] font-semibold leading-[1.4] text-rose"
         >
           {error}
         </span>
       ) : hint ? (
         <span
-          style={{
-            fontSize: 11,
-            color: A.subtle,
-            lineHeight: 1.4,
-          }}
+          id={`${name}-hint`}
+          className="text-[11px] leading-[1.4] text-subtle"
         >
           {hint}
         </span>

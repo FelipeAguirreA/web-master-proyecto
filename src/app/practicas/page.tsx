@@ -2,20 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { PublicNav } from "@/components/layout/PublicNav";
-import { ADMIN_EMAIL } from "@/lib/constants";
+import { PublicOrDashboardShell } from "@/components/dashboard/PublicOrDashboardShell";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
-import {
-  PracticaCard,
-  type PracticaCardData,
-} from "@/components/dashboard/sections/PracticaCard";
+import { PracticaCard } from "@/components/dashboard/sections/PracticaCard";
 import { PracticaCardSkeleton } from "@/components/dashboard/sections/Skeletons";
-import { D } from "@/components/dashboard/tokens";
 import {
   companyColor,
   companyInitials,
 } from "@/components/dashboard/companyColors";
 import { Icon } from "@/components/dashboard/Icon";
+import { toCard, buildPageList, type ApiInternship } from "./utils";
 
 const AREAS = [
   "Ingeniería",
@@ -43,19 +39,6 @@ const PAGE_SIZE_OPTIONS = [16, 32, 64] as const;
 
 type SortKey = "newest" | "match";
 
-type ApiInternship = {
-  id: string;
-  title: string;
-  description?: string | null;
-  area: string;
-  location: string;
-  modality: "REMOTE" | "ONSITE" | "HYBRID";
-  duration: string;
-  skills?: string[];
-  createdAt?: string;
-  company: { companyName: string; logo: string | null };
-};
-
 type ApiResponse = {
   internships: ApiInternship[];
   total: number;
@@ -65,62 +48,8 @@ type ApiResponse = {
 
 type RecMap = Map<string, number>;
 
-function toCard(
-  it: ApiInternship,
-  score: number | null,
-  applied: boolean,
-): PracticaCardData {
-  const co = it.company.companyName;
-  const color = companyColor(co);
-  const safeScore = score ?? 0;
-  const top =
-    safeScore >= 95
-      ? "Top 5%"
-      : safeScore >= 90
-        ? "Top 10%"
-        : safeScore >= 80
-          ? "Top 20%"
-          : null;
-  const mode = `${MODALITY_LABEL[it.modality] ?? it.modality} · ${it.location}`;
-  const isNew = it.createdAt
-    ? Date.now() - new Date(it.createdAt).getTime() < 7 * 24 * 3600 * 1000
-    : false;
-  return {
-    id: it.id,
-    co,
-    logo: companyInitials(co),
-    logoUrl: it.company.logo ?? null,
-    logoBg: color.bg,
-    logoFg: color.fg,
-    title: it.title,
-    description: it.description ?? null,
-    mode,
-    salary: null,
-    dur: it.duration,
-    score: safeScore,
-    top,
-    tags: (it.skills ?? []).slice(0, 4),
-    deadline: null,
-    applicants: null,
-    isNew,
-    ai: null,
-    applied,
-  };
-}
-
-function buildPageList(current: number, total: number): (number | "…")[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  const pages: (number | "…")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) pages.push("…");
-  for (let p = start; p <= end; p++) pages.push(p);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-}
+// SVG inline del chevron para los selects — valor dinámico que no tiene token
+const SELECT_CHEVRON = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236D6A63' d='M0 0h10L5 6z'/></svg>")`;
 
 export default function PracticasPage() {
   const { data: session } = useSession();
@@ -246,800 +175,404 @@ export default function PracticasPage() {
   const to = Math.min(page * pageSize, total);
 
   return (
-    <div
-      style={{
-        position: "relative",
-        minHeight: "100vh",
-        background: D.bg,
-        color: D.text,
-        fontFamily: "var(--font-onest), ui-sans-serif, system-ui",
-        overflowX: "hidden",
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          position: "fixed",
-          inset: 0,
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "-15%",
-            left: "-10%",
-            width: "60%",
-            height: "50%",
-            borderRadius: "50%",
-            opacity: 0.5,
-            background:
-              "radial-gradient(closest-side, rgba(255,166,122,0.4), rgba(255,166,122,0) 70%)",
-            filter: "blur(40px)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            top: "-5%",
-            right: "-15%",
-            width: "55%",
-            height: "50%",
-            borderRadius: "50%",
-            opacity: 0.45,
-            background:
-              "radial-gradient(closest-side, rgba(255,210,180,0.5), rgba(255,210,180,0) 70%)",
-            filter: "blur(50px)",
-          }}
-        />
-      </div>
-
-      <PublicNav
-        isLoggedIn={!!session}
-        isAdmin={session?.user.email === ADMIN_EMAIL}
-      />
-
-      <main
-        style={{
-          position: "relative",
-          zIndex: 10,
-          paddingTop: 96,
-          paddingBottom: 80,
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: "0 auto",
-            padding: "0 24px",
-          }}
-          className="practix-list-container"
-        >
-          {/* CTA destacado para no logueados — invita a registrarse/loggearse
-              para activar el match. Más prominente que el texto del hero. */}
-          {!session && (
-            <section
-              style={{
-                background: `linear-gradient(135deg, ${D.dark} 0%, #2a2722 100%)`,
-                borderRadius: 18,
-                padding: "20px 24px",
-                marginBottom: 20,
-                color: "#fff",
-                position: "relative",
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 18,
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  top: -60,
-                  right: -40,
-                  width: 220,
-                  height: 220,
-                  background: `radial-gradient(circle, ${D.accent}55, transparent 65%)`,
-                  pointerEvents: "none",
-                }}
-              />
-              <div style={{ position: "relative", flex: 1, minWidth: 240 }}>
-                <p
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    color: D.accent,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    marginBottom: 6,
-                  }}
-                >
-                  Match con IA
-                </p>
-                <h2
-                  style={{
-                    fontSize: "clamp(1.05rem,1.8vw,1.3rem)",
-                    fontWeight: 800,
-                    letterSpacing: -0.4,
-                    lineHeight: 1.25,
-                    marginBottom: 4,
-                  }}
-                >
-                  Encontrá las prácticas que mejor calzan con vos
-                </h2>
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    color: "rgba(255,255,255,.7)",
-                    lineHeight: 1.55,
-                    maxWidth: 520,
-                  }}
-                >
-                  Iniciá sesión o creá tu cuenta. Subí tu CV y declarás tus
-                  skills, y te mostramos cada práctica con un % de match real.
-                </p>
-              </div>
-              <div
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <a
-                  href="/login?role=student"
-                  style={{
-                    background: `linear-gradient(135deg,${D.accent},${D.accentHi})`,
-                    color: "#fff",
-                    padding: "10px 18px",
-                    borderRadius: 11,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    boxShadow: `0 6px 16px ${D.accent}55`,
-                  }}
-                >
-                  Iniciar sesión
-                </a>
-                <a
-                  href="/registro"
-                  style={{
-                    background: "rgba(255,255,255,.1)",
-                    color: "#fff",
-                    padding: "10px 18px",
-                    borderRadius: 11,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    border: "1px solid rgba(255,255,255,.18)",
-                    textDecoration: "none",
-                  }}
-                >
-                  Crear cuenta
-                </a>
-              </div>
-            </section>
-          )}
-
-          {/* Hero */}
-          <section
+    <PublicOrDashboardShell
+      publicBackdrop={
+        <div aria-hidden className="fixed inset-0 pointer-events-none z-0">
+          <div
+            className="absolute rounded-full opacity-50"
             style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: 20,
-              marginBottom: 24,
-              flexWrap: "wrap",
+              top: "-15%",
+              left: "-10%",
+              width: "60%",
+              height: "50%",
+              background:
+                "radial-gradient(closest-side, rgba(255,166,122,0.4), rgba(255,166,122,0) 70%)",
+              filter: "blur(40px)",
             }}
-          >
-            <div>
-              <h1
-                style={{
-                  fontSize: "clamp(1.7rem,2.8vw,2.2rem)",
-                  fontWeight: 800,
-                  letterSpacing: -1,
-                  color: D.text,
-                  lineHeight: 1.1,
-                  marginBottom: 8,
-                }}
-              >
-                Prácticas {session ? "para ti" : "disponibles"}
-              </h1>
-              <p
-                style={{
-                  fontSize: 14,
-                  color: D.muted,
-                  lineHeight: 1.55,
-                  maxWidth: 560,
-                }}
-              >
-                {session && recs.size > 0 ? (
-                  <>
-                    Ordenadas por{" "}
-                    <b style={{ color: D.text }}>match con tu CV</b>. Los
-                    filtros refinan la búsqueda.
-                  </>
-                ) : session ? (
-                  <>
-                    Subí tu CV en{" "}
-                    <a
-                      href="/perfil"
-                      style={{ color: D.accent, fontWeight: 700 }}
-                    >
-                      tu perfil
-                    </a>{" "}
-                    para ver el match con cada práctica.
-                  </>
-                ) : (
-                  <>
-                    Explorá todas las prácticas activas en Chile.{" "}
-                    <a
-                      href="/login?role=student"
-                      style={{ color: D.accent, fontWeight: 700 }}
-                    >
-                      Iniciá sesión
-                    </a>{" "}
-                    para ver tu match personalizado.
-                  </>
-                )}
+          />
+          <div
+            className="absolute rounded-full"
+            style={{
+              top: "-5%",
+              right: "-15%",
+              width: "55%",
+              height: "50%",
+              opacity: 0.45,
+              background:
+                "radial-gradient(closest-side, rgba(255,210,180,0.5), rgba(255,210,180,0) 70%)",
+              filter: "blur(50px)",
+            }}
+          />
+        </div>
+      }
+    >
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-8">
+        {/* CTA para no logueados */}
+        {!session && (
+          <section className="relative overflow-hidden flex items-center justify-between gap-[18px] flex-wrap bg-dark rounded-[18px] px-6 py-5 mb-5 text-white">
+            {/* Glow decorativo — gradiente radial con accent como variable dinámica */}
+            <div
+              aria-hidden
+              className="absolute pointer-events-none"
+              style={{
+                top: -60,
+                right: -40,
+                width: 220,
+                height: 220,
+                background:
+                  "radial-gradient(circle, rgba(255,106,61,0.33), transparent 65%)",
+              }}
+            />
+            <div className="relative flex-1 min-w-[240px]">
+              <p className="text-[10.5px] font-extrabold text-accent tracking-[1px] uppercase mb-1.5">
+                Match con IA
               </p>
+              <h2 className="text-[clamp(1.05rem,1.8vw,1.3rem)] font-extrabold tracking-[-0.4px] leading-[1.25] mb-1">
+                Encontrá las prácticas que mejor calzan con vos
+              </h2>
+              <p className="text-[12.5px] text-white/70 leading-[1.55] max-w-[520px]">
+                Iniciá sesión o creá tu cuenta. Subí tu CV y declarás tus
+                skills, y te mostramos cada práctica con un % de match real.
+              </p>
+            </div>
+            <div className="relative flex gap-2.5 flex-wrap">
+              <a
+                href="/login?role=student"
+                className="bg-gradient-to-br from-accent to-accent-hi text-white px-[18px] py-2.5 rounded-[11px] text-[13px] font-bold no-underline shadow-[0_6px_16px_rgba(255,106,61,0.33)]"
+              >
+                Iniciar sesión
+              </a>
+              <a
+                href="/registro"
+                className="bg-white/10 text-white px-[18px] py-2.5 rounded-[11px] text-[13px] font-bold border border-white/[0.18] no-underline"
+              >
+                Crear cuenta
+              </a>
             </div>
           </section>
+        )}
 
-          {/* Top filters */}
-          <div
-            style={{
-              background: D.surface,
-              border: `1px solid ${D.border}`,
-              borderRadius: 14,
-              padding: "14px 16px",
-              marginBottom: 14,
-            }}
-          >
-            <div
-              className="practix-list-filters-row"
-              style={{
-                display: "flex",
-                gap: 10,
-                marginBottom: activeChips.length > 0 ? 12 : 0,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: D.subtle,
-                    display: "flex",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <Icon name="search" size={14} color={D.subtle} />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Buscá por título o descripción…"
-                  value={search}
-                  onChange={(e) => setFilter(setSearch)(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "9px 12px 9px 34px",
-                    background: "rgba(0,0,0,.04)",
-                    border: "1.5px solid transparent",
-                    borderRadius: 9,
-                    fontSize: 12.5,
-                    color: D.text,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    outline: "none",
-                    transition: "all .15s",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.background = D.surface;
-                    e.currentTarget.style.borderColor = D.accent;
-                    e.currentTarget.style.boxShadow = `0 0 0 3px ${D.accent}1c`;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.background = "rgba(0,0,0,.04)";
-                    e.currentTarget.style.borderColor = "transparent";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                />
-              </div>
-
-              <select
-                value={area}
-                onChange={(e) => setFilter(setArea)(e.target.value)}
-                className="practix-list-select"
-                style={{
-                  padding: "8px 28px 8px 12px",
-                  background: "rgba(0,0,0,.04)",
-                  border: "1.5px solid transparent",
-                  borderRadius: 9,
-                  fontSize: 12.5,
-                  color: area ? D.text : D.muted,
-                  fontWeight: 600,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  appearance: "none",
-                  outline: "none",
-                  minWidth: 140,
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236D6A63' d='M0 0h10L5 6z'/></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 10px center",
-                }}
-              >
-                <option value="">Todas las áreas</option>
-                {AREAS.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={modality}
-                onChange={(e) => setFilter(setModality)(e.target.value)}
-                className="practix-list-select"
-                style={{
-                  padding: "8px 28px 8px 12px",
-                  background: "rgba(0,0,0,.04)",
-                  border: "1.5px solid transparent",
-                  borderRadius: 9,
-                  fontSize: 12.5,
-                  color: modality ? D.text : D.muted,
-                  fontWeight: 600,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  appearance: "none",
-                  outline: "none",
-                  minWidth: 140,
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236D6A63' d='M0 0h10L5 6z'/></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 10px center",
-                }}
-              >
-                <option value="">Todas las modalidades</option>
-                {MODALITIES.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activeChips.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 7,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: D.subtle,
-                    letterSpacing: 0.3,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Activos:
-                </span>
-                {activeChips.map((chip) => (
-                  <span
-                    key={chip.label}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      background: D.surface,
-                      border: `1px solid ${D.border}`,
-                      padding: "5px 10px 5px 11px",
-                      borderRadius: 30,
-                      fontSize: 11.5,
-                      color: D.text,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {chip.label}
-                    <button
-                      type="button"
-                      onClick={chip.onClear}
-                      style={{
-                        background: "rgba(0,0,0,.06)",
-                        border: "none",
-                        cursor: "pointer",
-                        width: 15,
-                        height: 15,
-                        borderRadius: "50%",
-                        color: D.muted,
-                        fontSize: 11,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 0,
-                        lineHeight: 1,
-                      }}
-                      aria-label={`Quitar ${chip.label}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  style={{
-                    fontSize: 11.5,
-                    color: D.accent,
-                    fontWeight: 700,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "5px 8px",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Limpiar todo
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Toolbar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 14,
-              padding: "10px 14px",
-              background: D.surface,
-              border: `1px solid ${D.border}`,
-              borderRadius: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
-                color: D.muted,
-                fontWeight: 600,
-              }}
-            >
-              <b style={{ color: D.text }}>{total}</b>{" "}
-              {total === 1 ? "resultado" : "resultados"}
-              {recs.size > 0 && session && (
+        {/* Hero */}
+        <section className="flex items-end justify-between gap-5 mb-6 flex-wrap">
+          <div>
+            <h1 className="text-[clamp(1.7rem,2.8vw,2.2rem)] font-extrabold tracking-[-1px] text-text leading-[1.1] mb-2">
+              Prácticas {session ? "para ti" : "disponibles"}
+            </h1>
+            <p className="text-[14px] text-muted leading-[1.55] max-w-[560px]">
+              {session && recs.size > 0 ? (
                 <>
-                  {" "}
-                  ·{" "}
-                  <span style={{ color: D.accent, fontWeight: 700 }}>
-                    {recs.size} con match calculado
-                  </span>
+                  Ordenadas por <b className="text-text">match con tu CV</b>.
+                  Los filtros refinan la búsqueda.
                 </>
-              )}
-            </p>
-            <label
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 12,
-                color: D.muted,
-                fontWeight: 600,
-              }}
-            >
-              Ordenar
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortKey)}
-                style={{
-                  padding: "6px 26px 6px 10px",
-                  background: "rgba(0,0,0,.04)",
-                  border: "1.5px solid transparent",
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  color: D.text,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                  appearance: "none",
-                  outline: "none",
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236D6A63' d='M0 0h10L5 6z'/></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 8px center",
-                }}
-              >
-                <option value="newest">Más nuevas primero</option>
-                {session && recs.size > 0 && (
-                  <option value="match">Mejor match (CV)</option>
-                )}
-              </select>
-            </label>
-          </div>
-          {sort === "match" && (
-            <p
-              style={{
-                fontSize: 11.5,
-                color: D.subtle,
-                marginTop: -6,
-                marginBottom: 10,
-                padding: "0 4px",
-                lineHeight: 1.5,
-              }}
-            >
-              El orden por match aplica solo a las prácticas de esta página.
-              Para ver todas tus mejores matches, andá al{" "}
-              <a
-                href="/dashboard/estudiante"
-                style={{ color: D.accent, fontWeight: 700 }}
-              >
-                dashboard
-              </a>
-              .
-            </p>
-          )}
-
-          {/* Grid */}
-          {loading ? (
-            <div
-              className="practix-list-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 14,
-              }}
-            >
-              {Array.from({ length: pageSize > 8 ? 8 : pageSize }, (_, i) => (
-                <PracticaCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : cards.length === 0 ? (
-            <div
-              style={{
-                background: D.surface,
-                border: `1px dashed ${D.border}`,
-                borderRadius: 16,
-                padding: 40,
-                textAlign: "center",
-                color: D.muted,
-                fontSize: 13.5,
-                lineHeight: 1.6,
-              }}
-            >
-              <p
-                style={{
-                  color: D.text,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  marginBottom: 6,
-                }}
-              >
-                Sin resultados
-              </p>
-              {activeChips.length > 0 ? (
+              ) : session ? (
                 <>
-                  Probá quitar algún filtro o{" "}
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    style={{
-                      color: D.accent,
-                      fontWeight: 700,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                      fontSize: "inherit",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    limpiar todo
-                  </button>
-                  .
+                  Subí tu CV en{" "}
+                  <a href="/perfil" className="text-accent font-bold">
+                    tu perfil
+                  </a>{" "}
+                  para ver el match con cada práctica.
                 </>
               ) : (
-                "No hay prácticas activas por ahora. Volvé a chequear pronto."
+                <>
+                  Explorá todas las prácticas activas en Chile.{" "}
+                  <a
+                    href="/login?role=student"
+                    className="text-accent font-bold"
+                  >
+                    Iniciá sesión
+                  </a>{" "}
+                  para ver tu match personalizado.
+                </>
               )}
-            </div>
-          ) : (
-            <div
-              className="practix-list-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 14,
-              }}
-            >
-              {cards.map((p) => (
-                <PracticaCard key={p.id} p={p} />
-              ))}
-            </div>
-          )}
+            </p>
+          </div>
+        </section>
 
-          {/* Paginator */}
-          {!loading && total > 0 && (
-            <div
+        {/* Filter bar */}
+        <div className="bg-surface border border-border rounded-[14px] px-4 py-3.5 mb-3.5">
+          {/* Fila de filtros: vertical en mobile, horizontal en md+ */}
+          <div
+            className={[
+              "flex flex-col md:flex-row gap-2.5 md:items-center",
+              activeChips.length > 0 ? "mb-3" : "",
+            ].join(" ")}
+          >
+            {/* Search input */}
+            <div className="relative flex-1 min-w-0 md:min-w-[220px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 flex pointer-events-none text-subtle">
+                <Icon name="search" size={14} color="currentColor" />
+              </span>
+              <input
+                id="practicas-search"
+                name="practicas-search"
+                type="search"
+                role="searchbox"
+                aria-label="Buscar prácticas por título o descripción"
+                autoComplete="off"
+                placeholder="Buscá por título o descripción…"
+                value={search}
+                onChange={(e) => setFilter(setSearch)(e.target.value)}
+                className="w-full py-[9px] pl-[34px] pr-3 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] text-text font-semibold font-inherit outline-none transition-all duration-150 focus:bg-surface focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,106,61,0.11)]"
+              />
+            </div>
+
+            {/* Select área */}
+            <select
+              id="practicas-area"
+              name="practicas-area"
+              aria-label="Filtrar por área"
+              value={area}
+              onChange={(e) => setFilter(setArea)(e.target.value)}
+              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none outline-none text-muted"
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: 22,
-                padding: "14px 18px",
-                background: D.surface,
-                border: `1px solid ${D.border}`,
-                borderRadius: 12,
-                flexWrap: "wrap",
-                gap: 12,
+                color: area ? "var(--color-text)" : undefined,
+                backgroundImage: SELECT_CHEVRON,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 10px center",
               }}
             >
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: D.muted,
-                  fontWeight: 600,
-                }}
+              <option value="">Todas las áreas</option>
+              {AREAS.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+
+            {/* Select modalidad */}
+            <select
+              id="practicas-modality"
+              name="practicas-modality"
+              aria-label="Filtrar por modalidad"
+              value={modality}
+              onChange={(e) => setFilter(setModality)(e.target.value)}
+              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none outline-none text-muted"
+              style={{
+                color: modality ? "var(--color-text)" : undefined,
+                backgroundImage: SELECT_CHEVRON,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 10px center",
+              }}
+            >
+              <option value="">Todas las modalidades</option>
+              {MODALITIES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Active chips */}
+          {activeChips.length > 0 && (
+            <div className="flex gap-[7px] flex-wrap items-center">
+              <span className="text-[11.5px] font-bold text-subtle tracking-[0.3px] uppercase">
+                Activos:
+              </span>
+              {activeChips.map((chip) => (
+                <span
+                  key={chip.label}
+                  className="inline-flex items-center gap-1.5 bg-surface border border-border py-[5px] pl-[11px] pr-2.5 rounded-full text-[11.5px] text-text font-semibold"
+                >
+                  {chip.label}
+                  <button
+                    type="button"
+                    onClick={chip.onClear}
+                    className="w-[15px] h-[15px] rounded-full bg-black/[0.06] border-none cursor-pointer text-muted text-[11px] flex items-center justify-center p-0 leading-none"
+                    aria-label={`Quitar ${chip.label}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[11.5px] text-accent font-bold bg-transparent border-none cursor-pointer px-2 py-[5px] font-inherit"
               >
-                Mostrando{" "}
-                <b style={{ color: D.text }}>
-                  {from}–{to}
-                </b>{" "}
-                de <b style={{ color: D.text }}>{total}</b>
-              </p>
-              <nav style={{ display: "inline-flex", gap: 4 }}>
-                <button
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  style={{
-                    minWidth: 36,
-                    height: 36,
-                    padding: "0 10px",
-                    background: "rgba(0,0,0,.04)",
-                    border: "none",
-                    borderRadius: 9,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: page <= 1 ? D.faint : D.muted,
-                    cursor: page <= 1 ? "not-allowed" : "pointer",
-                    opacity: page <= 1 ? 0.5 : 1,
-                  }}
-                  aria-label="Página anterior"
-                >
-                  ←
-                </button>
-                {pageList.map((n, i) => {
-                  const active = n === page;
-                  if (n === "…") {
-                    return (
-                      <span
-                        key={`ell-${i}`}
-                        style={{
-                          minWidth: 36,
-                          height: 36,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 13,
-                          color: D.subtle,
-                        }}
-                      >
-                        …
-                      </span>
-                    );
-                  }
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setPage(n)}
-                      style={{
-                        minWidth: 36,
-                        height: 36,
-                        padding: "0 12px",
-                        background: active ? D.text : "transparent",
-                        border: "none",
-                        borderRadius: 9,
-                        fontSize: 13,
-                        fontWeight: active ? 800 : 600,
-                        color: active ? "#fff" : D.text,
-                        cursor: "pointer",
-                        transition: "all .15s",
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  style={{
-                    minWidth: 36,
-                    height: 36,
-                    padding: "0 10px",
-                    background:
-                      page >= totalPages
-                        ? "rgba(0,0,0,.04)"
-                        : `linear-gradient(135deg,${D.accent},${D.accentHi})`,
-                    color: page >= totalPages ? D.faint : "#fff",
-                    border: "none",
-                    borderRadius: 9,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: page >= totalPages ? "not-allowed" : "pointer",
-                    boxShadow:
-                      page >= totalPages ? "none" : `0 4px 12px ${D.accent}44`,
-                    opacity: page >= totalPages ? 0.5 : 1,
-                  }}
-                  aria-label="Página siguiente"
-                >
-                  →
-                </button>
-              </nav>
-              <label
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: 12,
-                  color: D.muted,
-                  fontWeight: 600,
-                }}
-              >
-                Por página
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  style={{
-                    padding: "5px 9px",
-                    background: "rgba(0,0,0,.04)",
-                    border: "none",
-                    borderRadius: 7,
-                    fontSize: 12,
-                    color: D.text,
-                    fontWeight: 700,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                  }}
-                >
-                  {PAGE_SIZE_OPTIONS.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                Limpiar todo
+              </button>
             </div>
           )}
         </div>
-      </main>
 
-      <style>{`
-        @media (max-width:900px) {
-          .practix-list-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width:600px) {
-          .practix-list-container { padding: 0 16px !important; }
-          .practix-list-filters-row > * { width: 100%; min-width: 0 !important; }
-        }
-      `}</style>
-    </div>
+        {/* Toolbar: resultados + ordenar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3.5 px-3.5 py-2.5 bg-surface border border-border rounded-[12px]">
+          <p className="text-[13px] text-muted font-semibold">
+            <b className="text-text">{total}</b>{" "}
+            {total === 1 ? "resultado" : "resultados"}
+            {recs.size > 0 && session && (
+              <>
+                {" "}
+                ·{" "}
+                <span className="text-accent font-bold">
+                  {recs.size} con match calculado
+                </span>
+              </>
+            )}
+          </p>
+          <label className="inline-flex items-center gap-2 text-[12px] text-muted font-semibold">
+            Ordenar
+            <select
+              id="practicas-sort"
+              name="practicas-sort"
+              aria-label="Ordenar resultados"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              className="py-1.5 pl-2.5 pr-[26px] bg-black/[0.04] border-[1.5px] border-transparent rounded-[8px] text-[12.5px] text-text font-bold font-inherit cursor-pointer appearance-none outline-none"
+              style={{
+                backgroundImage: SELECT_CHEVRON,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
+              }}
+            >
+              <option value="newest">Más nuevas primero</option>
+              {session && recs.size > 0 && (
+                <option value="match">Mejor match (CV)</option>
+              )}
+            </select>
+          </label>
+        </div>
+
+        {sort === "match" && (
+          <p className="text-[11.5px] text-subtle -mt-1.5 mb-2.5 px-1 leading-[1.5]">
+            El orden por match aplica solo a las prácticas de esta página. Para
+            ver todas tus mejores matches, andá al{" "}
+            <a href="/dashboard/estudiante" className="text-accent font-bold">
+              dashboard
+            </a>
+            .
+          </p>
+        )}
+
+        {/* Grid de cards */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {Array.from({ length: pageSize > 8 ? 8 : pageSize }, (_, i) => (
+              <PracticaCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : cards.length === 0 ? (
+          <div className="bg-surface border border-dashed border-border rounded-[16px] p-10 text-center text-muted text-[13.5px] leading-[1.6]">
+            <p className="text-text font-bold text-[14px] mb-1.5">
+              Sin resultados
+            </p>
+            {activeChips.length > 0 ? (
+              <>
+                Probá quitar algún filtro o{" "}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-accent font-bold bg-transparent border-none cursor-pointer p-0 text-[inherit] font-inherit"
+                >
+                  limpiar todo
+                </button>
+                .
+              </>
+            ) : (
+              "No hay prácticas activas por ahora. Volvé a chequear pronto."
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {cards.map((p) => (
+              <PracticaCard key={p.id} p={p} />
+            ))}
+          </div>
+        )}
+
+        {/* Paginador */}
+        {!loading && total > 0 && (
+          <div className="flex flex-wrap justify-between items-center gap-3 mt-[22px] px-[18px] py-3.5 bg-surface border border-border rounded-[12px]">
+            <p className="text-[12.5px] text-muted font-semibold">
+              Mostrando{" "}
+              <b className="text-text">
+                {from}–{to}
+              </b>{" "}
+              de <b className="text-text">{total}</b>
+            </p>
+
+            <nav className="flex flex-wrap items-center gap-1 justify-center">
+              {/* Anterior */}
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="min-w-[40px] h-10 px-2.5 bg-black/[0.04] border-none rounded-[9px] text-[13px] font-bold text-muted cursor-pointer disabled:text-faint disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Página anterior"
+              >
+                ←
+              </button>
+
+              {pageList.map((n, i) => {
+                if (n === "…") {
+                  return (
+                    <span
+                      key={`ell-${i}`}
+                      className="min-w-[40px] h-10 inline-flex items-center justify-center text-[13px] text-subtle"
+                    >
+                      …
+                    </span>
+                  );
+                }
+                const active = n === page;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setPage(n)}
+                    className={[
+                      "min-w-[40px] h-10 px-3 border-none rounded-[9px] text-[13px] cursor-pointer transition-all duration-150",
+                      active
+                        ? "bg-text text-white font-extrabold"
+                        : "bg-transparent text-text font-semibold",
+                    ].join(" ")}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+
+              {/* Siguiente */}
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className={[
+                  "min-w-[40px] h-10 px-2.5 border-none rounded-[9px] text-[13px] font-bold cursor-pointer transition-all duration-150",
+                  page >= totalPages
+                    ? "bg-black/[0.04] text-faint opacity-50 cursor-not-allowed"
+                    : "bg-gradient-to-br from-accent to-accent-hi text-white shadow-[0_4px_12px_rgba(255,106,61,0.27)]",
+                ].join(" ")}
+                aria-label="Página siguiente"
+              >
+                →
+              </button>
+            </nav>
+
+            <label className="inline-flex items-center gap-[7px] text-[12px] text-muted font-semibold">
+              Por página
+              <select
+                id="practicas-page-size"
+                name="practicas-page-size"
+                aria-label="Resultados por página"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="py-[5px] px-[9px] bg-black/[0.04] border-none rounded-[7px] text-[12px] text-text font-bold font-inherit cursor-pointer"
+              >
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+      </div>
+    </PublicOrDashboardShell>
   );
 }

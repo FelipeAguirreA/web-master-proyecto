@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { C } from "./tokens";
 
 const STUDENT_FEATS = [
   "Score de afinidad antes de postularte",
@@ -19,168 +18,51 @@ export function LandingDualAudience() {
   return (
     <section
       id="para-quien"
-      style={{
-        background: C.bg,
-        padding: "100px 32px",
-        borderBottom: `1px solid ${C.border}`,
-      }}
+      className="bg-bg py-[100px] px-4 sm:px-6 md:px-8 border-b border-border"
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div className="rv" style={{ textAlign: "center", marginBottom: 56 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              background: C.accentBg,
-              border: `1px solid ${C.accentBdr}`,
-              borderRadius: 40,
-              padding: "4px 14px",
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: 1,
-              color: C.accent,
-              marginBottom: 18,
-              textTransform: "uppercase",
-            }}
-          >
+      <div className="max-w-[1100px] mx-auto">
+        <div className="rv text-center mb-14">
+          <span className="inline-flex items-center gap-[7px] bg-accent-bg border border-accent-bdr rounded-[40px] px-[14px] py-1 text-[10.5px] font-bold tracking-[1px] text-accent mb-[18px] uppercase">
             ¿Para quién?
           </span>
-          <h2
-            style={{
-              fontSize: "clamp(1.8rem,3.8vw,3rem)",
-              fontWeight: 800,
-              letterSpacing: -1.5,
-              color: C.text,
-              lineHeight: 1.1,
-            }}
-          >
+          <h2 className="text-[clamp(1.8rem,3.8vw,3rem)] font-extrabold tracking-[-1.5px] text-text leading-[1.1]">
             Una plataforma.
             <br />
             Dos audiencias.
           </h2>
         </div>
-        <div
-          className="practix-dual-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 20,
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Estudiantes */}
-          <div
-            className="rv-l practix-dual-card-light"
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 24,
-              padding: "44px 40px",
-              position: "relative",
-              overflow: "hidden",
-              transition: "transform .3s,box-shadow .3s",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                width: "60%",
-                height: "100%",
-                background: `linear-gradient(225deg,${C.accentBg} 0%,transparent 60%)`,
-                pointerEvents: "none",
-              }}
-            />
-            <div style={{ position: "relative" }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: C.accentBg,
-                  border: `1px solid ${C.accentBdr}`,
-                  borderRadius: 10,
-                  padding: "6px 14px",
-                  marginBottom: 24,
-                }}
-              >
-                <span style={{ fontSize: 16 }}>🎓</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: C.accent,
-                    letterSpacing: 0.5,
-                  }}
-                >
+          <div className="rv-l practix-dual-card-light bg-surface border border-border rounded-[24px] p-8 sm:p-11 relative overflow-hidden transition-[transform,box-shadow] duration-300">
+            <div className="absolute top-0 right-0 w-[60%] h-full bg-[linear-gradient(225deg,var(--color-accent-bg)_0%,transparent_60%)] pointer-events-none" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 bg-accent-bg border border-accent-bdr rounded-[10px] px-[14px] py-[6px] mb-6">
+                <span className="text-base">🎓</span>
+                <span className="text-xs font-bold text-accent tracking-[0.5px]">
                   PARA ESTUDIANTES
                 </span>
               </div>
-              <h3
-                style={{
-                  fontSize: "clamp(1.3rem,2.5vw,1.9rem)",
-                  fontWeight: 800,
-                  color: C.text,
-                  letterSpacing: -1,
-                  lineHeight: 1.15,
-                  marginBottom: 16,
-                }}
-              >
+              <h3 className="text-[clamp(1.3rem,2.5vw,1.9rem)] font-extrabold text-text tracking-[-1px] leading-[1.15] mb-4">
                 Encuentra prácticas donde ya eres competitivo.
               </h3>
-              <p
-                style={{
-                  fontSize: 14.5,
-                  color: C.muted,
-                  lineHeight: 1.7,
-                  marginBottom: 28,
-                }}
-              >
+              <p className="text-[14.5px] text-muted leading-[1.7] mb-7">
                 No más postulaciones a ciegas. Ves tu score antes de postularte.
                 Sabes en qué prácticas tienes chances reales y cuáles no valen
                 tu tiempo.
               </p>
-              <ul
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  marginBottom: 32,
-                  listStyle: "none",
-                  padding: 0,
-                }}
-              >
+              <ul className="flex flex-col gap-3 mb-8 list-none p-0">
                 {STUDENT_FEATS.map((f, i) => (
                   <li
                     key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      fontSize: 14,
-                      color: C.text,
-                      fontWeight: 500,
-                    }}
+                    className="flex items-center gap-[10px] text-sm text-text font-medium"
                   >
-                    <span
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: C.greenBg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="w-5 h-5 rounded-full bg-green-bg flex items-center justify-center shrink-0">
                       <svg
                         width="10"
                         height="10"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke={C.green}
+                        stroke="var(--color-green)"
                         strokeWidth="3"
                       >
                         <path d="M20 6L9 17l-5-5" />
@@ -192,20 +74,7 @@ export function LandingDualAudience() {
               </ul>
               <Link
                 href="/login?role=student"
-                className="practix-dual-cta-warm"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: `linear-gradient(135deg,${C.accent},${C.accentHi})`,
-                  color: "#fff",
-                  padding: "13px 24px",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  boxShadow: `0 6px 20px ${C.accent}55`,
-                  transition: "opacity .2s",
-                }}
+                className="practix-dual-cta-warm inline-flex items-center gap-2 bg-[linear-gradient(135deg,var(--color-accent),var(--color-accent-hi))] text-white px-6 py-[13px] rounded-xl font-bold text-sm shadow-[0_6px_20px_color-mix(in_sRGB,var(--color-accent)_33%,transparent)] transition-opacity duration-200"
               >
                 Empezar gratis
               </Link>
@@ -213,120 +82,37 @@ export function LandingDualAudience() {
           </div>
 
           {/* Empresas */}
-          <div
-            className="rv-r practix-dual-card-dark"
-            style={{
-              background: C.bgDark,
-              borderRadius: 24,
-              padding: "44px 40px",
-              position: "relative",
-              overflow: "hidden",
-              color: "#fff",
-              transition: "transform .3s,box-shadow .3s",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: -40,
-                right: -40,
-                width: 220,
-                height: 220,
-                background: `${C.accent}18`,
-                borderRadius: "50%",
-                filter: "blur(60px)",
-              }}
-            />
-            <div style={{ position: "relative" }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "rgba(255,255,255,.08)",
-                  border: "1px solid rgba(255,255,255,.12)",
-                  borderRadius: 10,
-                  padding: "6px 14px",
-                  marginBottom: 24,
-                }}
-              >
-                <span style={{ fontSize: 16 }}>🏢</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "rgba(255,255,255,.7)",
-                    letterSpacing: 0.5,
-                  }}
-                >
+          <div className="rv-r practix-dual-card-dark bg-dark rounded-[24px] p-8 sm:p-11 relative overflow-hidden text-white transition-[transform,box-shadow] duration-300">
+            {/* orb — dynamic size/position, keep inline */}
+            <div className="absolute -top-10 -right-10 w-[220px] h-[220px] bg-[color-mix(in_sRGB,var(--color-accent)_9%,transparent)] rounded-full blur-[60px]" />
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 bg-white/[.08] border border-white/[.12] rounded-[10px] px-[14px] py-[6px] mb-6">
+                <span className="text-base">🏢</span>
+                <span className="text-xs font-bold text-white/70 tracking-[0.5px]">
                   PARA EMPRESAS
                 </span>
               </div>
-              <h3
-                style={{
-                  fontSize: "clamp(1.3rem,2.5vw,1.9rem)",
-                  fontWeight: 800,
-                  color: "#fff",
-                  letterSpacing: -1,
-                  lineHeight: 1.15,
-                  marginBottom: 16,
-                }}
-              >
+              <h3 className="text-[clamp(1.3rem,2.5vw,1.9rem)] font-extrabold text-white tracking-[-1px] leading-[1.15] mb-4">
                 Solo revisas candidatos que realmente encajan.
               </h3>
-              <p
-                style={{
-                  fontSize: 14.5,
-                  color: "rgba(255,255,255,.6)",
-                  lineHeight: 1.7,
-                  marginBottom: 28,
-                }}
-              >
+              <p className="text-[14.5px] text-white/60 leading-[1.7] mb-7">
                 El ATS pre-rankea los postulantes por afinidad semántica.
                 Dedicas el tiempo de selección a los mejores, no a revisar 80
                 CVs irrelevantes.
               </p>
-              <ul
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                  marginBottom: 32,
-                  listStyle: "none",
-                  padding: 0,
-                }}
-              >
+              <ul className="flex flex-col gap-3 mb-8 list-none p-0">
                 {COMPANY_FEATS.map((f, i) => (
                   <li
                     key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      fontSize: 14,
-                      color: "rgba(255,255,255,.85)",
-                      fontWeight: 500,
-                    }}
+                    className="flex items-center gap-[10px] text-sm text-white/85 font-medium"
                   >
-                    <span
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: "rgba(255,255,255,.08)",
-                        border: "1px solid rgba(255,255,255,.15)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span className="w-5 h-5 rounded-full bg-white/[.08] border border-white/[.15] flex items-center justify-center shrink-0">
                       <svg
                         width="10"
                         height="10"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke={C.accentHi}
+                        stroke="var(--color-accent-hi)"
                         strokeWidth="3"
                       >
                         <path d="M20 6L9 17l-5-5" />
@@ -338,21 +124,7 @@ export function LandingDualAudience() {
               </ul>
               <Link
                 href="/login?role=company"
-                className="practix-dual-cta-dark"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  background: "rgba(255,255,255,.1)",
-                  backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(255,255,255,.2)",
-                  color: "#fff",
-                  padding: "13px 24px",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  transition: "background .2s",
-                }}
+                className="practix-dual-cta-dark inline-flex items-center gap-2 bg-white/10 backdrop-blur-[12px] border border-white/20 text-white px-6 py-[13px] rounded-xl font-bold text-sm transition-[background] duration-200"
               >
                 Publicar práctica
               </Link>
@@ -361,13 +133,10 @@ export function LandingDualAudience() {
         </div>
       </div>
       <style>{`
-        .practix-dual-card-light:hover { transform: translateY(-4px); box-shadow: 0 24px 64px -20px ${C.accent}22; }
-        .practix-dual-card-dark:hover { transform: translateY(-4px); box-shadow: 0 24px 64px -20px ${C.accent}44; }
+        .practix-dual-card-light:hover { transform: translateY(-4px); box-shadow: 0 24px 64px -20px color-mix(in sRGB, var(--color-accent) 13%, transparent); }
+        .practix-dual-card-dark:hover  { transform: translateY(-4px); box-shadow: 0 24px 64px -20px color-mix(in sRGB, var(--color-accent) 27%, transparent); }
         .practix-dual-cta-warm:hover { opacity: .9; }
         .practix-dual-cta-dark:hover { background: rgba(255,255,255,.17) !important; }
-        @media (max-width:768px){
-          .practix-dual-grid{grid-template-columns:1fr !important}
-        }
       `}</style>
     </section>
   );

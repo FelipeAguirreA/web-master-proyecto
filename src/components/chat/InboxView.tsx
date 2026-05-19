@@ -158,10 +158,7 @@ export default function InboxView({ role }: Props) {
 
   return (
     <div className="h-[calc(100dvh-80px)] md:h-[calc(100vh-96px)] bg-[#FAFAF8]">
-      <div
-        className="h-full grid md:grid-cols-[320px_1fr] grid-cols-1"
-        style={{ borderTop: "1px solid #E8E5DD" }}
-      >
+      <div className="h-full grid md:grid-cols-[320px_1fr] grid-cols-1 border-t border-[#E8E5DD]">
         {/* List */}
         <aside
           className={`bg-white border-r border-[#E8E5DD] min-h-0 ${
@@ -205,13 +202,7 @@ export default function InboxView({ role }: Props) {
 function EmptyState({ role }: { role: "COMPANY" | "STUDENT" }) {
   return (
     <div className="h-full flex items-center justify-center relative bg-[#FAFAF8]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-25"
-        style={{
-          background:
-            "radial-gradient(500px circle at 50% 30%, rgba(255,106,61,0.08), transparent 60%)",
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0 opacity-25 [background:radial-gradient(500px_circle_at_50%_30%,rgba(255,106,61,0.08),transparent_60%)]" />
       <div className="relative text-center max-w-sm px-6">
         <div className="inline-flex w-16 h-16 rounded-2xl bg-white border border-[#E8E5DD] items-center justify-center mb-5 shadow-sm">
           <MessageSquare className="w-7 h-7 text-[#FF6A3D]" strokeWidth={1.8} />
