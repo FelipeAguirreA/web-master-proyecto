@@ -508,6 +508,36 @@ push o pull_request → master
 └─ Dependabot agrupado (react, sentry, prisma, testing) — evita PR explosion
 ```
 
+### Disciplina de merge — Branch Protection en `master`
+
+El repositorio tiene un **Ruleset activo en la rama `master`** (GitHub Rulesets, sucesor moderno de Branch Protection) que fuerza un único flujo válido para llegar a producción. Los controles aplican incluso al owner del repo (sin bypass), por diseño.
+
+**Reglas activas en master:**
+
+| Regla                                                | Efecto                                                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Require a pull request before merging**            | Imposible `git push origin master` directo. Toda mutación pasa por PR.                     |
+| **Require status checks to pass**                    | Imposible mergear si Lint, Tests, Build, Audit o Vercel están en rojo.                     |
+| **Require branches to be up to date before merging** | Imposible mergear "passes en mi branch pero rompe en master" — fuerza pull antes de merge. |
+| **Require conversation resolution before merging**   | Imposible mergear con comments del review sin resolver.                                    |
+| **Block force pushes**                               | Imposible `git push --force` — la historia es inmutable.                                   |
+| **Restrict deletions**                               | Imposible borrar la rama `master` por la web o CLI.                                        |
+| **Require linear history**                           | Imposible meter merge commits — solo squash o rebase. Historia legible commit-a-commit.    |
+
+**Por qué importa esto en este proyecto:**
+
+- `vercel-build` corre `prisma migrate deploy` automáticamente con cada push a master → un push roto puede corromper la base de datos de producción. La protección bloquea ese escenario.
+- Garantiza que **cada entrada en el historial de master corresponde a un PR squasheado con CI verde y diff revisado**.
+- El propio autor del repo no puede saltearse el proceso por error humano (typo, rama equivocada, push apurado).
+
+**Verificable vía API**:
+
+```bash
+gh api repos/FelipeAguirreA/web-master-proyecto/rulesets \
+  --jq '.[] | {name, enforcement, target}'
+# {"name":"master","enforcement":"active","target":"branch"}
+```
+
 ### Testing strategy — pirámide de Mike Cohn
 
 ```mermaid
