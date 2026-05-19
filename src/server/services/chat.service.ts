@@ -180,15 +180,18 @@ export async function toggleConversationPin(
   userId: string,
 ) {
   const role = await getConversationRoleOrThrow(conversationId, userId);
-  const field = role === "COMPANY" ? "companyPinned" : "studentPinned";
 
   // Read-modify-write: la otra opción (raw SQL con NOT) ahorra una query pero
   // pierde el contrato Prisma. El uso es de baja frecuencia (click manual).
   const current = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { [field]: true } as Record<string, true>,
+    select: { companyPinned: true, studentPinned: true },
   });
-  const next = !(current as Record<string, boolean>)[field];
+  if (!current) throw chatError("NOT_FOUND", "Conversation not found");
+
+  const next =
+    role === "COMPANY" ? !current.companyPinned : !current.studentPinned;
+  const field = role === "COMPANY" ? "companyPinned" : "studentPinned";
 
   await prisma.conversation.update({
     where: { id: conversationId },
@@ -202,14 +205,19 @@ export async function toggleConversationMarkedUnread(
   userId: string,
 ) {
   const role = await getConversationRoleOrThrow(conversationId, userId);
-  const field =
-    role === "COMPANY" ? "companyMarkedUnread" : "studentMarkedUnread";
 
   const current = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { [field]: true } as Record<string, true>,
+    select: { companyMarkedUnread: true, studentMarkedUnread: true },
   });
-  const next = !(current as Record<string, boolean>)[field];
+  if (!current) throw chatError("NOT_FOUND", "Conversation not found");
+
+  const next =
+    role === "COMPANY"
+      ? !current.companyMarkedUnread
+      : !current.studentMarkedUnread;
+  const field =
+    role === "COMPANY" ? "companyMarkedUnread" : "studentMarkedUnread";
 
   await prisma.conversation.update({
     where: { id: conversationId },
