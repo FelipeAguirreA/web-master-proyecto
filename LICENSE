@@ -1,0 +1,99 @@
+PractiX — Proprietary License
+All Rights Reserved
+Copyright (c) 2026 Felipe Aguirre
+
+================================================================================
+
+This software and its associated source code, documentation, design assets,
+brand, trademarks, business strategy, and any derivative works (collectively
+"the Software") are the exclusive property of Felipe Aguirre.
+
+The Software is made publicly visible in this repository ONLY for the limited
+purpose of academic evaluation as the Final Project (Trabajo Final de Máster)
+of the author's Master's Degree in AI Development.
+
+
+================================================================================
+PERMITTED USE
+================================================================================
+
+The following uses are permitted without prior written authorization:
+
+  1. Reading, cloning, and reviewing the source code for academic evaluation
+     purposes of the author's Master's Final Project (TFM).
+
+  2. Using small, isolated code fragments as educational references in
+     teaching contexts, provided that explicit attribution is given to
+     the author and a link to this repository is included.
+
+  3. Studying the architectural decisions documented in the Architecture
+     Decision Records (docs/adr/) as case study material.
+
+
+================================================================================
+PROHIBITED USE
+================================================================================
+
+The following uses are STRICTLY PROHIBITED without prior written authorization
+from the copyright holder:
+
+  1. Commercial use of the Software, in whole or in part, including but not
+     limited to deploying it as a product, service, or platform for monetary
+     gain or business advantage.
+
+  2. Deployment of the Software, modified or unmodified, as a competing
+     product or service.
+
+  3. Redistribution of the source code, in whole or in part, under any
+     license (open source or proprietary), in any medium.
+
+  4. Public forks of this repository with the intention of continued
+     development, distribution, or competition.
+
+  5. Use of the name "PractiX", its logo, any associated trademarks, or
+     visual identity in any derivative work, product, service, or
+     publication.
+
+  6. Integration of the Software into other commercial products, including
+     software-as-a-service offerings, mobile applications, or APIs.
+
+  7. Training of machine learning models on the source code or
+     documentation contained in this repository.
+
+
+================================================================================
+COMMERCIAL LICENSING
+================================================================================
+
+For any use beyond the strictly academic scope defined in the PERMITTED USE
+section, including but not limited to commercial licensing, partnerships,
+white-label deployment, or other business arrangements, please contact the
+copyright holder.
+
+
+================================================================================
+DISCLAIMER OF WARRANTY
+================================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+
+================================================================================
+JURISDICTION
+================================================================================
+
+This License shall be governed by and construed in accordance with the laws
+of the Republic of Chile. Any disputes arising from this License shall be
+subject to the exclusive jurisdiction of the courts of Santiago, Chile.
+
+
+================================================================================
+
+Last updated: 2026-05-19
+PractiX v1.13.0
