@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.2] - 2026-05-19
+
+### Fixed (email rendering en clients sin soporte de CSS gradients)
+
+- `fix(mail): agregar fallback colors para gradients en email clients viejos` (PR #23)
+  - Bug reportado por user: el botón CTA "Restablecer contraseña" llegaba **invisible** (texto blanco sobre fondo sin color, pero clickeable) y el wordmark "PractiX" del header tampoco mostraba color en clients que no soportan `background-clip:text` ni `linear-gradient`.
+  - **Causa raíz**: los estilos usaban `background:linear-gradient(...)` sin `background-color` fallback. Outlook desktop, Yahoo Mail y varios webmails ignoran gradients CSS3 → quedaba el "blanco nativo" del background.
+  - **Fix coordinado en 4 lugares**:
+    1. **CTA button** (`renderEmailShell`): agregado `background-color:#FF6A3D` antes del `background:linear-gradient(...)` — Outlook lee el color sólido, clients modernos siguen viendo el gradient.
+    2. **Wordmark "PractiX"**: cambiado de gradient-text a `color:#FF6A3D` sólido. Garantiza visibilidad en todo client a costa del gradient en el texto.
+    3. **Badge `brand`** (`BADGE.brand.bg`): cambiado a color sólido `#FFE0CC` (promedio visual del gradient original).
+    4. **Card y score badge** de `sendRecommendationEmail`: mismo patrón `background-color` fallback + `background:linear-gradient`.
+  - Resultado: clients modernos (Apple Mail, iOS Mail, Gmail) siguen viendo el look premium con gradients. Clients viejos (Outlook, Yahoo, varios webmails) ahora renderean los colores sólidos en lugar de fondo blanco.
+  - Tests: 16/16 `mail.test.ts` passing.
+
 ## [1.13.1] - 2026-05-19
 
 ### Changed

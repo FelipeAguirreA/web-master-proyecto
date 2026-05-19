@@ -87,7 +87,7 @@ function renderEmailShell(opts: EmailShellOptions): string {
     ? `
         <tr>
           <td class="email-body-padding" style="padding:0 32px 32px" align="center">
-            <a class="email-cta-link" href="${opts.cta.url}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#FF6A3D 0%,#FF9B6A 100%);color:#FFFFFF;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 6px 16px rgba(255,106,61,0.33)">${opts.cta.text}</a>
+            <a class="email-cta-link" href="${opts.cta.url}" style="display:inline-block;padding:14px 32px;background-color:#FF6A3D;background:linear-gradient(135deg,#FF6A3D 0%,#FF9B6A 100%);color:#FFFFFF;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px;box-shadow:0 6px 16px rgba(255,106,61,0.33)">${opts.cta.text}</a>
           </td>
         </tr>`
     : "";
@@ -132,7 +132,7 @@ function renderEmailShell(opts: EmailShellOptions): string {
         </tr>
         <tr>
           <td class="email-header-padding" style="padding:32px 32px 24px;border-bottom:1px solid #00000010">
-            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:24px;font-weight:800;background:linear-gradient(135deg,#FF6A3D 0%,#FF9B6A 100%);-webkit-background-clip:text;background-clip:text;color:transparent">PractiX</span>
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:24px;font-weight:800;color:#FF6A3D">PractiX</span>
             <span style="margin-left:8px;font-size:12px;color:#6B7280;letter-spacing:0.5px">Portal de prácticas con IA</span>
           </td>
         </tr>
@@ -169,7 +169,10 @@ const BADGE = {
   warning: { bg: "#FEF3C7", color: "#92400E" },
   danger: { bg: "#FEF2F2", color: "#B91C1C" },
   brand: {
-    bg: "linear-gradient(135deg,#FFE8DD 0%,#FFD6B8 100%)",
+    // Color sólido (no gradient) para badges — los gradients en backgrounds
+    // de spans inline no son confiables en muchos email clients (Outlook,
+    // varios webmails). Usar el promedio visual del gradient original.
+    bg: "#FFE0CC",
     color: "#A8430D",
   },
 } as const;
@@ -393,9 +396,9 @@ export function sendRecommendationEmail(
       <p style="margin:0 0 20px;font-size:15px;color:#0A0909;line-height:1.6">
         Nuestra IA encontró una práctica que coincide con tu perfil:
       </p>
-      <div style="margin:16px 0;padding:20px 22px;background:linear-gradient(135deg,#FFF5F0 0%,#FFEDE0 100%);border-radius:14px;border:1px solid #FF6A3D30">
+      <div style="margin:16px 0;padding:20px 22px;background-color:#FFF1E6;background:linear-gradient(135deg,#FFF5F0 0%,#FFEDE0 100%);border-radius:14px;border:1px solid #FFD6B8">
         <p style="margin:0 0 14px;font-size:17px;font-weight:800;color:#0A0909">${escapeHtml(internshipTitle)}</p>
-        <div style="display:inline-block;padding:8px 18px;background:linear-gradient(135deg,#FF6A3D 0%,#FF9B6A 100%);color:#FFFFFF;border-radius:99px;font-weight:800;font-size:18px;box-shadow:0 4px 12px rgba(255,106,61,0.33)">${matchScore}% de afinidad</div>
+        <div style="display:inline-block;padding:8px 18px;background-color:#FF6A3D;background:linear-gradient(135deg,#FF6A3D 0%,#FF9B6A 100%);color:#FFFFFF;border-radius:99px;font-weight:800;font-size:18px;box-shadow:0 4px 12px rgba(255,106,61,0.33)">${matchScore}% de afinidad</div>
       </div>
       <p style="margin:16px 0 0;font-size:14px;color:#6B7280;line-height:1.6">
         Postula rápido — las prácticas con alto match cierran en pocos días.
