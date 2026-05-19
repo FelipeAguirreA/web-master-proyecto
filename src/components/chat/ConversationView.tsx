@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Star, BellOff, Calendar, ArrowRight, ArrowLeft } from "lucide-react";
 import { fetchWithRefresh } from "@/lib/client/fetch-with-refresh";
 import { supabaseRealtime } from "@/lib/client/supabase";
+import { authenticateRealtime } from "@/lib/client/supabase-auth";
 import InboxAvatar from "./InboxAvatar";
 import MessageBubble from "./MessageBubble";
 import Composer from "./Composer";
@@ -218,20 +219,36 @@ export default function ConversationView({
 
   useEffect(() => {
     if (!conversationId) return;
-    const channel = supabaseRealtime
-      .channel(`conversation:${conversationId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        async (payload) => {
-          const newMsg = payload.new as { conversationId: string };
-          if (newMsg.conversationId !== conversationId) return;
-          await refetchMessages();
-        },
-      )
-      .subscribe();
+    let cancelled = false;
+    let channelRef: ReturnType<typeof supabaseRealtime.channel> | null = null;
+
+    // Auth JWT primero — RLS policy sobre `messages` exige que el JWT
+    // contenga el sub del user, sino el SELECT (subyacente al INSERT push)
+    // es rechazado. Sin auth no llegan mensajes en tiempo real.
+    (async () => {
+      const ok = await authenticateRealtime();
+      if (!ok || cancelled) return;
+
+      channelRef = supabaseRealtime
+        .channel(`conversation:${conversationId}:${Date.now()}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "messages" },
+          async (payload) => {
+            const newMsg = payload.new as { conversationId: string };
+            if (newMsg.conversationId !== conversationId) return;
+            await refetchMessages();
+          },
+        )
+        .subscribe();
+    })();
+
     return () => {
-      supabaseRealtime.removeChannel(channel);
+      cancelled = true;
+      if (channelRef) {
+        channelRef.unsubscribe();
+        supabaseRealtime.removeChannel(channelRef);
+      }
     };
   }, [conversationId, refetchMessages]);
 
@@ -307,7 +324,7 @@ export default function ConversationView({
   return (
     <section className="flex flex-col h-full bg-[#FAFAF8] min-h-0">
       {/* Header */}
-      <header className="flex items-center gap-3 px-[22px] py-3.5 bg-white border-b border-[#E8E5DD] flex-shrink-0">
+      <header className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-[22px] py-2.5 sm:py-3.5 bg-white border-b border-[#E8E5DD] flex-shrink-0">
         {showBack && (
           <button
             onClick={onBack}
@@ -322,19 +339,20 @@ export default function ConversationView({
             name={otherPerson.name}
             image={otherPerson.image}
             isCompany={otherIsCompany}
-            size={42}
+            size={38}
           />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-[14.5px] font-extrabold text-[#0A0909] truncate tracking-tight">
-              {headerName}
-            </h2>
-          </div>
-          <div className="flex gap-2 items-center mt-0.5">
+          <h2 className="text-[14.5px] font-extrabold text-[#0A0909] truncate tracking-tight">
+            {headerName}
+          </h2>
+          <div className="flex gap-1.5 items-center mt-0.5 flex-wrap">
             <span
-              className="text-[11px] font-bold px-2 py-0.5 rounded tracking-wide"
-              style={{ color: stage.color, background: stage.bg }}
+              className="text-[10.5px] font-bold px-1.5 py-0.5 rounded tracking-wide"
+              style={{
+                color: stage.color,
+                background: stage.bg,
+              }} /* dynamic: runtime pipelineStatus hex from stageMeta */
             >
               {stage.label}
             </span>
@@ -343,11 +361,12 @@ export default function ConversationView({
             </span>
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1.5 flex-shrink-0">
           <button
             onClick={onTogglePin}
+            aria-label={isPinned ? "Desanclar" : "Anclar"}
             title={isPinned ? "Desanclar" : "Anclar"}
-            className={`w-[34px] h-[34px] rounded-lg border flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 sm:w-[34px] sm:h-[34px] rounded-lg border flex items-center justify-center transition-colors ${
               isPinned
                 ? "bg-[#FFF0E4] border-[#FFD4B5]"
                 : "bg-transparent border-[#E8E5DD] hover:bg-[#F5F4F1]"
@@ -361,8 +380,11 @@ export default function ConversationView({
           </button>
           <button
             onClick={onToggleUnread}
+            aria-label={
+              markedUnread ? "Marcar como leído" : "Marcar como no leído"
+            }
             title={markedUnread ? "Marcar como leído" : "Marcar como no leído"}
-            className={`w-[34px] h-[34px] rounded-lg border flex items-center justify-center transition-colors ${
+            className={`w-9 h-9 sm:w-[34px] sm:h-[34px] rounded-lg border flex items-center justify-center transition-colors ${
               markedUnread
                 ? "bg-[#FFF0E4] border-[#FFD4B5]"
                 : "bg-transparent border-[#E8E5DD] hover:bg-[#F5F4F1]"
@@ -376,18 +398,23 @@ export default function ConversationView({
           {isCompany ? (
             <Link
               href={`/dashboard/empresa/calendar`}
-              className="inline-flex items-center gap-1 px-3 py-[7px] bg-white border border-[#E8E5DD] hover:bg-[#F5F4F1] text-[#0A0909] rounded-lg text-[11.5px] font-bold transition-colors"
+              aria-label="Calendario"
+              className="inline-flex items-center gap-1 w-9 h-9 sm:w-auto sm:h-auto justify-center sm:px-3 sm:py-[7px] bg-white border border-[#E8E5DD] hover:bg-[#F5F4F1] text-[#0A0909] rounded-lg text-[11.5px] font-bold transition-colors"
             >
               <Calendar className="w-3.5 h-3.5 text-[#FF6A3D]" />
-              Calendario
+              <span className="hidden sm:inline">Calendario</span>
             </Link>
           ) : (
             <Link
               href={`/practicas/${meta.application.internship.id}`}
-              className="inline-flex items-center gap-1 px-3 py-[7px] bg-white border border-[#E8E5DD] hover:bg-[#F5F4F1] text-[#0A0909] rounded-lg text-[11.5px] font-bold transition-colors"
+              aria-label="Ver práctica"
+              className="inline-flex items-center gap-1 w-9 h-9 sm:w-auto sm:h-auto justify-center sm:px-3 sm:py-[7px] bg-white border border-[#E8E5DD] hover:bg-[#F5F4F1] text-[#0A0909] rounded-lg text-[11.5px] font-bold transition-colors"
             >
-              Ver práctica
-              <ArrowRight className="w-3 h-3" strokeWidth={2.2} />
+              <span className="hidden sm:inline">Ver práctica</span>
+              <ArrowRight
+                className="w-3.5 h-3.5 sm:w-3 sm:h-3"
+                strokeWidth={2.2}
+              />
             </Link>
           )}
         </div>
@@ -398,13 +425,7 @@ export default function ConversationView({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-[22px] py-6 flex flex-col gap-3.5 relative"
       >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            background:
-              "radial-gradient(600px circle at 80% 0%, rgba(255,106,61,0.04), transparent 50%)",
-          }}
-        />
+        <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(600px_circle_at_80%_0%,rgba(255,106,61,0.04),transparent_50%)]" />
         {messages.length === 0 ? (
           <div className="relative flex-1 flex items-center justify-center text-center px-6">
             <p className="text-[13px] text-[#6D6A63] leading-relaxed max-w-xs">
