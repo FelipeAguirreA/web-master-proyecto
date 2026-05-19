@@ -5,6 +5,71 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-05-19
+
+### Added (soft delete real para Internship — `deletedAt` ortogonal a `isActive`)
+
+- `feat(internships): real soft delete via deletedAt timestamp + "Eliminadas" tab`
+  - Migration `20260518194721_add_internship_deleted_at` agrega `deletedAt TIMESTAMP(3)` nullable + índice `internships_deletedAt_idx` (no destructiva, aplicada a local — pending prod en próxima release).
+  - Semántica nueva: `deletedAt` (eliminada por la empresa, no se lista) es **ortogonal** a `isActive: false` (finalizada por la empresa, sigue visible en histórico como "Finalizada"). Antes ambos casos colapsaban en `isActive: false`, perdiendo trazabilidad.
+  - **`deleteInternship`** ahora setea `deletedAt = now()` en lugar de `isActive = false`. Cascadas FK intactas — purge físico futuro queda como cron opcional (`deleteMany` sobre `deletedAt < now() - 90d`).
+  - **`listInternships`** y **`getInternshipById`** públicos filtran `deletedAt: null`. El **owner** (empresa dueña) ve siempre sus prácticas — incluso eliminadas y pendientes — gracias al fork `ownedByMe` en `getInternshipById(id, ownerUserId?)`. Esto habilita la tab "Eliminadas" como archivo histórico: la empresa entra al detalle/ATS de una práctica borrada para revisar postulantes pasados.
+  - **`GET /api/company/internships`** acepta `?includeDeleted=1` para incluir soft-deleted en el dashboard empresa (alimenta tab "Eliminadas").
+  - Acciones destructivas (`update`, `apply`, `score`) filtran `deletedAt: null` en sus propios services para evitar mutar archivos.
+
+### Added (edit gateado por 0 postulantes + regen embedding inteligente)
+
+- `feat(internships): edit gated by 0 applications + smart embedding regen`
+  - **`updateInternship`** valida `applications.count === 0` antes de aplicar cualquier edit de contenido. Si hay postulantes → lanza `APPLICATIONS_EXIST_MESSAGE` que la route mapea a `409 APPLICATIONS_EXIST`. **Razón**: los postulantes ya fueron scoreados contra el embedding actual y leyeron descripción/skills actuales — cambiarlas ahora sería injusto.
+  - **Toggle `isActive`** (finalizar / reactivar) NO entra en el gate — es acción de gestión, no edit de contenido.
+  - **Regen embedding inteligente**: solo regenera el vector si cambiaron `title`, `description` o `skills`. Diff real contra `existing` (no `!== undefined`) porque el form manda todos los campos en cada PUT. Para `skills` usa `JSON.stringify` (reorder también cuenta — afecta el texto del embedding que es `skills.join(" ")`).
+
+### Added (Realtime híbrido — Supabase Realtime + polling con Page Visibility API)
+
+- `feat(realtime): hybrid push + polling for free tier–friendly UX`
+  - **Push instantáneo** via Supabase Realtime para notificaciones globales (campana del topbar) y mensajes dentro de una conversación abierta. Tablas `messages` + `notifications` agregadas a la publication `supabase_realtime`.
+  - **Badge de unread del topbar** por polling cada 30s al nuevo endpoint barato `GET /api/chat/unread-count` (`SELECT COUNT(*)` contra `messages` — orden de magnitud más liviano que traer la lista completa de conversaciones con joins). Pausa con **Page Visibility API**: cuando la pestaña no está visible, suspende el intervalo y reanuda inmediatamente al volver el foco.
+  - **Resultado**: ~89% menos tráfico HTTP vs polling tradicional cada 5s sin perder UX. Compatible con free tier de Supabase Realtime (límite de mensajes/mes).
+  - **StrictMode safe**: los canales Realtime usan sufijo único por mount + `unsubscribe()` en el cleanup del `useEffect` — sin esto, los dos mounts de StrictMode crean dos suscripciones al mismo canal "estable" y el SDK explota.
+
+### Added (JWT signing endpoint + autenticación de Realtime con RLS)
+
+- `feat(auth): /api/auth/supabase-token signs HS256 JWT for Realtime + RLS`
+  - **Nuevo endpoint** `POST /api/auth/supabase-token` (auth: requireAuth) firma un JWT HS256 con el `SUPABASE_JWT_SECRET` (Legacy JWT Secret). Claims: `sub: <userId>` (CUID — leído por RLS via `auth.jwt() ->> 'sub'`, NO `auth.uid()` que devuelve UUID), `role: "authenticated"`, `aud: "authenticated"`, `exp: now + 4h`.
+  - **Helper cliente** `authenticateRealtime()` en `src/lib/client/supabase-auth.ts`: fetchea el JWT y lo aplica via `supabaseRealtime.realtime.setAuth(token)`. Llamar SIEMPRE antes de suscribir un canal sobre tablas con RLS — sin esto, el JWT del WebSocket es el anon implícito, las policies rechazan el SELECT y los pushes nunca llegan.
+  - **Decisión arquitectural**: el plan inicial era RS256 + JWKS + Third-Party Auth Provider, pero el free tier no expone Generic OIDC en el dashboard y los 5 providers pre-built tienen URLs hardcodeadas. El legacy JWT secret sigue funcionando como verificador y es la ruta correcta hasta Pro tier. Plan de migración a RS256 documentado en código.
+  - **Nueva dependencia**: `jose@^6.2.3` (firma HS256, lightweight).
+
+### Added (Row Level Security en las 14 tablas de schema `public`)
+
+- `feat(security): RLS on all 14 public tables + policies for messages/notifications/conversations`
+  - Migraciones Supabase remotas aplicadas vía MCP (2 ops):
+    1. `ENABLE ROW LEVEL SECURITY` en las 14 tablas (`users`, `student_profiles`, `company_profiles`, `internships`, `applications`, `saved_internships`, `conversations`, `messages`, `interviews`, `notifications`, `password_reset_tokens`, `refresh_tokens`, `audit_logs`, `ats_config`).
+    2. SELECT policies sobre `messages`, `notifications`, `conversations` usando `auth.jwt() ->> 'sub'` para que Supabase Realtime entregue pushes solo al participante correcto.
+  - **Modelo**: 11 tablas backend-only **sin policies** (Prisma usa service role → bypasea RLS automáticamente, la anon key del browser queda 100% bloqueada — defense in depth real). 3 tablas con SELECT policies (las que Realtime necesita validar al pushear).
+  - **Anon key del cliente browser** ahora es 100% segura: si alguien intenta `supabase.from("users").select("*")` desde el browser, RLS rechaza por default-deny.
+  - ADR 007 documenta la decisión completa (alternativas evaluadas, trade-offs, plan de migración a RS256).
+
+### Added (env var nueva)
+
+- `SUPABASE_JWT_SECRET` agregada a `src/lib/env.ts` (validada con Zod, mínimo 32 chars), `.env.example` (con comentario explicando dónde encontrarla en el dashboard de Supabase) y Vercel (Preview + Production). Sin esta var, el endpoint `/api/auth/supabase-token` falla al firmar y el chat/notif Realtime degrada a fetch-only.
+
+### Fixed (bugs varios encontrados durante la sesión)
+
+- `fix(empresa): drawer hamburguesa empresa sin items correctos` — el drawer mobile usaba el `STUDENT_DRAWER` por defecto. Ahora resuelve `COMPANY_DRAWER` vs `STUDENT_DRAWER` por `session.user.role`.
+- `fix(calendar): filter por mes ignoraba fuso horario` — la query usaba `new Date(year, month)` local en lugar de UTC, perdiendo entrevistas del primer día del mes en zonas horarias negativas.
+- `fix(ats): duplicate form ids in ATS config modal` — múltiples `<form id="ats-config">` montados al mismo tiempo. IDs únicos por instancia.
+- `chore(chat): remove "Agendar entrevista" template` — el template prometía un flujo que no existía (no creaba la entrevista realmente, solo mandaba texto plano). UX rota — removido hasta tener flujo end-to-end.
+
+### Migrations
+
+1. **Local** (pendiente prod): `20260518194721_add_internship_deleted_at` — `ALTER TABLE internships ADD COLUMN deletedAt` + índice (no destructiva).
+2. **Remota aplicada via MCP** (Supabase prod): RLS enable en 14 tablas + 3 SELECT policies.
+
+### Note
+
+- Trabajo realizado en branch `feat/redesign-claude-design` durante sesión 2026-05-18, commiteado en lote temático 2026-05-19.
+
 ## [1.12.0] - 2026-05-15
 
 ### Added (sistema de notificaciones in-app completo)

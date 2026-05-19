@@ -41,3 +41,4 @@ Cada ADR tiene:
 | 004 | [Testing strategy — pirámide](./004-testing-strategy-piramide.md)                                   | Aceptado e implementado (Fase 2 — bump 1.5.0)            |
 | 005 | [Observabilidad con Sentry + logger estructurado](./005-observabilidad-sentry-logger.md)            | Aceptado e implementado (Fase 6 — bumps 1.10.21–1.10.23) |
 | 006 | [Matching con embeddings HuggingFace + cosine similarity](./006-matching-embeddings-huggingface.md) | Aceptado e implementado                                  |
+| 007 | [RLS en todas las tablas `public` + Realtime auth con JWT HS256](./007-rls-realtime-jwt-hs256.md)   | Aceptado e implementado (bump 1.13.0)                    |

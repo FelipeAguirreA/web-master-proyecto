@@ -2,13 +2,15 @@
 
 Capa de negocio para el módulo de chat empresa↔estudiante. Vive en `src/server/services/chat.service.ts`. No importa nada de `next` (Clean Architecture).
 
-Modelos involucrados (Prisma): `Conversation`, `Message`, `Application`, `User`, `CompanyProfile`, `Interview`.
+Modelos involucrados (Prisma): `Conversation`, `Message`, `Application`, `User`, `CompanyProfile`, `Interview`, `Notification`.
 
 ## Reglas transversales
 
 - **Habilitación**: el chat se habilita SOLO cuando la `Application` está en `pipelineStatus: "INTERVIEW"`. Antes de eso, no hay conversación.
 - **Autorización por rol** (responsabilidad del caller, NO del service): cada función asume que la API route ya validó el rol con `requireAuth("COMPANY")` o `requireAuth("STUDENT")` según corresponda. El service solo valida pertenencia a la conversación (`userId === companyId | studentId`), no rol. Ver `docs/specs/auth-guard.spec.md` para el contrato de autorización (defense in depth: middleware + auth-guard + API route).
 - **Identidad de la empresa**: `companyProfile` manda sobre `user` para `name` (`companyName`) e `image` (`logo`). Las empresas autenticadas con credentials no tienen `user.image` ni necesariamente `user.name`.
+- **RLS en Postgres** (desde 1.13.0): las tablas `conversations`, `messages` y `notifications` tienen Row Level Security activado con SELECT policies basadas en `auth.jwt() ->> 'sub'`. El backend (Prisma con service role) bypasea RLS — los services siguen operando sin cambios. Las policies sólo limitan al cliente browser que conecta via Realtime: solo recibe pushes de filas donde es participante (companyId/studentId/userId). Ver `docs/adr/007-rls-realtime-jwt.md`.
+- **Realtime auth** (desde 1.13.0): el cliente browser ANTES de `supabaseRealtime.channel(...).subscribe()` debe llamar `authenticateRealtime()` (`src/lib/client/supabase-auth.ts`). El helper fetchea un JWT HS256 firmado por `POST /api/auth/supabase-token` (claims: `sub`, `role: "authenticated"`, `aud: "authenticated"`, `exp: 4h`) y lo aplica via `realtime.setAuth(token)`. Sin esto, el JWT del WebSocket es el anon implícito y RLS bloquea todos los pushes.
 
 ---
 
@@ -168,3 +170,44 @@ Modelos involucrados (Prisma): `Conversation`, `Message`, `Application`, `User`,
 **Reglas de negocio**:
 
 - `updateMany` afecta solo mensajes con `isRead: false` y `senderId !== userId` (no marca como leídos los propios).
+- **Sincronía con campana** (desde 1.12.0): además del `updateMany` sobre `messages`, elimina TODAS las `Notification` con `type: "NEW_MESSAGE"` del `userId` que estén sin leer. Esto evita que la campana muestre "Tienes mensajes sin leer" si el user ya leyó todos los mensajes desde el inbox. Dedupe global UX tipo Slack/WhatsApp.
+
+---
+
+## getUnreadCount(userId, role) — `GET /api/chat/unread-count`
+
+**Propósito**: Devolver `{ count: number }` con el total de mensajes no leídos para el `userId`. Endpoint optimizado para el badge del topbar.
+
+**Parámetros**:
+
+- `userId: string`
+- `role: "COMPANY" | "STUDENT"` — define por qué columna de `conversation` participa
+
+**Retorno**: `{ count: number }`
+
+**Reglas de negocio**:
+
+- Single `prisma.message.count` con filtros:
+  - `isRead: false`
+  - `senderId: { not: userId }` (no se cuenta lo que el user mismo escribió)
+  - `conversation.companyId == userId` o `conversation.studentId == userId` según `role`
+- Orden de magnitud más barato que reusar `getConversationsByUser` (que trae lista completa con joins de profile/internship/lastMessage). El badge lo necesita cada 30s — la diferencia es real bajo carga.
+- Usado por el hook `useUnreadCount` (`src/hooks/useUnreadCount.ts`) con polling + **Page Visibility API**: cuando la pestaña no está visible, el intervalo se suspende; al volver el foco, hace un fetch inmediato y reanuda.
+
+---
+
+## Realtime auth + push (desde 1.13.0)
+
+El cliente browser usa **Supabase Realtime** para recibir pushes instantáneos de nuevos mensajes dentro de una conversación abierta (`ConversationView.tsx`) y de notificaciones globales (`useNotifications.ts`). El flujo de auth es:
+
+1. **Mount del effect** → `authenticateRealtime()` (`src/lib/client/supabase-auth.ts`).
+2. **Helper fetchea** `POST /api/auth/supabase-token` (auth: requireAuth de NextAuth) → recibe JWT HS256 con claims `sub: userId` (CUID), `role: "authenticated"`, `aud: "authenticated"`, `exp: 4h`.
+3. **Aplica** `supabaseRealtime.realtime.setAuth(token)`.
+4. **Suscribe** al canal: `supabaseRealtime.channel(stableName + uniqueSuffix).on("postgres_changes", { event, schema, table, filter }, handler).subscribe()`.
+5. **Cleanup del useEffect**: `supabaseRealtime.removeChannel(channel)` — sin esto, en StrictMode los dos mounts del effect crean dos suscripciones y el SDK explota con error de canal duplicado.
+
+**Gotchas conocidos**:
+
+- Si `SUPABASE_JWT_SECRET` falta en env, el endpoint responde 500 y el push degrada a fetch-only (la conversación se hidrata al mount pero no recibe nuevos mensajes hasta refresh manual).
+- Las policies leen `auth.jwt() ->> 'sub'` — NO `auth.uid()` (que devuelve UUID y nuestros userIds son CUIDs).
+- El token vive 4h; si el componente queda montado >4h, el WebSocket se desconecta al expirar — el SDK intenta reconnect y vuelve a hacer setAuth si el helper de re-auth está cableado.
