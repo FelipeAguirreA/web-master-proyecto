@@ -1,12 +1,12 @@
 # Estado del Proyecto — PractiX
 
-> Última actualización: 2026-05-19. Producción estable, refactor-plan core cerrado, extensiones nuevas en curso.
+> Última actualización: 2026-05-20. Producción estable, refactor-plan core cerrado, rediseño de emails transaccionales cerrado.
 
 ## Estado actual
 
 **Producto en producción**, deployed en Vercel. Refactor + hardening cerrado (Fases 0–6 core del `refactor-plan.md`). Solo quedan opcionales: F6.4 (medir P95 con tráfico real) y F6.5 (UX optimistic + skeletons).
 
-Versión actual: **`1.13.0`** (ver `CHANGELOG.md` para histórico). Trabajo de soft delete + edit gate + Realtime híbrido + RLS + JWT signing realizado en branch `feat/redesign-claude-design`, pendiente de commit/push al cierre de la sesión 2026-05-18.
+Versión actual: **`1.13.3`** (ver `CHANGELOG.md` para histórico). Soft delete + edit gate + Realtime híbrido + RLS + JWT signing (1.13.0) y rediseño completo de emails transaccionales (1.13.1–1.13.3) commiteados y mergeados a `master`.
 
 ### Rediseño visual "Premium Modern SaaS — Warm Tech" ✅ Completo
 
@@ -55,15 +55,16 @@ Ver `context/refactor-plan.md` para el detalle exhaustivo. Resumen del estado al
 
 ## Extensiones nuevas (post-refactor)
 
-| Versión | Extensión                             | Resultado                                                                                                                                                             |
-| ------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.11.x  | Rediseño Claude Design                | 12 pantallas pixel-perfect (landing, dashboards, ATS, chat, calendar, admin, perfil empresa, legales)                                                                 |
-| 1.12.0  | Match híbrido + Notificaciones in-app | Score = semántico + boost aditivo por skill overlap (nunca penaliza). Campana del topbar con badge numérico, dedupe global por user, email automático en kanban final |
-| 1.12.0  | Wishlist "Mis guardadas"              | `SavedInternship` toggle idempotente, dashboard + página dedicada, badge "Postulación enviada"                                                                        |
-| 1.13.0  | Soft delete real para Internship      | `deletedAt` ortogonal a `isActive`. Tab "Eliminadas" en dashboard empresa. Owner ve siempre sus propias prácticas (archivo histórico de postulantes + embedding)      |
-| 1.13.0  | Edit de internship gateado            | Bloqueado si hay >=1 postulante (`APPLICATIONS_EXIST` → 409). Regen embedding inteligente: solo si cambió title/description/skills (diff real contra existing).       |
-| 1.13.0  | Realtime híbrido                      | Push instantáneo (Supabase Realtime) para mensajes + notif + polling 30s para badge unread con Page Visibility API. Reduce ~89% tráfico HTTP vs polling tradicional.  |
-| 1.13.0  | RLS en 14 tablas + JWT HS256 signing  | RLS enable en todo schema public. 11 tablas backend-only sin policies (Prisma service role bypasea), 3 con SELECT policies usando `auth.jwt() ->> 'sub'`. ADR 007.    |
+| Versión       | Extensión                             | Resultado                                                                                                                                                                                                                                                                                              |
+| ------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.11.x        | Rediseño Claude Design                | 12 pantallas pixel-perfect (landing, dashboards, ATS, chat, calendar, admin, perfil empresa, legales)                                                                                                                                                                                                  |
+| 1.12.0        | Match híbrido + Notificaciones in-app | Score = semántico + boost aditivo por skill overlap (nunca penaliza). Campana del topbar con badge numérico, dedupe global por user, email automático en kanban final                                                                                                                                  |
+| 1.12.0        | Wishlist "Mis guardadas"              | `SavedInternship` toggle idempotente, dashboard + página dedicada, badge "Postulación enviada"                                                                                                                                                                                                         |
+| 1.13.0        | Soft delete real para Internship      | `deletedAt` ortogonal a `isActive`. Tab "Eliminadas" en dashboard empresa. Owner ve siempre sus propias prácticas (archivo histórico de postulantes + embedding)                                                                                                                                       |
+| 1.13.0        | Edit de internship gateado            | Bloqueado si hay >=1 postulante (`APPLICATIONS_EXIST` → 409). Regen embedding inteligente: solo si cambió title/description/skills (diff real contra existing).                                                                                                                                        |
+| 1.13.0        | Realtime híbrido                      | Push instantáneo (Supabase Realtime) para mensajes + notif + polling 30s para badge unread con Page Visibility API. Reduce ~89% tráfico HTTP vs polling tradicional.                                                                                                                                   |
+| 1.13.0        | RLS en 14 tablas + JWT HS256 signing  | RLS enable en todo schema public. 11 tablas backend-only sin policies (Prisma service role bypasea), 3 con SELECT policies usando `auth.jwt() ->> 'sub'`. ADR 007.                                                                                                                                     |
+| 1.13.1–1.13.3 | Rediseño emails transaccionales       | Helper `renderEmailShell()` centraliza los 8 templates (paleta warm, preheader, footer Ley 21.719). Fallback `background-color` para Outlook/Yahoo que ignoran gradients CSS3. Fix serverless: `await notifyLoginBurst()` — el fire-and-forget congelaba la Lambda antes de enviar el email de alerta. |
 
 ## Bugs resueltos recientes
 
@@ -73,6 +74,8 @@ Ver `context/refactor-plan.md` para el detalle exhaustivo. Resumen del estado al
 - **Realtime canales explotan en StrictMode** (1.13.0): los canales con nombre estable en dev colapsan porque StrictMode monta dos veces y el SDK crea dos suscripciones al mismo canal. Fix: sufijo único por mount + `unsubscribe()` en cleanup del `useEffect`.
 - **Soft delete viejo perdía trazabilidad** (1.13.0): `isActive: false` se usaba para 2 estados distintos (finalizada vs eliminada). Empresa no podía consultar postulantes pasados de prácticas eliminadas. Fix: `deletedAt` ortogonal a `isActive`.
 - **Drawer mobile empresa con items de estudiante** (1.13.0): el drawer hamburguesa usaba `STUDENT_DRAWER` por defecto independiente del rol. Fix: resolución por `session.user.role`.
+- **Email de alerta de seguridad nunca llegaba en serverless** (1.13.3, PR #24): el rate limit del login disparaba el evento en Sentry pero el email nunca salía. Causa raíz: patrón fire-and-forget (`notifyLoginBurst(...).catch()` sin `await`) — en Vercel Lambda, al retornar `null` desde `authorize()`, la función se congela ANTES de que la promise async complete (Prisma + Upstash + POST a Brevo ≈ 300-500ms). Fix: `try/await/catch`. Bug que ningún test unitario detecta — solo aparece en el lifecycle real de Lambda.
+- **Botón CTA de email invisible en Outlook** (1.13.2, PR #23): el CTA y el wordmark usaban `linear-gradient` sin `background-color` fallback; Outlook/Yahoo ignoran gradients CSS3 → texto blanco sobre fondo blanco. Fix: color sólido `#FF6A3D` antes del gradient en 4 lugares (CTA, wordmark, badge brand, card de recomendación).
 
 ## Módulos completados
 
@@ -114,6 +117,23 @@ Ver `context/refactor-plan.md` para el detalle exhaustivo. Resumen del estado al
 - HuggingFace `BAAI/bge-small-en-v1.5` (embeddings 384 dims, feature-extraction nativa). Migración desde `sentence-transformers/all-MiniLM-L6-v2` documentada en ADR 006.
 - Brevo para emails transaccionales
 - Sentry con releases ligados a `VERCEL_GIT_COMMIT_SHA`, sourcemaps en build, alertas configuradas, runbooks en `docs/runbooks/`
+
+## Infraestructura de producción — dominio y email (2026-05-20)
+
+El producto vive en **`practix.cl`** (dominio propio, alineado con el foco PyME chilena). DNS gestionado en Hostinger, orquestando tres servicios sin conflictos:
+
+| Servicio     | Función                                                    | Registros DNS                                                                                                                        |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Vercel**   | Hosting de la web + auth                                   | `A @ → 216.198.79.1`, `CNAME www → *.vercel-dns-017.com`. `practix.cl` canónico (Production), `www.practix.cl` → 308 → `practix.cl`. |
+| **Brevo**    | Envío de emails transaccionales desde `noreply@practix.cl` | 2× `CNAME *._domainkey` (DKIM), `TXT @` (brevo-code), `TXT _dmarc` (DMARC `p=none`).                                                 |
+| **ImprovMX** | Recepción: catch-all `*@practix.cl` → Gmail                | 2× `MX @` (`mx1`/`mx2.improvmx.com`).                                                                                                |
+
+- **SPF combinado** (regla de oro: un solo registro SPF por dominio): `v=spf1 include:spf.brevo.com include:spf.improvmx.com ~all` cubre envío (Brevo) + forwarding (ImprovMX) en una sola línea. Múltiples `TXT` en `@` se permiten; un solo `v=spf1`.
+- **`NEXTAUTH_URL=https://practix.cl`** + Google OAuth con redirect `https://practix.cl/api/auth/callback/google` y origin `https://practix.cl`. Todos los links de los emails se construyen desde `NEXTAUTH_URL` (cero URLs hardcodeadas).
+- **`BREVO_SENDER_EMAIL=noreply@practix.cl`** — reemplaza el fallback hardcodeado `noreply@practix.com` de `src/server/lib/mail.ts`.
+- **Decisiones**: Zoho Mail free se descartó (no disponible en Chile por restricción de región) → se eligió ImprovMX forwarding gratis. ImprovMX free solo recibe (SMTP es de pago).
+- **Gotcha**: tras migrar de dominio, el login con Google daba `401 — malformed request` por cookies cross-dominio (`vercel.app` vs `practix.cl`); la config OAuth estaba bien. Se resuelve con navegador limpio / ventana incógnita. **Para grabar el demo: usar incógnito.**
+- **Pendiente opcional**: responder DESDE `soporte@practix.cl` requiere configurar "Enviar como" en Gmail.
 
 ## Modelos Prisma actuales
 
