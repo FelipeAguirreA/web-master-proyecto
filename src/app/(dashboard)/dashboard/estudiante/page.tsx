@@ -317,6 +317,7 @@ export default function StudentDashboard() {
         }
         daysLeft={null}
         cvPct={cvPct}
+        hasCv={hasCv}
         applicationsCount={applicationsCount}
         interviewsCount={interviewsCount}
       />

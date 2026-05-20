@@ -69,7 +69,7 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
       {editing ? (
         <>
           {/* Tag input container */}
-          <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border border-border rounded-xl bg-bg mb-3 min-h-[50px] items-center">
+          <div className="flex flex-wrap gap-1.5 px-3 py-2.5 border border-border rounded-xl bg-bg mb-1.5 min-h-[50px] items-center">
             {draft.map((s) => (
               <span
                 key={s}
@@ -109,6 +109,9 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
               className="flex-1 min-w-[140px] border-none outline-none bg-transparent text-[13px] text-text font-[inherit] px-1 py-[2px]"
             />
           </div>
+          <p className="text-[11.5px] text-subtle mb-3">
+            Cada coma o Enter agrega una skill nueva.
+          </p>
           {visibleSuggestions.length > 0 && (
             <div>
               <p className="text-[10.5px] font-extrabold text-subtle tracking-[0.6px] uppercase mb-2">

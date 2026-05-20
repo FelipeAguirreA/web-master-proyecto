@@ -59,6 +59,7 @@ export default function DashboardLayout({
   const unreadCount = useUnreadCount();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cvPct, setCvPct] = useState<number | null>(null);
+  const [hasCv, setHasCv] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,7 +77,10 @@ export default function DashboardLayout({
     if (!isStudent) return;
     fetchWithRefresh("/api/users/me", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((user) => setCvPct(user ? computeCvProgress(user) : null))
+      .then((user) => {
+        setCvPct(user ? computeCvProgress(user) : null);
+        setHasCv(Boolean(user?.studentProfile?.cvUrl));
+      })
       .catch(() => setCvPct(null));
   }, [isStudent]);
 
@@ -146,6 +150,7 @@ export default function DashboardLayout({
         role={role}
         unreadInbox={unreadCount}
         cvPct={isStudent ? cvPct : null}
+        hasCv={isStudent ? hasCv : false}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
