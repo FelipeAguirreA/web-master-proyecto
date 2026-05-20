@@ -28,6 +28,7 @@ import {
   sendStatusUpdateEmail,
   sendPasswordResetEmail,
   sendRecommendationEmail,
+  sendLoginBurstAlertEmail,
 } from "@/server/lib/mail";
 import { env as mockedEnv } from "@/lib/env";
 
@@ -296,5 +297,34 @@ describe("sendRecommendationEmail", () => {
     expect(body.subject).toBe("Práctica con 87% de afinidad para ti");
     expect(body.htmlContent).toContain("87% de afinidad");
     expect(body.htmlContent).toContain("Backend Intern");
+  });
+});
+
+describe("sendLoginBurstAlertEmail", () => {
+  it("envía email de alerta con asunto de seguridad y URL de reset", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+
+    await sendLoginBurstAlertEmail("user@x.com", "María");
+
+    const body = lastCallBody(fetchSpy);
+    expect(body.subject).toBe(
+      "Varios intentos de inicio de sesión en tu cuenta PractiX",
+    );
+    expect(body.to[0].email).toBe("user@x.com");
+    expect(body.htmlContent).toContain("María");
+    expect(body.htmlContent).toContain("Restablecer contraseña");
+  });
+
+  it("incluye la URL de reset apuntando a /forgot-password", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(okResponse());
+
+    await sendLoginBurstAlertEmail("u@x.com", "Pedro");
+
+    const body = lastCallBody(fetchSpy);
+    expect(body.htmlContent).toContain("/forgot-password");
   });
 });

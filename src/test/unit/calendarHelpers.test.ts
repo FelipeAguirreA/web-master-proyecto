@@ -12,6 +12,7 @@ import {
   buildMonthCells,
   interviewTimeSlot,
   isInterviewPast,
+  nowMinutes,
 } from "@/components/dashboard/calendar/calendarHelpers";
 
 // ─── toLocalDateStr ────────────────────────────────────────────────────────────
@@ -209,5 +210,16 @@ describe("interviewTimeSlot", () => {
     expect(slot.dateStr).toBe("2026-05-12");
     expect(slot.startMin).toBe(630); // 10*60+30
     expect(slot.endMin).toBe(690); // 630+60
+  });
+});
+
+// ─── nowMinutes ───────────────────────────────────────────────────────────────
+
+describe("nowMinutes", () => {
+  it("retorna minutos desde medianoche entre 0 y 1439", () => {
+    const minutes = nowMinutes();
+    expect(minutes).toBeGreaterThanOrEqual(0);
+    expect(minutes).toBeLessThan(1440);
+    expect(Number.isInteger(minutes)).toBe(true);
   });
 });
