@@ -14,6 +14,16 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - **Fix de la condición**: el sidebar usaba `cvPct === null`, que solo es cierto durante la carga inicial → mostraba "Mejorar CV" aunque no hubiera CV. Ahora usa `hasCv` (presencia real de `cvUrl`), calculado en el layout y propagado a ambos componentes.
   - **Hint en skills**: el input de skills del perfil ahora muestra "Cada coma o Enter agrega una skill nueva" — el input ya aceptaba coma como separador, pero no se comunicaba al usuario.
 
+## [1.14.0] - 2026-05-20
+
+### Added (gate: no se puede postular sin CV cargado)
+
+- `feat(applications): bloquear postulación sin CV cargado (CV_REQUIRED → 422)`
+  - **Regla de negocio**: un estudiante no puede postular a una práctica si no cargó su CV (`StudentProfile.cvUrl`). El CV es la base del matching semántico — sin él, la postulación no aporta señal real a la empresa.
+  - **Backend (gate inquebrantable)**: `applyToInternship` lanza `CV_REQUIRED_MESSAGE` ("Debes cargar tu CV antes de postular") si el perfil no tiene `cvUrl`. La route `POST /api/applications` mapea ese mensaje a **422** (request válida, precondición de negocio no cumplida).
+  - **Frontend**: sin cambios — `handleApply` en `practicas/[id]/page.tsx` ya renderiza `data.error` para respuestas no-ok, así que el mensaje del 422 aparece solo en el sidebar de la práctica.
+  - **Tests**: +2 casos (`cvUrl` null y estudiante sin perfil → rechazo sin crear application). Ajustados los mocks de los happy-paths existentes para incluir `cvUrl`. Suite completa: 1128/1128 verde.
+
 ## [1.13.3] - 2026-05-19
 
 ### Fixed (auth — emails de seguridad no llegaban en serverless)

@@ -15,6 +15,7 @@ vi.mock("@sentry/nextjs", () => ({
 
 import {
   applyToInternship,
+  CV_REQUIRED_MESSAGE,
   getMyApplications,
   getApplicantsByInternship,
   updateApplicationStatus,
@@ -88,6 +89,11 @@ describe("applyToInternship", () => {
 
   it("lanza error si el estudiante ya está postulado", async () => {
     prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [],
+      skills: [],
+      cvUrl: "https://storage.example/cv.pdf",
+    });
     prismaMock.application.create.mockRejectedValue(
       Object.assign(new Error("Unique constraint"), { code: "P2002" }),
     );
@@ -97,11 +103,36 @@ describe("applyToInternship", () => {
     );
   });
 
+  it("lanza CV_REQUIRED si el estudiante no cargó su CV (cvUrl null)", async () => {
+    prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue({
+      embedding: [],
+      skills: [],
+      cvUrl: null,
+    });
+
+    await expect(applyToInternship("user-1", "int-1")).rejects.toThrow(
+      CV_REQUIRED_MESSAGE,
+    );
+    expect(prismaMock.application.create).not.toHaveBeenCalled();
+  });
+
+  it("lanza CV_REQUIRED si el estudiante no tiene perfil todavía", async () => {
+    prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
+    prismaMock.studentProfile.findUnique.mockResolvedValue(null);
+
+    await expect(applyToInternship("user-1", "int-1")).rejects.toThrow(
+      CV_REQUIRED_MESSAGE,
+    );
+    expect(prismaMock.application.create).not.toHaveBeenCalled();
+  });
+
   it("crea la postulación correctamente cuando todo es válido", async () => {
     prismaMock.internship.findUnique.mockResolvedValue(mockInternship);
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [],
       skills: [],
+      cvUrl: "https://storage.example/cv.pdf",
     });
     prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
     prismaMock.application.create.mockResolvedValue(mockApplication);
@@ -127,6 +158,7 @@ describe("applyToInternship — mail failure → Sentry (#D4)", () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [],
       skills: [],
+      cvUrl: "https://storage.example/cv.pdf",
     });
     prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
     prismaMock.application.create.mockResolvedValue(mockApplication);
@@ -149,6 +181,7 @@ describe("applyToInternship — mail failure → Sentry (#D4)", () => {
     prismaMock.studentProfile.findUnique.mockResolvedValue({
       embedding: [],
       skills: [],
+      cvUrl: "https://storage.example/cv.pdf",
     });
     prismaMock.user.findUnique.mockResolvedValue({ name: "Juan Pérez" });
     prismaMock.application.create.mockResolvedValue(mockApplication);
