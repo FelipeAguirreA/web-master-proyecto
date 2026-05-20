@@ -3,6 +3,12 @@ import { prisma } from "@/server/lib/db";
 import { calculateHybridMatchScore } from "@/server/lib/embeddings";
 import { sendNewApplicationEmail } from "@/server/lib/mail";
 
+// Un estudiante no puede postular sin haber cargado su CV (cvUrl). El CV es la
+// base del matching semántico: sin él, la postulación no aporta señal real a la
+// empresa. La route mapea este mensaje a 422 (request válida, precondición de
+// negocio no cumplida).
+export const CV_REQUIRED_MESSAGE = "Debes cargar tu CV antes de postular";
+
 export async function applyToInternship(
   studentUserId: string,
   internshipId: string,
@@ -23,6 +29,11 @@ export async function applyToInternship(
     const student = await prisma.studentProfile.findUnique({
       where: { userId: studentUserId },
     });
+
+    // Gate: sin CV cargado no se postula. Va antes de crear la application.
+    if (!student?.cvUrl) {
+      throw new Error(CV_REQUIRED_MESSAGE);
+    }
 
     const studentUser = await prisma.user.findUnique({
       where: { id: studentUserId },
