@@ -7,6 +7,7 @@ type WelcomeProps = {
   topMatchScore?: number | null;
   daysLeft?: number | null;
   cvPct: number;
+  hasCv: boolean;
   applicationsCount: number;
   interviewsCount: number;
 };
@@ -18,6 +19,7 @@ export function Welcome({
   topMatchScore,
   daysLeft,
   cvPct,
+  hasCv,
   applicationsCount,
   interviewsCount,
 }: WelcomeProps) {
@@ -85,7 +87,7 @@ export function Welcome({
               href="/perfil"
               className="inline-flex items-center gap-[7px] bg-white/[.08] border border-white/[.14] text-white px-[18px] py-2.5 rounded-[11px] font-semibold text-[13px] no-underline"
             >
-              Mejorar mi CV
+              {hasCv ? "Mejorar mi CV" : "Cargar CV"}
             </Link>
           </div>
         </div>

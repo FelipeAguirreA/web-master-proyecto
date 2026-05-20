@@ -50,12 +50,14 @@ type Props = {
   role?: "STUDENT" | "COMPANY";
   unreadInbox?: number;
   cvPct?: number | null;
+  hasCv?: boolean;
 };
 
 export function DashboardSidebar({
   role = "STUDENT",
   unreadInbox = 0,
   cvPct = null,
+  hasCv = false,
 }: Props) {
   const pathname = usePathname();
   const items = role === "COMPANY" ? COMPANY_NAV : STUDENT_NAV;
@@ -182,7 +184,7 @@ export function DashboardSidebar({
               href="/perfil"
               className="block text-center bg-text text-white text-[12px] font-[700] px-3 py-2 rounded-[9px] no-underline"
             >
-              {cvPct === null ? "Subir CV" : "Mejorar CV"}
+              {hasCv ? "Mejorar CV" : "Cargar CV"}
             </Link>
           </div>
         )}

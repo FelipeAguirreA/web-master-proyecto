@@ -5,6 +5,15 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-05-20
+
+### Changed (UX perfil/dashboard del estudiante)
+
+- `feat(perfil): CTA de CV contextual + hint de coma en el input de skills`
+  - **CTA de CV contextual**: el botón que antes decía siempre "Mejorar (mi) CV" ahora dice **"Cargar CV"** cuando el estudiante todavía no subió uno y **"Mejorar CV"** una vez cargado. Aplica en los dos lugares donde aparece: el botón junto a "Ver matches del día" (`Welcome`) y la card "Tu CV" del sidebar (`DashboardSidebar`).
+  - **Fix de la condición**: el sidebar usaba `cvPct === null`, que solo es cierto durante la carga inicial → mostraba "Mejorar CV" aunque no hubiera CV. Ahora usa `hasCv` (presencia real de `cvUrl`), calculado en el layout y propagado a ambos componentes.
+  - **Hint en skills**: el input de skills del perfil ahora muestra "Cada coma o Enter agrega una skill nueva" — el input ya aceptaba coma como separador, pero no se comunicaba al usuario.
+
 ## [1.14.0] - 2026-05-20
 
 ### Added (gate: no se puede postular sin CV cargado)
