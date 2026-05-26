@@ -17,7 +17,7 @@ type PublishModalProps = {
 
 /** Clases base del input/select/textarea. Se separan errores con una variante. */
 const inputBase =
-  "w-full rounded-[11px] px-3.5 py-2.5 text-[13.5px] text-text outline-none font-[inherit] transition-all duration-150";
+  "w-full rounded-[11px] px-3.5 py-2.5 text-[13.5px] text-text font-[inherit] transition-all duration-150";
 const inputNormal = `${inputBase} bg-black/[0.04] border border-transparent`;
 const inputError = `${inputBase} bg-rose/[0.06] border border-rose`;
 

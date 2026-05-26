@@ -542,7 +542,7 @@ function FilterBar({
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Buscar por nombre, universidad o carrera…"
-          className="w-full bg-surface border border-border rounded-[9px] py-2 pl-9 pr-3 text-[12.5px] text-text outline-none font-[inherit] placeholder:text-muted focus:border-border-hi transition-colors"
+          className="w-full bg-surface border border-border rounded-[9px] py-2 pl-9 pr-3 text-[12.5px] text-text font-[inherit] placeholder:text-muted focus:border-border-hi transition-colors"
         />
       </div>
       <div className="inline-flex items-center gap-1.5 bg-surface border border-border rounded-[9px] px-2.5 py-1.5">
@@ -553,7 +553,7 @@ function FilterBar({
           aria-label="Match mínimo"
           value={minMatch}
           onChange={(e) => onMinMatch(Number(e.target.value))}
-          className="bg-transparent border-none outline-none text-[11.5px] font-bold text-text cursor-pointer font-[inherit]"
+          className="bg-transparent border-none text-[11.5px] font-bold text-text cursor-pointer font-[inherit]"
         >
           <option value={0}>0%</option>
           <option value={50}>50%</option>

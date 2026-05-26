@@ -5,6 +5,14 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.2] - 2026-05-26
+
+### Added (accesibilidad: indicador de foco visible — WCAG 2.4.7)
+
+- `feat(a11y): indicador de foco global de marca + limpieza de focus rotos`
+  - **Regla global `:focus-visible`** en `globals.css`: outline de 2px con `var(--color-accent)` sobre todos los interactivos (`a`, `button`, `input`, `select`, `textarea`, `summary`, `[role="button"]`, `[tabindex]:not([tabindex="-1"])`). Se adapta solo a la paleta: naranja en estudiante/público, azul en dashboard empresa. Cubre nav, footer, FAQ, cookie banner, botones de cerrar modales y toggles que antes dependían del outline nativo.
+  - **Focus rotos limpiados**: se quitó `outline-none`/`focus:outline-none` sin reemplazo en elementos que quedaban invisibles al tabular — `PublishModal` (inputBase, bloqueaba publicar prácticas con teclado), los 3 selects de `/practicas`, input + select del ATS (`ats/[jobId]`), select del calendario empresa y el toggle del ATS.
+
 ## [1.14.1] - 2026-05-20
 
 ### Changed (UX perfil/dashboard del estudiante)

@@ -319,7 +319,7 @@ export default function PracticasPage() {
               aria-label="Filtrar por área"
               value={area}
               onChange={(e) => setFilter(setArea)(e.target.value)}
-              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none outline-none text-muted"
+              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none text-muted"
               style={{
                 color: area ? "var(--color-text)" : undefined,
                 backgroundImage: SELECT_CHEVRON,
@@ -342,7 +342,7 @@ export default function PracticasPage() {
               aria-label="Filtrar por modalidad"
               value={modality}
               onChange={(e) => setFilter(setModality)(e.target.value)}
-              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none outline-none text-muted"
+              className="w-full md:w-auto md:min-w-[170px] py-2 pl-3 pr-7 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] font-semibold font-inherit cursor-pointer appearance-none text-muted"
               style={{
                 color: modality ? "var(--color-text)" : undefined,
                 backgroundImage: SELECT_CHEVRON,
@@ -415,7 +415,7 @@ export default function PracticasPage() {
               aria-label="Ordenar resultados"
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="py-1.5 pl-2.5 pr-[26px] bg-black/[0.04] border-[1.5px] border-transparent rounded-[8px] text-[12.5px] text-text font-bold font-inherit cursor-pointer appearance-none outline-none"
+              className="py-1.5 pl-2.5 pr-[26px] bg-black/[0.04] border-[1.5px] border-transparent rounded-[8px] text-[12.5px] text-text font-bold font-inherit cursor-pointer appearance-none"
               style={{
                 backgroundImage: SELECT_CHEVRON,
                 backgroundRepeat: "no-repeat",

@@ -109,6 +109,21 @@ body {
   }
 }
 
+/* Indicador de foco global de marca — WCAG 2.4.7 */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
 /* ═══ Auth shimmer (SubmitButton) ═══ */
 @keyframes auth-shimmer {
   0% {

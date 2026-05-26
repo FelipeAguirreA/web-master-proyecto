@@ -389,7 +389,7 @@ export default function EmpresaCalendarPage() {
               value={filterInternshipId}
               onChange={(e) => setFilterInternshipId(e.target.value)}
               aria-label="Filtrar entrevistas por práctica"
-              className="appearance-none rounded-[10px] pl-8 pr-8 py-2 text-[12px] font-medium focus:outline-none transition-all cursor-pointer bg-surface border border-border text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-h-[36px]"
+              className="appearance-none rounded-[10px] pl-8 pr-8 py-2 text-[12px] font-medium transition-all cursor-pointer bg-surface border border-border text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] min-h-[36px]"
             >
               <option value="">Todas las prácticas</option>
               {internships.map((i) => (
