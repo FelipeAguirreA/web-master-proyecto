@@ -5,6 +5,13 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.5] - 2026-05-26
+
+### Chore
+
+- `chore(seed): actualizar datos de seed para arranque local`
+  - `prisma/seed.ts` actualizado con un dataset de ejemplo más representativo para levantar la app en local. NO afecta producción: el seed solo se ejecuta manualmente vía `pnpm db:seed` contra una DB local (nunca contra prod).
+
 ## [1.14.4] - 2026-05-26
 
 ### Fixed (chat: scroll fantasma en Safari iOS)
