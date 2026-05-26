@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.3] - 2026-05-26
+
+### Fixed (chat: layout de altura completa en móvil)
+
+- `fix(chat): layout full-height en móvil sin scroll fantasma`
+  - **Causa**: el layout del dashboard usaba `min-h-screen` (=`100vh`) mientras el chat calculaba `h-[calc(100dvh-80px)]` con un número mágico. La mezcla `vh`/`dvh` generaba scroll del `<body>` en móvil (por la barra dinámica del navegador) y el `-80px` (topbar real ≈64px) dejaba ~15px de espacio muerto debajo del Composer.
+  - **Fix**: la columna del dashboard pasa a `h-dvh` + `<main>` `flex-1 min-h-0 overflow-y-auto`; el chat (`InboxView`) usa `h-full` (cero número mágico). El scroll vive solo en la lista de mensajes. Verificado con medición Playwright (viewport iPhone 390×844): gap 15px→0, scroll del body 0, páginas normales siguen scrolleando en `<main>`.
+  - **Railes sticky**: ajustados los `lg:top-*` de 4 páginas (perfil estudiante, dashboards estudiante/empresa, perfil empresa) — al mudar el scroll del `<body>` al `<main>`, ya no hay que descontar el topbar.
+
+## [1.14.2] - 2026-05-26
+
+### Added (accesibilidad: indicador de foco visible — WCAG 2.4.7)
+
+- `feat(a11y): indicador de foco global de marca + limpieza de focus rotos`
+  - **Regla global `:focus-visible`** en `globals.css`: outline de 2px con `var(--color-accent)` sobre todos los interactivos (`a`, `button`, `input`, `select`, `textarea`, `summary`, `[role="button"]`, `[tabindex]:not([tabindex="-1"])`). Se adapta solo a la paleta: naranja en estudiante/público, azul en dashboard empresa. Cubre nav, footer, FAQ, cookie banner, botones de cerrar modales y toggles que antes dependían del outline nativo.
+  - **Focus rotos limpiados**: se quitó `outline-none`/`focus:outline-none` sin reemplazo en elementos que quedaban invisibles al tabular — `PublishModal` (inputBase, bloqueaba publicar prácticas con teclado), los 3 selects de `/practicas`, input + select del ATS (`ats/[jobId]`), select del calendario empresa y el toggle del ATS.
+
 ## [1.14.1] - 2026-05-20
 
 ### Changed (UX perfil/dashboard del estudiante)

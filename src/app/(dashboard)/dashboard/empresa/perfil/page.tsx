@@ -172,7 +172,7 @@ export default function PerfilEmpresaPage() {
         </div>
 
         {/* Sidebar */}
-        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24">
+        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-8">
           <EmpresaDatos profile={profile} />
           <MyRightsCard />
         </aside>

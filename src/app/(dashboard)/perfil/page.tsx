@@ -360,8 +360,8 @@ export default function PerfilPage() {
           />
         </div>
 
-        {/* Sidebar — sticky on lg+ */}
-        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-24">
+        {/* Sidebar — sticky on lg+ (top-8: el scroll vive en <main>, ya no hay que descontar el topbar) */}
+        <aside className="flex flex-col gap-3.5 lg:sticky lg:top-8">
           <CVUploadCard
             cvUrl={sp?.cvUrl ?? null}
             cvPct={cvPct}

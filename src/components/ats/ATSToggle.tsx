@@ -58,7 +58,7 @@ export default function ATSToggle({
         {/* Toggle switch */}
         <button
           onClick={handleToggle}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
             isActive ? "bg-brand-600" : "bg-gray-300"
           }`}
           aria-label="Toggle ATS"

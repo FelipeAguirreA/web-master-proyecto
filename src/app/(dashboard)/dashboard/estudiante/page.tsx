@@ -430,7 +430,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Right rail — sticky en desktop, fluido en mobile */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
           <NextInterview interview={interview} />
           <InboxPanel
             messages={inboxMessages}

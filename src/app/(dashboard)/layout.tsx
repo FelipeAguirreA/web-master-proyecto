@@ -144,7 +144,7 @@ export default function DashboardLayout({
   return (
     <div
       data-palette={role === "COMPANY" ? "company" : "student"}
-      className="min-h-screen bg-bg text-text flex"
+      className="h-dvh overflow-hidden bg-bg text-text flex"
     >
       <DashboardSidebar
         role={role}
@@ -153,7 +153,7 @@ export default function DashboardLayout({
         hasCv={isStudent ? hasCv : false}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
         <DashboardTopbar
           userName={name}
           userEmail={session.user.email ?? ""}
@@ -163,7 +163,9 @@ export default function DashboardLayout({
           onMenu={() => setDrawerOpen(true)}
         />
 
-        <main className="flex-1 relative">{children}</main>
+        <main className="flex-1 relative min-h-0 overflow-y-auto">
+          {children}
+        </main>
       </div>
 
       {/* Mobile drawer overlay */}

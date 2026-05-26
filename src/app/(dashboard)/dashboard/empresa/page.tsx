@@ -439,7 +439,7 @@ export default function CompanyDashboard() {
           </div>
 
           {/* Rail lateral — sticky en desktop, fluye en mobile */}
-          <aside className="flex flex-col gap-3.5 lg:sticky lg:top-[76px]">
+          <aside className="flex flex-col gap-3.5 lg:sticky lg:top-3">
             <ProximasEntrevistas interviews={interviewsHoy} loading={loading} />
             <InboxMini conversations={inboxTop} loading={loading} />
             <CalendarMini interviews={interviews} />
