@@ -5,6 +5,14 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.4] - 2026-05-26
+
+### Fixed (chat: scroll fantasma en Safari iOS)
+
+- `fix(chat): body min-h-dvh — elimina el scroll fantasma en Safari iOS`
+  - **Causa que faltaba en 1.14.3**: el `<body>` del layout raíz (`app/layout.tsx`) seguía con `min-h-screen` (=`100vh`). En Safari iOS, `100vh` es el _large viewport_ (mide como si la barra inferior estuviera oculta), así que el `<body>` se estiraba más alto que la pantalla visible → scroll del documento + espacio debajo del Composer (≈ la altura de la barra de Safari). El fix de 1.14.3 corrigió el layout del dashboard pero no el `<body>` raíz; no se detectó porque Playwright headless no simula la barra dinámica de iOS (`vh == dvh`).
+  - **Fix**: el `<body>` pasa de `min-h-screen` a `min-h-dvh`, alineando toda la cadena de altura a `dvh` (dynamic viewport), que sí se ajusta a la barra de Safari.
+
 ## [1.14.3] - 2026-05-26
 
 ### Fixed (chat: layout de altura completa en móvil)
