@@ -107,6 +107,26 @@ async function main() {
     include: { companyProfile: true },
   });
 
+  const dahoteles = await prisma.user.upsert({
+    where: { email: "felipe.aguirre@dahoteles.com" },
+    update: { passwordHash: SEED_COMPANY_PASSWORD_HASH },
+    create: {
+      email: "felipe.aguirre@dahoteles.com",
+      name: "Felipe",
+      role: "COMPANY",
+      passwordHash: SEED_COMPANY_PASSWORD_HASH,
+      companyProfile: {
+        create: {
+          companyName: "Dahoteles",
+          companyStatus: "APPROVED",
+          industry: "HOTELERA",
+          website: "https://www.dahoteles.com",
+        },
+      },
+    },
+    include: { companyProfile: true },
+  });
+
   // Estudiante
   await prisma.user.upsert({
     where: { email: "maria.garcia@example.com" },
@@ -129,8 +149,23 @@ async function main() {
 
   const techcorpId = techcorp.companyProfile!.id;
   const startupxId = startupx.companyProfile!.id;
+  const dahotelesId = dahoteles.companyProfile!.id;
 
-  const internshipsData = [
+  const internshipsData: Array<{
+    id: string;
+    companyId: string;
+    title: string;
+    description: string;
+    area: string;
+    location: string;
+    modality: "REMOTE" | "ONSITE" | "HYBRID";
+    duration: string;
+    responsibilities: string[];
+    requirements: string[];
+    skills: string[];
+    isActive?: boolean;
+    deletedAt?: Date | null;
+  }> = [
     {
       id: "seed-int-1",
       companyId: techcorpId,
@@ -263,6 +298,206 @@ async function main() {
       ],
       skills: ["Excel avanzado", "Python", "Análisis financiero"],
     },
+    {
+      id: "cmoai4k6d0000fotxcbl9uloe",
+      companyId: dahotelesId,
+      title: "Practicante de Marketing Digital Hotelero",
+      description:
+        "Gestionarás las campañas en redes sociales y portales de reserva (Booking, Expedia), analizarás métricas de ocupación y propondrás acciones para aumentar las reservas directas del hotel.",
+      area: "Marketing",
+      location: "Santiago",
+      modality: "HYBRID" as const,
+      duration: "3 meses",
+      responsibilities: [
+        "Gestionar las redes sociales del hotel y el calendario de contenidos",
+        "Operar campañas en Meta Ads y Google Ads orientadas a reservas",
+        "Optimizar las fichas del hotel en OTAs como Booking y Expedia",
+        "Analizar métricas de ocupación y conversión, y reportar resultados",
+        "Proponer acciones para aumentar las reservas directas",
+      ],
+      requirements: [
+        "Estudiante de Marketing, Publicidad o Comunicación",
+        "Conocimientos de marketing digital y analítica web",
+      ],
+      skills: ["Redes Sociales", "Google Analytics", "SEO", "Meta Ads"],
+      isActive: true,
+      deletedAt: null,
+    },
+    {
+      id: "cmnyudqki0005h0txe0ihfz5x",
+      companyId: dahotelesId,
+      title: "Practicante de Operaciones Hoteleras",
+      description:
+        "Apoyarás la planificación del mantenimiento de las instalaciones, la gestión de proveedores y la optimización de los procesos operativos del hotel.",
+      area: "Ingeniería",
+      location: "Pucón",
+      modality: "HYBRID" as const,
+      duration: "6 meses",
+      responsibilities: [
+        "Apoyar la planificación del mantenimiento preventivo de las instalaciones",
+        "Coordinar con proveedores y dar seguimiento a las órdenes de servicio",
+        "Levantar y documentar los procesos operativos del hotel",
+        "Proponer mejoras de eficiencia en las áreas de operación",
+        "Elaborar reportes de indicadores operativos para la gerencia",
+      ],
+      requirements: [
+        "Estudiante de Ingeniería Industrial, Civil o afín",
+        "Manejo de Excel y orientación a la mejora de procesos",
+      ],
+      skills: ["Gestión de proyectos", "Excel", "Operaciones"],
+      isActive: true,
+      deletedAt: null,
+    },
+    {
+      id: "cmpbnbx9q0000estxra24gzik",
+      companyId: dahotelesId,
+      title: "Practicante de Data Analytics y Revenue",
+      description:
+        "Analizarás datos de ocupación, tarifas y demanda para apoyar las decisiones de revenue management. Construirás dashboards con los indicadores clave del hotel.",
+      area: "Datos",
+      location: "Santiago",
+      modality: "HYBRID" as const,
+      duration: "6 meses",
+      responsibilities: [
+        "Analizar datos de ocupación, tarifas y demanda del hotel",
+        "Construir y mantener dashboards de indicadores clave (KPIs)",
+        "Apoyar las decisiones de revenue management con datos",
+        "Automatizar la extracción de datos desde el PMS y las OTAs",
+        "Presentar hallazgos y recomendaciones a la gerencia",
+      ],
+      requirements: [
+        "Estudiante de Ingeniería, Estadística o afín",
+        "Manejo de SQL y de herramientas de visualización de datos",
+      ],
+      skills: ["SQL", "Python", "Power BI", "Excel"],
+      isActive: true,
+      deletedAt: null,
+    },
+    {
+      id: "cmo3bsvt40001notxg9ifvxsp",
+      companyId: dahotelesId,
+      title: "Practicante de Soporte IT y Sistemas Hoteleros",
+      description:
+        "Brindarás soporte técnico a las áreas operativas del hotel y darás mantenimiento al PMS (Property Management System), redes y equipos. Apoyarás la digitalización de los procesos de recepción y reservas.",
+      area: "Ingeniería",
+      location: "Santiago",
+      modality: "HYBRID" as const,
+      duration: "3 meses",
+      responsibilities: [
+        "Brindar soporte técnico de primer nivel a recepción, reservas y administración",
+        "Dar mantenimiento al PMS del hotel y a los equipos de las áreas operativas",
+        "Monitorear la red y los puntos de acceso WiFi de las instalaciones",
+        "Documentar incidencias y soluciones en la base de conocimiento interna",
+        "Apoyar la digitalización de procesos manuales de recepción y check-in",
+      ],
+      requirements: [
+        "Estudiante de Ingeniería Informática, Telecomunicaciones o afín",
+        "Conocimientos básicos de redes y sistemas operativos",
+      ],
+      skills: ["Soporte IT", "Redes", "SQL", "Windows Server"],
+      isActive: false,
+      deletedAt: null,
+    },
+    {
+      id: "cmo3btiqv0002notxmkokure0",
+      companyId: dahotelesId,
+      title: "Practicante de Recursos Humanos",
+      description:
+        "Apoyarás los procesos de reclutamiento y selección de personal para las distintas áreas del hotel, la gestión de turnos y la inducción de nuevos colaboradores.",
+      area: "RRHH",
+      location: "Viña del Mar",
+      modality: "ONSITE" as const,
+      duration: "3 meses",
+      responsibilities: [
+        "Publicar ofertas y filtrar candidatos para las áreas operativas del hotel",
+        "Coordinar entrevistas y dar seguimiento a los procesos de selección",
+        "Apoyar la inducción y el onboarding de nuevos colaboradores",
+        "Mantener actualizada la base de datos de personal y turnos",
+        "Colaborar en actividades de clima laboral y bienestar del equipo",
+      ],
+      requirements: [
+        "Estudiante de Psicología, Administración o Recursos Humanos",
+        "Manejo de Excel y buena comunicación interpersonal",
+      ],
+      skills: ["Reclutamiento", "Excel", "Comunicación", "Gestión de personas"],
+      isActive: false,
+      deletedAt: null,
+    },
+    {
+      id: "cmo3bse3x0000notxme56vzux",
+      companyId: dahotelesId,
+      title: "Practicante de Diseño Gráfico y Contenido",
+      description:
+        "Diseñarás piezas gráficas para campañas, menús, señalética y la web del hotel. Apoyarás la producción de contenido audiovisual para las redes sociales.",
+      area: "Diseño",
+      location: "Valparaíso",
+      modality: "ONSITE" as const,
+      duration: "3 meses",
+      responsibilities: [
+        "Diseñar piezas gráficas para campañas, menús y señalética del hotel",
+        "Apoyar la actualización visual del sitio web y las OTAs",
+        "Producir y editar contenido audiovisual para redes sociales",
+        "Mantener la coherencia de la identidad visual de la marca",
+        "Colaborar con el equipo de marketing en las activaciones",
+      ],
+      requirements: [
+        "Estudiante de Diseño Gráfico o afín, con portafolio",
+        "Manejo de Figma y de la suite Adobe",
+      ],
+      skills: ["Figma", "Photoshop", "Illustrator", "Diseño UX"],
+      isActive: false,
+      deletedAt: null,
+    },
+    {
+      id: "cmnysq95z0003h0txzwff7we6",
+      companyId: dahotelesId,
+      title: "Practicante de Desarrollo Web",
+      description:
+        "Apoyarás el desarrollo y mantenimiento del sitio web de reservas del hotel, integrando el motor de reservas y mejorando la experiencia de usuario.",
+      area: "Ingeniería",
+      location: "Santiago",
+      modality: "REMOTE" as const,
+      duration: "6 meses",
+      responsibilities: [
+        "Desarrollar y mantener componentes del sitio web de reservas",
+        "Integrar el motor de reservas y las pasarelas de pago",
+        "Mejorar el rendimiento y la accesibilidad del sitio",
+        "Corregir bugs reportados por el equipo de operaciones",
+        "Documentar los cambios y participar en revisiones de código",
+      ],
+      requirements: [
+        "Estudiante de Ingeniería Informática o afín",
+        "Conocimientos de JavaScript y de algún framework moderno",
+      ],
+      skills: ["JavaScript", "React", "HTML", "CSS"],
+      isActive: false,
+      deletedAt: null,
+    },
+    {
+      id: "cmnysagac0002h0txrvtjcmgn",
+      companyId: dahotelesId,
+      title: "Practicante de Finanzas y Control de Gestión",
+      description:
+        "Apoyarás el control presupuestario, la conciliación de ingresos por habitaciones y la elaboración de reportes de gestión para la gerencia del hotel.",
+      area: "Finanzas",
+      location: "Santiago",
+      modality: "HYBRID" as const,
+      duration: "3 meses",
+      responsibilities: [
+        "Apoyar el control presupuestario y el seguimiento de gastos por área",
+        "Conciliar ingresos por habitaciones, restaurante y eventos",
+        "Elaborar reportes de gestión e indicadores para la gerencia",
+        "Automatizar reportes recurrentes en Excel y Power BI",
+        "Colaborar en el cierre mensual con el equipo de contabilidad",
+      ],
+      requirements: [
+        "Estudiante de Ingeniería Comercial, Auditoría o Contabilidad",
+        "Excel avanzado y nociones de análisis financiero",
+      ],
+      skills: ["Excel", "Análisis financiero", "Power BI", "Contabilidad"],
+      isActive: false,
+      deletedAt: new Date("2026-05-18T19:59:32.391Z"),
+    },
   ];
 
   let indexed = 0;
@@ -285,7 +520,8 @@ async function main() {
       update: {
         embedding,
         companyId: internship.companyId,
-        isActive: true,
+        isActive: internship.isActive ?? true,
+        deletedAt: internship.deletedAt ?? null,
         responsibilities: internship.responsibilities,
       },
       create: { ...internship, embedding },
@@ -303,7 +539,7 @@ async function main() {
     );
   }
   console.log(
-    `✓ Empresas seed login: techcorp@example.com / startupx@example.com (password: ${SEED_COMPANY_PASSWORD})`,
+    `✓ Empresas seed login: techcorp@example.com / startupx@example.com / felipe.aguirre@dahoteles.com (password: ${SEED_COMPANY_PASSWORD})`,
   );
   console.log("Seed completado.");
 }
