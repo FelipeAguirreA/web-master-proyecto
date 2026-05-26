@@ -157,7 +157,7 @@ export default function InboxView({ role }: Props) {
       : "Contacta a candidatos desde el panel ATS para iniciar conversaciones.";
 
   return (
-    <div className="h-[calc(100dvh-80px)] md:h-[calc(100vh-96px)] bg-[#FAFAF8]">
+    <div className="h-full bg-[#FAFAF8]">
       <div className="h-full grid md:grid-cols-[320px_1fr] grid-cols-1 border-t border-[#E8E5DD]">
         {/* List */}
         <aside
