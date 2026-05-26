@@ -70,7 +70,7 @@ export default async function RootLayout({
       lang="es"
       className={`${outfit.variable} ${instrumentSerif.variable} ${interTight.variable} ${jetbrainsMono.variable} ${onest.variable}`}
     >
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
+      <body className="min-h-dvh bg-gray-50 text-gray-900 antialiased">
         <Providers>{children}</Providers>
         <AnalyticsGate />
         <CookieConsent />
