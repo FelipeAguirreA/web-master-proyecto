@@ -629,7 +629,7 @@ Razón de los placeholders en el Build step:
 - src/lib/env.ts valida process.env con Zod a module-load time
 - Esa validación corre durante "Collecting page data" del next build
 - Los runs de Dependabot PRs NO tienen acceso a repo secrets por GitHub
-  security policy — si usás ${{ secrets.* }}, los PRs de Dependabot fallan
+  security policy — si usas ${{ secrets.* }}, los PRs de Dependabot fallan
 - Los placeholders solo satisfacen Zod, los valores reales viven en
   Vercel project settings — el build de CI nunca conecta a infra real
 
@@ -665,7 +665,7 @@ pnpm knip                       # Dead code detector — debe dar 0 findings al 
 
 ## Checkpoint
 
-Al final del módulo tenés:
+Al final del módulo tienes:
 
 - ✅ Next.js 16 + React 19 + TypeScript + Tailwind v4 (config CSS `@theme`, sin `tailwind.config.ts`)
 - ✅ Todas las dependencias instaladas (incluyendo testing, rate limit, logger desde día 1)

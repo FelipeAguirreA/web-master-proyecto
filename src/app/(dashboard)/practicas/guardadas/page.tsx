@@ -99,7 +99,7 @@ export default function GuardadasPage() {
           <p className="text-text font-bold text-[14px] mb-1.5">
             Sin guardadas todavía
           </p>
-          Cuando encuentres una práctica que te interese, presioná{" "}
+          Cuando encuentres una práctica que te interese, presiona{" "}
           <b>Guardar</b> en su detalle. Aparece acá para revisar después sin
           postular ya.
           <div className="mt-4">

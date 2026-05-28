@@ -245,7 +245,7 @@ pnpm db:studio
 
 ## Checkpoint
 
-Al final del módulo tenés:
+Al final del módulo tienes:
 
 - ✅ Google OAuth configurado y funcionando
 - ✅ NextAuth crea usuarios automáticamente en DB al primer login

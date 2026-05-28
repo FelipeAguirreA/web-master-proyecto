@@ -6,8 +6,8 @@ Rate limiting distribuido en endpoints críticos, refresh token rotation con JWT
 
 > Los security headers básicos y el `pnpm audit` en CI vienen del módulo 12.
 > Este módulo cubre la seguridad a nivel de aplicación. La **Fase 3 del
-> refactor-plan** profundizó MUCHO más cada uno de estos puntos: si seguís
-> esta guía y querés llegar al estado final del proyecto, leer también
+> refactor-plan** profundizó MUCHO más cada uno de estos puntos: si sigues
+> esta guía y quieres llegar al estado final del proyecto, leer también
 > `context/refactor-plan.md` (Fase 3) y `docs/security-audit-api.md` (audit
 > de los 12 areas con 31 findings 🛑 cerrados + 14 ⚠️ documentados).
 
@@ -388,7 +388,7 @@ Reportar cualquier issue encontrado con su severidad: CRITICAL / HIGH / MEDIUM.
 
 ## Checkpoint
 
-Al final del módulo tenés:
+Al final del módulo tienes:
 
 - ✅ **Rate limiting distribuido** con Upstash Redis (Map en memoria NO funciona en Vercel multi-instancia) en endpoints costosos y de auth
 - ✅ **Refresh token rotation** con JWT 15 min + reuse detection que dispara alerta crítica en Sentry

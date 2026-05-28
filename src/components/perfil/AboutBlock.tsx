@@ -46,7 +46,7 @@ export function AboutBlock({ bio, onSave }: Props) {
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}
           rows={5}
-          placeholder="Contá quién sos, qué te apasiona, qué buscás…"
+          placeholder="Cuéntanos quién eres, qué te apasiona, qué buscas…"
           className="w-full px-3.5 py-3 border border-border rounded-xl text-[13.5px] text-text bg-bg font-[inherit] leading-relaxed resize-y min-h-[100px] outline-none focus:border-accent focus:bg-surface transition-colors"
         />
       ) : bio ? (

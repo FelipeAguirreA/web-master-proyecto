@@ -76,13 +76,27 @@ export default function DashboardLayout({
   const isStudent = session?.user?.role === "STUDENT";
   useEffect(() => {
     if (!isStudent) return;
-    fetchWithRefresh("/api/users/me", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((user) => {
-        setCvPct(user ? computeCvProgress(user) : null);
-        setHasCv(Boolean(user?.studentProfile?.cvUrl));
-      })
-      .catch(() => setCvPct(null));
+    let cancelled = false;
+    const refetchCV = () => {
+      fetchWithRefresh("/api/users/me", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((user) => {
+          if (cancelled) return;
+          setCvPct(user ? computeCvProgress(user) : null);
+          setHasCv(Boolean(user?.studentProfile?.cvUrl));
+        })
+        .catch(() => {
+          if (!cancelled) setCvPct(null);
+        });
+    };
+    refetchCV();
+    // /perfil dispara este evento tras subir/eliminar el CV. Sin esto, la
+    // card "Tu CV" del sidebar queda con el estado previo hasta recargar.
+    window.addEventListener("practix:cv-updated", refetchCV);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("practix:cv-updated", refetchCV);
+    };
   }, [isStudent]);
 
   useEffect(() => {

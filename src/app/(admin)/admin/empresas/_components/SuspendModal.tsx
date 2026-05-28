@@ -45,7 +45,7 @@ export function SuspendModal({ emp, onClose, onConfirm, processing }: Props) {
         </h3>
         <p className="text-[13px] text-muted mt-1.5 leading-[1.5]">
           La empresa quedará bloqueada del panel hasta que la restablezcas. Si
-          dejás un motivo, lo verá en su pantalla de cuenta suspendida y en el
+          dejas un motivo, lo verá en su pantalla de cuenta suspendida y en el
           email de aviso.
         </p>
         <label className="block mt-3.5 text-[11px] font-extrabold text-subtle uppercase tracking-[0.4px]">

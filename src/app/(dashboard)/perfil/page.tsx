@@ -89,6 +89,18 @@ export default function PerfilPage() {
     loadSuggestions();
   }, []);
 
+  // Soporte de deep-link `/perfil#cv` desde el sidebar y el dashboard:
+  // al terminar de cargar, si el hash apunta a una sección, hace scroll
+  // suave a ella. Sin esto, el botón "Cargar el CV" parece "no hacer nada"
+  // porque la card de upload queda fuera del viewport en pantallas chicas.
+  useEffect(() => {
+    if (loading) return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loading]);
+
   const savePartial = async (
     patch: Partial<{
       name: string;
@@ -170,6 +182,9 @@ export default function PerfilPage() {
     }
     await loadProfile();
     await loadSuggestions();
+    // Avisa al layout para que la tarjeta "Tu CV" del sidebar se actualice
+    // sin recargar la página (el effect del layout solo corre al montar).
+    window.dispatchEvent(new Event("practix:cv-updated"));
     showToast("ok", "CV procesado");
   };
 
@@ -183,6 +198,7 @@ export default function PerfilPage() {
     }
     await loadProfile();
     setSuggestions([]);
+    window.dispatchEvent(new Event("practix:cv-updated"));
     showToast("ok", "CV eliminado");
   };
 
@@ -362,12 +378,14 @@ export default function PerfilPage() {
 
         {/* Sidebar — sticky on lg+ (top-8: el scroll vive en <main>, ya no hay que descontar el topbar) */}
         <aside className="flex flex-col gap-3.5 lg:sticky lg:top-8">
-          <CVUploadCard
-            cvUrl={sp?.cvUrl ?? null}
-            cvPct={cvPct}
-            onUpload={handleCVUpload}
-            onDelete={handleCVDelete}
-          />
+          <div id="cv" className="scroll-mt-24">
+            <CVUploadCard
+              cvUrl={sp?.cvUrl ?? null}
+              cvPct={cvPct}
+              onUpload={handleCVUpload}
+              onDelete={handleCVDelete}
+            />
+          </div>
           <CompletenessCard items={completeness} />
           <ContactCard
             email={profile.email}

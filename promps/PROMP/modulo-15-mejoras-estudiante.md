@@ -533,7 +533,7 @@ Flujo estudiante:
 - Botón "Continuar con Google" con ícono Google SVG y `cursor-pointer`
 - Divider "o" entre el botón y los campos
 - Campos email/password deshabilitados visualmente (`opacity-40 pointer-events-none`) — comunicar que el login es solo con Google
-- Sin link "¿No tenés cuenta? Registrate" ya que el registro se dispara automáticamente vía Google
+- Sin link "¿No tienes cuenta? Regístrate" ya que el registro se dispara automáticamente vía Google
 
 Flujo empresa:
 
@@ -574,7 +574,7 @@ Card blanca `rounded-2xl`:
 - Teléfono con selector de país `bg-gray-50` y input al lado
 
 Botón "Continuar →" en brand
-Link "¿Ya tenés una cuenta? Iniciar sesión" debajo del botón
+Link "¿Ya tienes una cuenta? Iniciar sesión" debajo del botón
 
 Caja "PractiX Insight" debajo del card:
 
@@ -605,7 +605,7 @@ pnpm dev
 # ✅ Botón Google con cursor-pointer
 # ✅ Campos email/password deshabilitados para estudiante
 # ✅ "Olvidé mi contraseña" debajo del input de contraseña
-# ✅ Sin "¿No tenés cuenta? Registrate" en tab estudiante
+# ✅ Sin "¿No tienes cuenta? Regístrate" en tab estudiante
 
 # Registro
 # ✅ Indicador de 3 pasos con paso 2 activo
@@ -649,7 +649,7 @@ pnpm dev
 
 ## Checkpoint
 
-Al final del módulo tenés:
+Al final del módulo tienes:
 
 - ✅ `proxy.ts` reemplaza `middleware.ts` (convención Next.js 16)
 - ✅ Route `[...nextauth]` con `await context.params` (Next.js 16 async params)
