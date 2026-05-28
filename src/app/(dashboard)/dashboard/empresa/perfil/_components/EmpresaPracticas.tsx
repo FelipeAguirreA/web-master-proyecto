@@ -22,7 +22,7 @@ export function EmpresaPracticas({ internships }: Props) {
       <div className="flex flex-col gap-2">
         {active.length === 0 && (
           <p className="text-[13px] text-subtle italic m-0">
-            No tenés prácticas activas todavía.
+            No tienes prácticas activas todavía.
           </p>
         )}
 

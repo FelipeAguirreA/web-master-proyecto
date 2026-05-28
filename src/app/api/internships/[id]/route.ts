@@ -31,8 +31,8 @@ function notFoundOrInternal(error: unknown) {
     return NextResponse.json(
       {
         error:
-          "No podés editar esta práctica porque ya tiene postulantes. " +
-          "Si necesitás cambios mayores, cerrá esta práctica y publicá una nueva.",
+          "No puedes editar esta práctica porque ya tiene postulantes. " +
+          "Si necesitas cambios mayores, cierra esta práctica y publica una nueva.",
         code: "APPLICATIONS_EXIST",
       },
       { status: 409 },

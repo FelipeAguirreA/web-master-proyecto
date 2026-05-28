@@ -143,7 +143,7 @@ function TagInput({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
-          placeholder={placeholder ?? "Escribí y presioná Enter"}
+          placeholder={placeholder ?? "Escribe y presiona Enter"}
           aria-label={label}
           autoComplete="off"
           className="flex-1 text-[13px] text-[#0A0909] bg-white border border-[#E8E5DD] rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#FF6A3D] focus:ring-2 focus:ring-[#FF6A3D]/15 transition-all placeholder:text-[#9B9891]"

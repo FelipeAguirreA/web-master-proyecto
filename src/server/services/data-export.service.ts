@@ -25,7 +25,7 @@ interface ExportResult {
 
 const README_TEMPLATE = `# Tus datos personales en PractiX
 
-Este archivo ZIP contiene una copia completa de los datos personales que PractiX tiene sobre vos al momento de generar la exportación.
+Este archivo ZIP contiene una copia completa de los datos personales que PractiX tiene sobre ti al momento de generar la exportación.
 
 ## Archivos incluidos
 
@@ -35,7 +35,7 @@ Este archivo ZIP contiene una copia completa de los datos personales que PractiX
 - \`conversations.json\` — chats con los mensajes intercambiados.
 - \`interviews.json\` — entrevistas agendadas.
 - \`notifications.json\` — notificaciones recibidas en la plataforma.
-- \`cv.<ext>\` — tu CV original tal como lo subiste (solo si sos estudiante con CV cargado).
+- \`cv.<ext>\` — tu CV original tal como lo subiste (solo si eres estudiante con CV cargado).
 
 ## Lo que NO está acá
 
@@ -45,7 +45,7 @@ Este archivo ZIP contiene una copia completa de los datos personales que PractiX
 
 ## Tus derechos
 
-Si querés rectificar algún dato o eliminar tu cuenta, podés:
+Si quieres rectificar algún dato o eliminar tu cuenta, puedes:
 - Editar tu perfil desde la plataforma.
 - Solicitar eliminación escribiendo a soporte@practix.cl o usando la opción "Eliminar mi cuenta" en tu perfil.
 - Presentar reclamo ante la APDP (Agencia de Protección de Datos Personales de Chile).

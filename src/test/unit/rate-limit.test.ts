@@ -204,7 +204,7 @@ describe("rateLimitResponse", () => {
     const body = await res.json();
 
     expect(body).toEqual({
-      error: "Demasiadas solicitudes. Intentá de nuevo en 45 segundos.",
+      error: "Demasiadas solicitudes. Intenta de nuevo en 45 segundos.",
     });
   });
 

@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Ingresá un correo válido.");
+      setError("Ingresa un correo válido.");
       return;
     }
 
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
       });
       setStatus("sent");
     } catch {
-      setError("Ocurrió un error. Intentá de nuevo.");
+      setError("Ocurrió un error. Intenta de nuevo.");
       setStatus("idle");
     }
   };
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <div className="space-y-2">
                   <h1 className="text-[22px] font-bold tracking-[-0.02em] text-text">
-                    Revisá tu correo
+                    Revisa tu correo
                   </h1>
                   <p className="mx-auto max-w-[340px] text-[13.5px] leading-[1.6] text-muted">
                     Si el correo está registrado como cuenta empresa, recibirás
@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
                     Olvidé mi contraseña
                   </h1>
                   <p className="mx-auto mt-1.5 max-w-[340px] text-[13.5px] leading-[1.55] text-muted">
-                    Ingresá el correo de tu cuenta empresa y te enviamos un
+                    Ingresa el correo de tu cuenta empresa y te enviamos un
                     enlace para crear una nueva contraseña.
                   </p>
                 </div>

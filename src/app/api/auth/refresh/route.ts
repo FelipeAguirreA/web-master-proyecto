@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       });
       return clearAuthCookies(
         NextResponse.json(
-          { error: "Sesión revocada por seguridad. Volvé a iniciar sesión." },
+          { error: "Sesión revocada por seguridad. Vuelve a iniciar sesión." },
           { status: 401 },
         ),
       );

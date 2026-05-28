@@ -37,7 +37,7 @@ export function PublishModal({
 }: PublishModalProps) {
   const isEdit = mode === "edit";
   const chipText = isEdit ? "Editar práctica" : "Nueva práctica";
-  const titleText = isEdit ? "Editá tu vacante" : "Publica una vacante";
+  const titleText = isEdit ? "Edita tu vacante" : "Publica una vacante";
   const submitText = isEdit
     ? submitting
       ? "Guardando…"

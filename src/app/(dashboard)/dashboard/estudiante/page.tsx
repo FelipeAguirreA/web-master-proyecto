@@ -142,7 +142,7 @@ export default function StudentDashboard() {
       .then(async (r) => {
         if (r.ok) return (await r.json()) as ApiInternship[];
         if (r.status === 429) {
-          setRecsError("Demasiadas solicitudes. Esperá un momento y refrescá.");
+          setRecsError("Demasiadas solicitudes. Espera un momento y recarga.");
         } else {
           setRecsError("No pudimos cargar tus recomendaciones.");
         }
@@ -336,7 +336,7 @@ export default function StudentDashboard() {
                   : cards.length > 0
                     ? `${recs.length} prácticas activas · ordenadas por match`
                     : hasCv
-                      ? "Aún no encontramos matches. Probá actualizar tu CV o esperá a que se publiquen nuevas."
+                      ? "Aún no encontramos matches. Prueba actualizar tu CV o espera a que se publiquen nuevas."
                       : "Sube tu CV para empezar a recibir recomendaciones"
               }
               action={{ label: "Ver todas", href: "/practicas" }}
@@ -363,7 +363,7 @@ export default function StudentDashboard() {
                     </p>
                     Tu CV ya está procesado. Esto puede ser porque hay pocas
                     prácticas activas, o porque las que hay todavía no se
-                    indexaron. Probá{" "}
+                    indexaron. Prueba{" "}
                     <Link href="/practicas" className="text-accent font-bold">
                       ver todas las prácticas
                     </Link>{" "}

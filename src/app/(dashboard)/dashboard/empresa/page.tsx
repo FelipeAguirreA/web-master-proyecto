@@ -365,7 +365,7 @@ export default function CompanyDashboard() {
         const body = await res.json().catch(() => null);
         setGlobalFormError(
           body?.error ??
-            "No podés editar esta práctica porque ya tiene postulantes.",
+            "No puedes editar esta práctica porque ya tiene postulantes.",
         );
         return;
       }
@@ -375,7 +375,7 @@ export default function CompanyDashboard() {
         setGlobalFormError(body?.error ?? "Datos inválidos.");
         return;
       }
-      setGlobalFormError("No se pudo guardar. Intentá de nuevo.");
+      setGlobalFormError("No se pudo guardar. Intenta de nuevo.");
     } finally {
       setSubmitting(false);
     }
