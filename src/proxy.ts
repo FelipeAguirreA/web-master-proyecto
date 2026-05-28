@@ -31,6 +31,14 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Rutas legales públicas: SIEMPRE accesibles, incluso para un estudiante que
+  // todavía no completó el registro. Para ACEPTAR la Política de Privacidad y
+  // los Términos (consentimiento informado, Ley 21.719) el usuario necesita
+  // poder LEERLOS antes de enviar el formulario de registro. Bloquearlas hacía
+  // que el middleware rebotara /privacidad y /terminos de vuelta a /registro.
+  const isPublicLegalPath =
+    pathname.startsWith("/privacidad") || pathname.startsWith("/terminos");
+
   // Rutas API que una empresa SUSPENDED no puede usar para escribir/cambiar
   // estado. Solo bloqueamos métodos de mutación — los GET de su propio dashboard
   // siguen pasando (igual el dashboard mismo redirige a /empresa/suspendida).
@@ -108,7 +116,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (role === "STUDENT") {
-    if (!registrationCompleted && !pathname.startsWith("/registro")) {
+    if (
+      !registrationCompleted &&
+      !pathname.startsWith("/registro") &&
+      !isPublicLegalPath
+    ) {
       return redirect("/registro");
     }
     if (registrationCompleted && pathname.startsWith("/registro")) {

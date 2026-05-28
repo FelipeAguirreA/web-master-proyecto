@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import { Icon } from "@/components/dashboard/Icon";
 import { Avatar } from "@/components/dashboard/atoms/Avatar";
 import { pickInitials } from "./utils";
@@ -66,7 +66,7 @@ export function TopbarAdmin({
         </Link>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => logout()}
           title="Cerrar sesión"
           className="px-3 py-2 rounded-lg bg-dark/[0.045] border-none cursor-pointer text-muted text-xs font-bold min-h-[44px] md:min-h-0"
         >

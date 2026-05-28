@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import { useEffect, useRef } from "react";
 import { Icon } from "./Icon";
 import { Avatar } from "./atoms/Avatar";
@@ -229,7 +229,7 @@ export function MobileDrawer({
             type="button"
             onClick={() => {
               onClose();
-              signOut({ callbackUrl: "/" });
+              logout();
             }}
             className="flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13.5px] font-[500] text-[#C2410C] bg-transparent border-none cursor-pointer w-full text-left"
           >

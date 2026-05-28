@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import { Icon } from "./Icon";
 import { Avatar } from "./atoms/Avatar";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -583,7 +583,7 @@ export function DashboardTopbar({
               </Link>
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => logout()}
                 className="flex items-center gap-[10px] px-4 py-[10px] text-[13px] text-[#C2410C] bg-transparent border-none w-full cursor-pointer text-left hover:bg-[#FFF3F0] transition-colors duration-150"
               >
                 <Icon name="x" size={14} color="#C2410C" />
