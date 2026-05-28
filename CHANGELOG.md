@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.1] - 2026-05-27
+
+### Fixed (registro: salida para usuarios que no completan el perfil)
+
+- `fix(registro): reemplazar "Volver al inicio" por una salida real`
+  - **Causa**: en la pantalla de completar registro, los enlaces "Volver al inicio" (`/`) y "¿Ya tienes cuenta? Iniciar sesión" (`/login`) apuntaban a rutas que el middleware rebota a `/registro` para un usuario con el registro incompleto → el usuario quedaba sin forma de salir.
+  - **Fix**: se reemplazó "Volver al inicio" por un botón **"Haz clic aquí para salir"** que ejecuta el cierre de sesión completo (`logout()`), y se quitó "Iniciar sesión" (no aplica: el usuario ya inició sesión con Google para llegar a esa pantalla).
+
+### Changed (consistencia de redacción de la UI)
+
+- `style(ui): unificar la redacción de la interfaz a español neutro`
+  - Se normalizó la redacción de los textos visibles al usuario para mantener un español neutro y consistente en toda la app: pantallas de autenticación, dashboards de estudiante y empresa, listado de prácticas, perfiles, modales y mensajes de error.
+
 ## [1.15.0] - 2026-05-27
 
 ### Added (auth: cierre de sesión completo + re-autenticación en Google)

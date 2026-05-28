@@ -15,7 +15,7 @@ export function EmpresaAbout({ description }: Props) {
         </p>
       ) : (
         <p className="text-[13px] text-subtle italic m-0">
-          Todavía no tenés una descripción. Hacé click en{" "}
+          Todavía no tienes una descripción. Haz clic en{" "}
           <strong className="font-bold not-italic">Editar perfil</strong> y
           cuéntale a los estudiantes qué hace tu empresa.
         </p>

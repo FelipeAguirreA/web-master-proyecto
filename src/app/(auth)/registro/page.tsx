@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, ArrowLeft } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { logout } from "@/lib/client/logout";
 
 // ── Países ───────────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -123,18 +124,18 @@ export default function RegistroPage() {
           ? "El RUT es obligatorio"
           : "El número de documento es obligatorio";
     } else if (docType === "rut" && !validarRUT(form.document)) {
-      errs.document = "RUT inválido. Verificá el dígito verificador";
+      errs.document = "RUT inválido. Verifica el dígito verificador";
     } else if (docType === "passport" && !validarPasaporte(form.document)) {
-      errs.document = "Ingresá entre 6 y 20 caracteres alfanuméricos";
+      errs.document = "Ingresa entre 6 y 20 caracteres alfanuméricos";
     }
     if (!form.phone.trim()) {
       errs.phone = "El teléfono es obligatorio";
     } else if (!validarTelefono(form.phone)) {
-      errs.phone = "Ingresá solo dígitos (7–15 caracteres)";
+      errs.phone = "Ingresa solo dígitos (7–15 caracteres)";
     }
     if (!form.acceptedTerms) {
       errs.acceptedTerms =
-        "Debés aceptar la Política de Privacidad y los Términos para continuar";
+        "Debes aceptar la Política de Privacidad y los Términos para continuar";
     }
     if (!form.isAdult) {
       errs.isAdult =
@@ -208,7 +209,7 @@ export default function RegistroPage() {
       }
 
       if (!res.ok) {
-        const msg = data.error ?? "Error al guardar. Intentá de nuevo.";
+        const msg = data.error ?? "Error al guardar. Intenta de nuevo.";
         if (
           msg.toLowerCase().includes("rut") ||
           msg.toLowerCase().includes("documento")
@@ -226,7 +227,7 @@ export default function RegistroPage() {
       router.push("/dashboard/estudiante");
     } catch {
       setServerError(
-        "No se pudo conectar con el servidor. Verificá tu conexión.",
+        "No se pudo conectar con el servidor. Verifica tu conexión.",
       );
     } finally {
       setLoading(false);
@@ -240,15 +241,6 @@ export default function RegistroPage() {
         <div className="absolute -top-[15%] -left-[10%] h-[50%] w-[55%] rounded-full opacity-55 [background:radial-gradient(closest-side,rgba(255,166,122,0.45),rgba(255,166,122,0)_70%)] [filter:blur(40px)]" />
         <div className="absolute -bottom-[10%] -right-[10%] h-[50%] w-[55%] rounded-full opacity-50 [background:radial-gradient(closest-side,rgba(255,210,180,0.5),rgba(255,210,180,0)_70%)] [filter:blur(50px)]" />
       </div>
-
-      {/* Volver al inicio */}
-      <Link
-        href="/"
-        className="group absolute top-6 left-6 z-20 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted no-underline transition-colors hover:text-text"
-      >
-        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-        Volver al inicio
-      </Link>
 
       {/* Logo */}
       <Link
@@ -265,7 +257,7 @@ export default function RegistroPage() {
         </span>
       </Link>
       <p className="relative z-10 mb-8 text-[13px] text-muted">
-        Completá tu perfil para activar tu cuenta
+        Completa tu perfil para activar tu cuenta
       </p>
 
       {/* Step indicator */}
@@ -313,7 +305,7 @@ export default function RegistroPage() {
       <div className="relative z-10 w-full max-w-[440px] rounded-[20px] border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_20px_50px_-20px_rgba(20,15,10,0.15)] sm:rounded-[24px] sm:p-7">
         <div className="mb-6">
           <h1 className="text-[22px] font-semibold tracking-[-0.015em] text-text">
-            Completá tu perfil
+            Completa tu perfil
           </h1>
           <p className="mt-1 text-[13px] leading-[1.5] text-muted">
             Solo necesitamos estos datos una vez para activar tu cuenta.
@@ -553,13 +545,14 @@ export default function RegistroPage() {
           </button>
 
           <p className="text-center text-[12.5px] text-muted">
-            ¿Ya tenés una cuenta?{" "}
-            <Link
-              href="/login"
-              className="font-semibold text-accent no-underline transition-opacity hover:opacity-75"
+            ¿No quieres continuar con la creación de tu cuenta?{" "}
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="cursor-pointer border-none bg-transparent p-0 font-semibold text-accent no-underline transition-opacity hover:opacity-75"
             >
-              Iniciar sesión
-            </Link>
+              Haz clic aquí para salir
+            </button>
           </p>
         </form>
       </div>
@@ -580,7 +573,7 @@ export default function RegistroPage() {
                 PractiX Insight
               </p>
               <p className="text-[12px] leading-[1.55] text-text">
-                Completá tu perfil para que nuestra IA te recomiende prácticas
+                Completa tu perfil para que nuestra IA te recomiende prácticas
                 que se ajusten a tus habilidades en menos de 24 horas.
               </p>
             </div>

@@ -103,7 +103,7 @@ export function SkillsBlock({ skills, suggestions, onSave }: Props) {
               }}
               placeholder={
                 draft.length === 0
-                  ? "Escribí una skill y dale Enter…"
+                  ? "Escribe una skill y dale Enter…"
                   : "Agregar…"
               }
               className="flex-1 min-w-[140px] border-none outline-none bg-transparent text-[13px] text-text font-[inherit] px-1 py-[2px]"

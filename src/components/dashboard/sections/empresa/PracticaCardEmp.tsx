@@ -165,7 +165,7 @@ export function PracticaCardEmp({
               const canEdit = s.total === 0;
               const tooltip = canEdit
                 ? "Editar práctica"
-                : `No podés editar: ya hay ${s.total} ${s.total === 1 ? "postulante" : "postulantes"}`;
+                : `No puedes editar: ya hay ${s.total} ${s.total === 1 ? "postulante" : "postulantes"}`;
               return (
                 <button
                   type="button"

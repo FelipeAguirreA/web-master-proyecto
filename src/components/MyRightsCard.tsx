@@ -34,7 +34,7 @@ export default function MyRightsCard() {
           error?: string;
         };
         setDeleteError(
-          data.error ?? "No pudimos eliminar la cuenta. Probá de nuevo.",
+          data.error ?? "No pudimos eliminar la cuenta. Prueba de nuevo.",
         );
         setDeleting(false);
         return;

@@ -178,7 +178,7 @@ export const companyRegisterSchema = z
     if (data.documentType === "rut" && !validarRUT(data.empresaRut)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "RUT de empresa inválido. Verificá el dígito verificador",
+        message: "RUT de empresa inválido. Verifica el dígito verificador",
         path: ["empresaRut"],
       });
     }

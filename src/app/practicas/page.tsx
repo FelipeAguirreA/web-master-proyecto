@@ -305,7 +305,7 @@ export default function PracticasPage() {
                 role="searchbox"
                 aria-label="Buscar prácticas por título o descripción"
                 autoComplete="off"
-                placeholder="Buscá por título o descripción…"
+                placeholder="Busca por título o descripción…"
                 value={search}
                 onChange={(e) => setFilter(setSearch)(e.target.value)}
                 className="w-full py-[9px] pl-[34px] pr-3 bg-black/[0.04] border-[1.5px] border-transparent rounded-[9px] text-[12.5px] text-text font-semibold font-inherit outline-none transition-all duration-150 focus:bg-surface focus:border-accent focus:shadow-[0_0_0_3px_rgba(255,106,61,0.11)]"
@@ -455,7 +455,7 @@ export default function PracticasPage() {
             </p>
             {activeChips.length > 0 ? (
               <>
-                Probá quitar algún filtro o{" "}
+                Prueba quitar algún filtro o{" "}
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -466,7 +466,7 @@ export default function PracticasPage() {
                 .
               </>
             ) : (
-              "No hay prácticas activas por ahora. Volvé a chequear pronto."
+              "No hay prácticas activas por ahora. Vuelve a revisar pronto."
             )}
           </div>
         ) : (

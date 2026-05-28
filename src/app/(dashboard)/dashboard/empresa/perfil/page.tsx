@@ -93,7 +93,7 @@ export default function PerfilEmpresaPage() {
         setSaveError(
           issue ??
             body?.error ??
-            "No se pudo guardar. Revisá los campos e intentá de nuevo.",
+            "No se pudo guardar. Revisa los campos e intenta de nuevo.",
         );
         return;
       }
@@ -102,7 +102,7 @@ export default function PerfilEmpresaPage() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : updated));
       setEditing(false);
     } catch {
-      setSaveError("Error de red. Probá de nuevo.");
+      setSaveError("Error de red. Prueba de nuevo.");
     } finally {
       setSaving(false);
     }

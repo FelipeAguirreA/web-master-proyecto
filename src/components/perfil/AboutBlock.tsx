@@ -41,7 +41,7 @@ export function AboutBlock({ bio, onSave }: Props) {
         <textarea
           id="perfil-bio"
           name="bio"
-          aria-label="Sobre vos"
+          aria-label="Sobre ti"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}

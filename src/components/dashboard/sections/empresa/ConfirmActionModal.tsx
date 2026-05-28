@@ -60,7 +60,7 @@ export function ConfirmActionModal({
         <p className="text-[13px] text-muted text-center mt-2 leading-[1.55]">
           {isDelete ? (
             <>
-              ¿Seguro querés eliminar{" "}
+              ¿Seguro que quieres eliminar{" "}
               <b className="text-text">{internshipTitle || "esta práctica"}</b>?
               Se borrarán también todas las postulaciones asociadas. Esta acción
               no se puede deshacer.

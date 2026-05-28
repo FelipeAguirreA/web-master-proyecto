@@ -125,7 +125,7 @@ export function rateLimitResponse(resetAt: number) {
   const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
   return new Response(
     JSON.stringify({
-      error: `Demasiadas solicitudes. Intentá de nuevo en ${retryAfter} segundos.`,
+      error: `Demasiadas solicitudes. Intenta de nuevo en ${retryAfter} segundos.`,
     }),
     {
       status: 429,

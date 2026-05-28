@@ -130,7 +130,7 @@ function ResetPasswordForm() {
       setSuccess(true);
       setTimeout(() => router.push("/login"), 3000);
     } catch {
-      setError("Ocurrió un error. Intentá de nuevo.");
+      setError("Ocurrió un error. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ function ResetPasswordForm() {
           Nueva contraseña
         </h1>
         <p className="mx-auto mt-1.5 max-w-[340px] text-[13.5px] leading-[1.55] text-muted">
-          Elegí una contraseña segura para tu cuenta empresa.
+          Elige una contraseña segura para tu cuenta empresa.
         </p>
       </div>
 
