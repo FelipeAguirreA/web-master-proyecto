@@ -171,7 +171,7 @@ Configura Sentry para monitoreo de errores en PractiX (Next.js 16).
    Vercel expone VERCEL_GIT_COMMIT_SHA automáticamente en build. Con esto:
    - Cada issue en Sentry queda etiquetado con el commit exacto
    - Los sourcemaps subidos quedan asociados a esa release
-   - Desde un issue podés ver el commit que lo causó (link a GitHub si está
+   - Desde un issue puedes ver el commit que lo causó (link a GitHub si está
      configurado el repo en Sentry → Code Mappings)
 
 7. .env.local:
@@ -356,7 +356,7 @@ Jobs:
      h. pnpm build
        - GOTCHA REAL: NO usar ${{ secrets.* }} para las env vars del build.
          GitHub no expone los secrets a los runs de Pull Request de Dependabot
-         por security policy — si usás secrets, los PRs de Dependabot fallan
+         por security policy — si usas secrets, los PRs de Dependabot fallan
          al buildear y todos los bumps quedan rojos.
        - En su lugar, definir env vars con placeholders dummy literales que
          solo satisfagan la validación Zod de src/lib/env.ts:

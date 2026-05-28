@@ -84,10 +84,10 @@ export function Welcome({
               Ver matches del día
             </Link>
             <Link
-              href="/perfil"
+              href="/perfil#cv"
               className="inline-flex items-center gap-[7px] bg-white/[.08] border border-white/[.14] text-white px-[18px] py-2.5 rounded-[11px] font-semibold text-[13px] no-underline"
             >
-              {hasCv ? "Mejorar mi CV" : "Cargar CV"}
+              {hasCv ? "Mejorar mi CV" : "Cargar el CV"}
             </Link>
           </div>
         </div>

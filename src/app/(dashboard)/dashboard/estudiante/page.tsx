@@ -376,7 +376,7 @@ export default function StudentDashboard() {
                 ) : (
                   <>
                     <p className="text-text font-semibold mb-1.5">
-                      Aún no subís tu CV
+                      Aún no has subido tu CV
                     </p>
                     Cuando lo subas, vas a ver acá las prácticas que mejor
                     calzan con tu perfil.{" "}

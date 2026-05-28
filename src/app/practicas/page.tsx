@@ -433,7 +433,7 @@ export default function PracticasPage() {
         {sort === "match" && (
           <p className="text-[11.5px] text-subtle -mt-1.5 mb-2.5 px-1 leading-[1.5]">
             El orden por match aplica solo a las prácticas de esta página. Para
-            ver todas tus mejores matches, andá al{" "}
+            ver todas tus mejores matches, ve al{" "}
             <a href="/dashboard/estudiante" className="text-accent font-bold">
               dashboard
             </a>

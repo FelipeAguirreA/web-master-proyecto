@@ -180,12 +180,28 @@ export function DashboardSidebar({
                 </>
               )}
             </p>
-            <Link
-              href="/perfil"
-              className="block text-center bg-text text-white text-[12px] font-[700] px-3 py-2 rounded-[9px] no-underline"
-            >
-              {hasCv ? "Mejorar CV" : "Cargar CV"}
-            </Link>
+            {pathname === "/perfil" ? (
+              // Si ya estamos en /perfil, navegar no aporta nada: el botón
+              // abre directo el file picker del uploader (CVUploadCard escucha
+              // este evento). Desde cualquier otra ruta, el <Link> de abajo
+              // navega a /perfil#cv y scrollea a la card.
+              <button
+                type="button"
+                onClick={() =>
+                  window.dispatchEvent(new Event("practix:cv-open-picker"))
+                }
+                className="block w-full text-center bg-text text-white text-[12px] font-[700] px-3 py-2 rounded-[9px] border-none cursor-pointer"
+              >
+                {hasCv ? "Mejorar el CV" : "Cargar el CV"}
+              </button>
+            ) : (
+              <Link
+                href="/perfil#cv"
+                className="block text-center bg-text text-white text-[12px] font-[700] px-3 py-2 rounded-[9px] no-underline"
+              >
+                {hasCv ? "Mejorar el CV" : "Cargar el CV"}
+              </Link>
+            )}
           </div>
         )}
         {role === "COMPANY" && (

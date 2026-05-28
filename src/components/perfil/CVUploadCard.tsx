@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "../dashboard/Icon";
 import { ScoreVis } from "../dashboard/atoms/ScoreVis";
 
@@ -52,6 +52,19 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
       setBusy(false);
     }
   };
+
+  // El botón "Cargar el CV" del sidebar emite este evento cuando el user ya
+  // está en /perfil — en lugar de navegar, abrimos el file picker directo.
+  // Sirve tanto para subir por primera vez como para reemplazar.
+  useEffect(() => {
+    function openPicker() {
+      if (busy) return;
+      fileRef.current?.click();
+    }
+    window.addEventListener("practix:cv-open-picker", openPicker);
+    return () =>
+      window.removeEventListener("practix:cv-open-picker", openPicker);
+  }, [busy]);
 
   return (
     <section className="bg-gradient-to-br from-cream to-white border border-accent-bdr rounded-[18px] p-4 sm:p-[18px] relative overflow-hidden">
@@ -116,8 +129,8 @@ export function CVUploadCard({ cvUrl, cvPct, onUpload, onDelete }: Props) {
               {busy
                 ? "Procesando…"
                 : dragOver
-                  ? "Soltá el archivo"
-                  : "Arrastrá o clickeá para subir"}
+                  ? "Suelta el archivo"
+                  : "Arrastra o haz clic para subir"}
             </p>
             <p className="text-[11px] text-subtle mt-1">
               PDF o DOCX · Máx 5 MB

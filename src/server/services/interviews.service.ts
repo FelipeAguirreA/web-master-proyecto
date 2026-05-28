@@ -446,7 +446,7 @@ export async function getAvailableCandidates(
   companyUserId: string,
 ) {
   // Verificar que la práctica pertenece a esta empresa Y no fue soft-deleted
-  // (no podés agendar entrevistas sobre una práctica eliminada).
+  // (no puedes agendar entrevistas sobre una práctica eliminada).
   const internship = await prisma.internship.findUnique({
     where: { id: internshipId },
     include: { company: { select: { userId: true } } },

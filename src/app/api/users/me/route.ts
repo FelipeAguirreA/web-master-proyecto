@@ -53,7 +53,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Falta confirmación. Para eliminar tu cuenta, enviá el header X-Confirm-Delete: yes.",
+          "Falta confirmación. Para eliminar tu cuenta, envía el header X-Confirm-Delete: yes.",
         code: "CONFIRMATION_REQUIRED",
       },
       { status: 400 },

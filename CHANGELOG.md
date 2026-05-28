@@ -5,6 +5,21 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-05-28
+
+### Added (perfil: CTA "Cargar el CV" contextual y deep-link)
+
+- `feat(perfil): el boton "Cargar el CV" del sidebar abre el file picker o navega con scroll`
+  - **Desde cualquier ruta distinta de `/perfil`** (dashboard, prácticas, etc.) el botón es un `<Link href="/perfil#cv">` que navega al perfil y, al terminar de cargar, hace `scrollIntoView({ behavior: "smooth" })` sobre la card del uploader (envuelta en `<div id="cv" className="scroll-mt-24">`). Antes el botón navegaba sin scroll y la card quedaba fuera del viewport en pantallas chicas — efecto "no hace nada".
+  - **Estando ya en `/perfil`** el botón cambia a `<button>` y dispara `window.dispatchEvent(new Event("practix:cv-open-picker"))`. `CVUploadCard` escucha ese evento y llama `fileRef.current?.click()` para abrir el file picker del SO directo. Sirve tanto para el primer upload como para reemplazar el actual (misma ref de `<input type="file">`).
+  - **Renombrado del CTA**: "Cargar CV"/"Mejorar CV" → "Cargar el CV"/"Mejorar el CV" en `DashboardSidebar` y `Welcome`.
+
+### Fixed (sidebar: la tarjeta "Tu CV" no refrescaba sin recargar)
+
+- `fix(dashboard): refrescar cvPct/hasCv en el sidebar tras subir o eliminar el CV`
+  - **Causa**: el `useEffect([isStudent])` del `(dashboard)/layout.tsx` fetcheaba `/api/users/me` una sola vez al montar. Después de subir o eliminar el CV en `/perfil`, el state del layout no se enteraba y la tarjeta "Tu CV" del sidebar quedaba mostrando el mensaje anterior ("Sube tu CV…") hasta que el usuario hiciera reload.
+  - **Fix**: nuevo evento `practix:cv-updated` despachado desde `/perfil` en `handleCVUpload`/`handleCVDelete` tras `loadProfile()`. El layout registra un listener dentro del mismo effect del fetch inicial, con flag `cancelled` para abortar respuestas en vuelo si el componente se desmonta antes de que la promesa resuelva. `router.refresh()` no servía: el layout es Client Component (`"use client"`) y no se vuelve a montar.
+
 ## [1.15.1] - 2026-05-27
 
 ### Fixed (registro: salida para usuarios que no completan el perfil)
@@ -930,9 +945,9 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Notes
 
-- **Por qué bump minor (1.11.0) y no patch**: feature nueva — sumás capacidad de observabilidad que antes no existía. Patch sería para fixes; minor para features backward-compatible nuevas.
-- **Free tier de Vercel**: 2,500 events/mes en Hobby. Si pasás, hay que upgradear o muestrear.
-- **Relación con F6.4**: Speed Insights es exactamente la pieza que estaba blocked por "esperar 1 semana de tráfico real". A partir de este deploy, el dashboard de Vercel empieza a poblarse con data de Web Vitals reales por user → cuando vuelvas a F6.4, ya tenés con qué medir.
+- **Por qué bump minor (1.11.0) y no patch**: feature nueva — sumas capacidad de observabilidad que antes no existía. Patch sería para fixes; minor para features backward-compatible nuevas.
+- **Free tier de Vercel**: 2,500 events/mes en Hobby. Si pasas, hay que upgradear o muestrear.
+- **Relación con F6.4**: Speed Insights es exactamente la pieza que estaba blocked por "esperar 1 semana de tráfico real". A partir de este deploy, el dashboard de Vercel empieza a poblarse con data de Web Vitals reales por user → cuando vuelvas a F6.4, ya tienes con qué medir.
 - **Patrón aprendido**: `pnpm@latest` en CI fue la trampa anterior; `<Analytics />` sin ajustar CSP es la trampa equivalente — funciona en dev (CSP desactivado o laxo), explota silenciosamente en prod (beacons bloqueados, dashboard vacío). El test del CSP previene la regresión.
 
 ### Tests

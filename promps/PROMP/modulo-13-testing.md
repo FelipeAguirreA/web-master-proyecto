@@ -10,7 +10,7 @@ Suite de tests E2E con Playwright cubriendo los flujos principales de la aplicac
 
 ## Estado de Tests al llegar a este módulo
 
-A esta altura ya tenés:
+A esta altura ya tienes:
 
 - ✅ `src/test/unit/users.service.test.ts` (módulo 4)
 - ✅ `src/test/unit/internships.service.test.ts` (módulo 5)
