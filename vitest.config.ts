@@ -28,8 +28,6 @@ export default defineConfig({
         "src/app/**/template.tsx",
         "src/app/**/route.ts",
         "src/app/global-error.tsx",
-        "src/proxy.ts",
-        "src/middleware.ts",
         "src/instrumentation.ts",
         "src/instrumentation-client.ts",
         "src/global-error.tsx",

@@ -108,6 +108,16 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
+      // Forzar RE-AUTENTICACIÓN al entrar, aunque la sesión de Google del
+      // navegador siga activa. Protege el dispositivo compartido: tras cerrar
+      // sesión, otra persona NO puede entrar con tu cuenta de un click — Google
+      // le pide la contraseña que no tiene.
+      //
+      // prompt=login pide reauth, pero Google a veces lo ignora si considera la
+      // sesión "reciente". max_age=0 es el seguro: exige que la última
+      // autenticación tenga 0 segundos de antigüedad → Google reautentica
+      // SIEMPRE.
+      authorization: { params: { prompt: "login", max_age: 0 } },
     }),
 
     CredentialsProvider({

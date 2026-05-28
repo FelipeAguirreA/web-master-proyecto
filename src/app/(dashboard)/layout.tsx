@@ -1,6 +1,7 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -308,7 +309,7 @@ export default function DashboardLayout({
               type="button"
               onClick={() => {
                 setDrawerOpen(false);
-                signOut({ callbackUrl: "/" });
+                logout();
               }}
               className="flex items-center gap-3 px-3 py-[10px] rounded-[10px] text-[13.5px] font-[500] text-[#C2410C] bg-transparent border-none cursor-pointer w-full text-left"
             >

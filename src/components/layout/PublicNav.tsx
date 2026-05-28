@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import {
   Menu,
   X,
@@ -326,7 +327,7 @@ export function PublicNav({ isLoggedIn, isAdmin = false }: PublicNavProps) {
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    signOut({ callbackUrl: "/" });
+                    logout();
                   }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13.5px] text-[#C2410C] hover:bg-[#FFF0ED] active:bg-[#FFE1DA] transition-colors"
                 >

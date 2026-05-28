@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { logout } from "@/lib/client/logout";
 import { Download, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
@@ -42,7 +42,7 @@ export default function MyRightsCard() {
 
       // Cuenta eliminada — sign out + redirect home con un flag para
       // mostrar mensaje de despedida (lo maneja el server o el layout).
-      await signOut({ callbackUrl: "/?account_deleted=1" });
+      await logout("/?account_deleted=1");
     } catch {
       setDeleteError("No pudimos conectar con el servidor.");
       setDeleting(false);

@@ -5,6 +5,26 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-05-27
+
+### Added (auth: cierre de sesión completo + re-autenticación en Google)
+
+- `feat(auth): logout que revoca el refresh token + prompt=login en Google`
+  - **Logout incompleto (causa)**: todos los botones de "Cerrar sesión" usaban solo `signOut()` de NextAuth, que borra la cookie de sesión (access de 15 min) pero NO revocaba el refresh token. La cookie `practix.refresh-token` (7 días) sobrevivía y el token seguía válido en DB → cualquier 401 disparaba `/api/auth/refresh` y re-armaba la sesión sin pasar por Google. El endpoint `POST /api/auth/logout` (que sí revoca) existía pero estaba huérfano (nadie lo llamaba).
+  - **Fix**: nuevo helper centralizado `src/lib/client/logout.ts` que llama a `/api/auth/logout` (revoca refresh + limpia su cookie) **antes** de `signOut()`. Los 7 call-sites de logout migrados a este único punto de verdad para que ningún botón nuevo quede con un cierre incompleto.
+  - **Re-autenticación en Google**: `GoogleProvider` ahora pasa `prompt: "login"` + `max_age: 0` para que Google pida la contraseña al re-entrar (protege el escenario de dispositivo compartido). Nota: el re-prompt final lo decide Google como IdP; el cliente envía las señales OIDC correctas (verificado en la URL de autorización).
+
+### Fixed (auth: rutas legales bloqueadas en el registro)
+
+- `fix(auth): permitir leer /privacidad y /terminos sin completar el registro`
+  - **Causa**: el middleware (`src/proxy.ts`) rebotaba a `/registro` **cualquier** ruta distinta de `/registro` para un estudiante con `registrationCompleted=false`. Eso incluía los enlaces a Política de Privacidad y Términos del propio formulario de registro (checkbox de aceptación + footer), rompiendo el consentimiento informado (Ley 21.719): el usuario no podía leer lo que tenía que aceptar.
+  - **Fix**: `isPublicLegalPath` excluye `/privacidad` y `/terminos` del rebote. Las páginas legales son públicas siempre.
+
+### Tests (cobertura del middleware de autorización)
+
+- `test(proxy): 26 casos del middleware + helper de logout`
+  - `src/proxy.ts` no tenía cobertura (estaba excluido). Se agregó `src/test/unit/proxy.test.ts` (26 tests: passthrough de API, 403 de empresa suspendida, redirects por rol, registro incompleto y los 2 de regresión del fix legal) y se quitó del `exclude` de coverage para blindarlo por el umbral. También `src/test/unit/logout.test.ts` (3 tests del helper). Coverage de funciones 100%.
+
 ## [1.14.5] - 2026-05-26
 
 ### Chore
