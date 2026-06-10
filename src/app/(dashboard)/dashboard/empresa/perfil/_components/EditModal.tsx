@@ -188,7 +188,7 @@ export function EditModal({ initial, onClose, onSave, saving, error }: Props) {
             autoComplete="url"
             value={website}
             onChange={setWebsite}
-            placeholder="https://tu-empresa.cl"
+            placeholder="tu-empresa.cl"
             disabled={saving}
           />
           <Textarea
@@ -219,14 +219,19 @@ export function EditModal({ initial, onClose, onSave, saving, error }: Props) {
           </button>
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
+              const rawWebsite = website.trim();
+              const normalizedWebsite =
+                rawWebsite && !rawWebsite.match(/^https?:\/\//)
+                  ? `https://${rawWebsite}`
+                  : rawWebsite;
               onSave({
                 companyName: companyName.trim(),
                 industry: industry.trim(),
-                website: website.trim(),
+                website: normalizedWebsite,
                 description: description.trim(),
-              })
-            }
+              });
+            }}
             disabled={!canSave}
             className="min-h-[44px] px-3.5 py-2.5 bg-gradient-to-br from-accent to-accent-hi text-white border-none rounded-[9px] text-[12.5px] font-extrabold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-opacity"
           >
