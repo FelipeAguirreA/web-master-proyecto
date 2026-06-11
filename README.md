@@ -268,6 +268,57 @@ Esto permite que una empresa de marketing pondere más Education+Portfolio, y un
 
 ## 4. 🏗️ Arquitectura técnica
 
+### Estructura de carpetas
+
+```
+practix/
+├── src/
+│   ├── app/                      # Next.js App Router — UI + capa HTTP
+│   │   ├── (auth)/               # Login, registro, forgot/reset password
+│   │   ├── (dashboard)/          # Paneles protegidos (estudiante · empresa · perfil)
+│   │   ├── (admin)/              # Panel admin (aprobación de empresas)
+│   │   ├── practicas/            # Listado y detalle públicos
+│   │   ├── privacidad/ terminos/ # Páginas legales
+│   │   ├── api/                  # 49 rutas REST (un route.ts por endpoint)
+│   │   └── page.tsx              # Landing pública
+│   ├── server/                   # ◄ Backend PORTABLE (no importa nada de Next.js)
+│   │   ├── services/             # Lógica de negocio pura
+│   │   │   ├── internships.service.ts   applications.service.ts
+│   │   │   ├── matching.service.ts      chat.service.ts
+│   │   │   └── interviews.service.ts    users.service.ts  …
+│   │   ├── lib/                  # Infraestructura
+│   │   │   ├── db.ts             # Prisma singleton
+│   │   │   ├── embeddings.ts     # HuggingFace (matching IA)
+│   │   │   ├── storage.ts        # Supabase Storage (CVs)
+│   │   │   ├── mail.ts           # Brevo (emails)
+│   │   │   ├── auth-guard.ts     # requireAuth(role?)
+│   │   │   ├── rate-limit.ts     # Upstash Redis
+│   │   │   ├── logger.ts         # pino estructurado
+│   │   │   └── ats/scorers/      # Scoring engine ATS (Strategy + Registry, 5 scorers)
+│   │   └── validators/           # Schemas Zod por endpoint
+│   ├── components/               # Componentes React por dominio
+│   │   └── …                     #   landing · auth · dashboard · ats · chat · perfil · ui
+│   ├── lib/                      # Utilidades compartidas y de cliente
+│   │   ├── env.ts                # Validación de variables de entorno con Zod
+│   │   └── client/               # Supabase Realtime, fetch-with-refresh, logout
+│   ├── types/index.ts            # Tipos TypeScript compartidos front + back
+│   ├── test/                     # Vitest: setup, unit, component, mocks
+│   ├── proxy.ts                  # Middleware: auth + rate limit + CSP (Next.js 16)
+│   └── instrumentation.ts        # Init de Sentry (server + client)
+├── e2e/                          # Tests E2E Playwright (auth, landing, csp, …)
+├── prisma/
+│   ├── schema.prisma             # Modelos de datos
+│   ├── migrations/               # Migrations SQL versionadas
+│   └── seed.ts                   # Datos de ejemplo
+├── docs/
+│   ├── adr/                      # 7 Architecture Decision Records
+│   ├── specs/                    # Specs SDD por service
+│   └── runbooks/                 # Procedimientos de incidentes
+├── public/                       # Assets estáticos
+├── README.md · CHANGELOG.md · CLAUDE.md
+└── package.json · next.config.ts · vitest.config.ts · playwright.config.ts · docker-compose.yml
+```
+
 ### Clean Architecture dentro de Next.js
 
 El proyecto sigue **Clean Architecture** adaptada al monolito Next.js: capas concéntricas con regla estricta de dependencia hacia adentro. La lógica de negocio (`server/services/`) es **portable** — si mañana se migra a Express, se copia esa carpeta y funciona sin cambios.
