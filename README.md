@@ -16,7 +16,7 @@
 
 > ▶ **Clic en la imagen** para ver el demo del producto en YouTube
 
-> 📊 **[Ver la presentación del proyecto (slides)](https://canva.link/7i0lidwyv1bi1tl)**
+> 📊 **[Ver slides del proyecto (Canva)](https://canva.link/7i0lidwyv1bi1tl)**
 
 ### 🔑 Credenciales de demo
 
@@ -579,7 +579,7 @@ flowchart TB
 
 ## 6. 💼 Plan de negocio y monetización
 
-> Esta sección documenta la **estrategia diseñada pero NO implementada** en el MVP. La implementación se defiere a post-defensa del TFM para mantener foco en la calidad técnica del entregable.
+> Esta sección documenta la **estrategia diseñada pero NO implementada** en el MVP. La implementación se defiere a post-TFM para mantener foco en la calidad técnica del entregable.
 
 ### Análisis del mercado chileno (mayo 2026)
 
@@ -653,7 +653,7 @@ Investigación de competidores directos en Chile:
 
 1. **Criterios del TFM no incluyen "implementaste billing"**. Lo que evalúan: arquitectura, IA, calidad, seguridad, visión.
 2. **Mercado Pago + paywall son 3-4 semanas de trabajo real** con riesgo de bugs en demo.
-3. **Free-for-all permite al jurado explorar TODO el sistema sin fricción**.
+3. **Free-for-all permite explorar TODO el sistema sin fricción**.
 4. **Estrategia documentada > estrategia mal implementada** para evaluación académica.
 
 ---
@@ -785,9 +785,7 @@ Cada service tiene su **spec SDD** en `docs/specs/` que documenta input/output, 
 
 - ✅ Producto funcional, deployado, testeado, auditado
 - ✅ 7 ADRs documentados, 1.336 tests verde, 0 vulns
-- ⏳ Demo Loom 5-7 min del flujo end-to-end
-- ⏳ NotebookLM Audio Overview del proyecto (asistente IA para defensa)
-- ⏳ Defensa oral con jurado multidisciplinar
+- ✅ Video demo del flujo end-to-end (YouTube) + slides del proyecto (Canva)
 
 ### Fase B — Monetización Etapa 1: PyME chilena (junio-noviembre 2026)
 
