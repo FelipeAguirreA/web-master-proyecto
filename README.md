@@ -2,17 +2,21 @@
 
 > Portal de prácticas laborales con **matching inteligente por IA** entre estudiantes y empresas.
 
+### 🌐 Proyecto en producción → **[https://practix.cl](https://practix.cl)**
+
 [![CI](https://github.com/FelipeAguirreA/web-master-proyecto/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/FelipeAguirreA/web-master-proyecto/actions/workflows/ci.yml)
-[![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://vercel.com)
+[![Vercel](https://img.shields.io/badge/Vercel-deployed-black?logo=vercel)](https://practix.cl)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2.6-black?logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-1126%20passing-success)](#5--seguridad-y-calidad)
+[![Tests](https://img.shields.io/badge/tests-1336%20passing-success)](#5--seguridad-y-calidad)
 [![Coverage](https://img.shields.io/badge/coverage-100%25%20func%20%2F%2080%25%20lines-success)](#5--seguridad-y-calidad)
 [![License](https://img.shields.io/badge/license-All%20rights%20reserved-red)](#licencia)
 
 [![Demo en YouTube](https://img.youtube.com/vi/MkF0-iUt1tU/maxresdefault.jpg)](https://youtu.be/MkF0-iUt1tU)
 
 > ▶ **Clic en la imagen** para ver el demo del producto en YouTube
+
+> 📊 **[Ver la presentación del proyecto (slides)](https://canva.link/7i0lidwyv1bi1tl)**
 
 ### 🔑 Credenciales de demo
 
@@ -22,7 +26,7 @@
 
 PractiX es un **Trabajo Final de Máster en Desarrollo con IA** que resuelve un problema real del mercado laboral chileno: la asimetría entre estudiantes que buscan prácticas profesionales y empresas que reclutan talento joven sin herramientas adecuadas. La solución aplica **embeddings semánticos de NLP** _(Natural Language Processing — Procesamiento de Lenguaje Natural)_ para hacer matching entre el CV del estudiante y la descripción de cada práctica, complementado con un **scoring ponderado tipo ATS** _(Applicant Tracking System — sistema de seguimiento de candidatos)_ que las empresas configuran por puesto.
 
-> Versión actual: **1.13.0** · Stack: **Next.js 16 + React 19 + TypeScript + Prisma 7 + Supabase + HuggingFace** · Deploy: **Vercel** + **PostgreSQL gestionado**.
+> Versión actual: **1.16.0** · Stack: **Next.js 16 + React 19 + TypeScript + Prisma 7 + Supabase + HuggingFace** · Deploy: **Vercel** + **PostgreSQL gestionado**.
 
 ---
 
@@ -336,7 +340,7 @@ flowchart TB
 | Categoría      | Tecnología                  | Versión      | Razón                                               |
 | -------------- | --------------------------- | ------------ | --------------------------------------------------- |
 | Framework      | Next.js + App Router        | 16.2.6       | SSR + API routes + edge runtime                     |
-| UI             | React + Tailwind CSS v4     | 19.2.5 / 4.x | Reactividad + utility-first styling                 |
+| UI             | React + Tailwind CSS v4     | 19.2.6 / 4.x | Reactividad + utility-first styling                 |
 | Lenguaje       | TypeScript                  | 5.x          | Type safety en services + validadores               |
 | ORM            | Prisma                      | 7.8.0        | Type-safe queries + migrations versionadas          |
 | DB             | PostgreSQL via Supabase     | 15+          | Managed, con Realtime y RLS                         |
@@ -344,10 +348,10 @@ flowchart TB
 | JWT signing    | jose                        | 6.2.3        | HS256 para Supabase Realtime auth (ADR 007)         |
 | Embeddings IA  | HuggingFace Inference API   | —            | `BAAI/bge-small-en-v1.5`                            |
 | Storage        | Supabase Storage            | —            | Bucket `documents` para CVs                         |
-| Email          | Brevo                       | 10.x         | Transaccional, free tier 300/día                    |
+| Email          | Brevo                       | —            | Transaccional, free tier 300/día                    |
 | Rate limit     | Upstash Redis serverless    | 1.38.0       | Distribuido para serverless multi-instancia         |
-| Observabilidad | pino + Sentry               | 10.x / 10.53 | Logs estructurados + APM + releases ligados a SHA   |
-| Testing        | Vitest + Playwright         | 4.x / 1.59   | Unit/component + E2E                                |
+| Observabilidad | pino + Sentry               | 10.x / 10.55 | Logs estructurados + APM + releases ligados a SHA   |
+| Testing        | Vitest + Playwright         | 4.x / 1.60   | Unit/component + E2E                                |
 | Deploy         | Vercel                      | —            | Build + edge + cron + analytics                     |
 | CI/CD          | GitHub Actions + Dependabot | —            | Lint + types + tests + build + audit + agrupado     |
 
@@ -428,13 +432,13 @@ Schema versionado en `prisma/migrations/<timestamp>_<descripcion>/migration.sql`
 
 ## 5. 🔒 Seguridad y calidad
 
-La calidad del código es la primera promesa que cumple PractiX: **cero vulnerabilidades activas, 100% de cobertura funcional, 1.126 tests verde en cada commit a master, y auditoría OWASP Top 10 completa** con sus 31 findings críticos resueltos. Las decisiones de seguridad están documentadas en ADRs y verificadas por CI en cada PR.
+La calidad del código es la primera promesa que cumple PractiX: **cero vulnerabilidades activas, 100% de cobertura funcional, 1.336 tests verde en cada commit a master, y auditoría OWASP Top 10 completa** con sus 31 findings críticos resueltos. Las decisiones de seguridad están documentadas en ADRs y verificadas por CI en cada PR.
 
 ### Métricas de calidad
 
 | Métrica                       | Valor actual        | Estándar                            |
 | ----------------------------- | ------------------- | ----------------------------------- |
-| Tests unitarios + componente  | **1.126 passing**   | Vitest                              |
+| Tests unitarios + componente  | **1.336 passing**   | Vitest                              |
 | Tests E2E                     | **53 passing**      | Playwright                          |
 | Coverage funciones            | **100%**            | Threshold CI                        |
 | Coverage líneas               | **80%**             | Threshold CI                        |
@@ -512,7 +516,7 @@ sequenceDiagram
 push o pull_request → master
 ├─ Lint (ESLint 9 flat config)
 ├─ Type-check (tsc --noEmit)
-├─ Tests (1.126 unit + 53 E2E)
+├─ Tests (1.336 unit + 53 E2E)
 ├─ Build (Next.js + Prisma generate)
 └─ Audit (pnpm audit --audit-level=moderate)
 └─ Dependabot agrupado (react, sentry, prisma, testing) — evita PR explosion
@@ -553,8 +557,8 @@ gh api repos/FelipeAguirreA/web-master-proyecto/rulesets \
 ```mermaid
 flowchart TB
     E2E["E2E Playwright<br/>53 tests<br/>~10% de cobertura, alta confianza"]
-    Component["Component tests<br/>~250 tests<br/>React Testing Library"]
-    Unit["Unit tests<br/>~870 tests<br/>Vitest, mock Prisma"]
+    Component["Component tests<br/>242 tests<br/>React Testing Library"]
+    Unit["Unit tests<br/>1.094 tests<br/>Vitest, mock Prisma"]
 
     Unit --> Component --> E2E
 ```
@@ -742,19 +746,19 @@ pnpm docker:dev                         # PostgreSQL local (puerto 5433)
 
 ## 8. 📡 API y endpoints
 
-PractiX expone **49 rutas REST agrupadas en 8 áreas funcionales**. Por seguridad, esta sección no enumera los paths exactos — el detalle completo está en las specs por service (ver [§10 Documentación adicional](#10--documentación-adicional)).
+PractiX expone **49 rutas REST agrupadas en 9 áreas funcionales**. Por seguridad, esta sección no enumera los paths exactos — el detalle completo está en las specs por service (ver [§10 Documentación adicional](#10--documentación-adicional)).
 
 ### Resumen por área
 
 | Área                                  | Cantidad | Responsabilidad                                                                                       |
 | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
 | **Auth**                              | 7        | Login Google/credentials, refresh tokens, forgot/reset password, firma JWT HS256 para Realtime        |
-| **Users / Profile / Perfil**          | 6        | CRUD perfil estudiante/empresa, avatar, perfil unificado                                              |
-| **Internships**                       | 4        | CRUD prácticas, soft delete con `deletedAt`, edit gateado por postulantes, ?includeDeleted para owner |
-| **Applications**                      | 5        | Postular, listar postulaciones, ver postulantes, cambiar estado                                       |
-| **ATS**                               | 4        | Config scorers por puesto, pipeline kanban, ranking de candidatos, score breakdown                    |
-| **Matching IA**                       | 2        | Subir CV + generar embedding, recomendaciones rankeadas por cosine similarity                         |
-| **Chat / Interviews / Notifications** | 10       | Conversaciones, mensajes paginados, unread count, calendario entrevistas, send-to-chat, bell          |
+| **Users / Profile / Perfil**          | 8        | CRUD perfil estudiante/empresa, avatar, perfil unificado                                              |
+| **Internships**                       | 5        | CRUD prácticas, soft delete con `deletedAt`, edit gateado por postulantes, ?includeDeleted para owner |
+| **Applications**                      | 4        | Postular, listar postulaciones, ver postulantes, cambiar estado                                       |
+| **ATS**                               | 5        | Config scorers por puesto, pipeline kanban, ranking de candidatos, score breakdown                    |
+| **Matching IA**                       | 3        | Subir CV + generar embedding, recomendaciones rankeadas por cosine similarity                         |
+| **Chat / Interviews / Notifications** | 14       | Conversaciones, mensajes paginados, unread count, calendario entrevistas, send-to-chat, bell          |
 | **Admin**                             | 2        | Aprobación / rechazo / suspensión de empresas                                                         |
 | **Health**                            | 1        | Estado del servidor + ping a DB                                                                       |
 
@@ -780,7 +784,7 @@ Cada service tiene su **spec SDD** en `docs/specs/` que documenta input/output, 
 ### Fase A — Cierre del TFM (mayo 2026)
 
 - ✅ Producto funcional, deployado, testeado, auditado
-- ✅ 7 ADRs documentados, 1.126 tests verde, 0 vulns
+- ✅ 7 ADRs documentados, 1.336 tests verde, 0 vulns
 - ⏳ Demo Loom 5-7 min del flujo end-to-end
 - ⏳ NotebookLM Audio Overview del proyecto (asistente IA para defensa)
 - ⏳ Defensa oral con jurado multidisciplinar
@@ -885,17 +889,7 @@ Procedimientos paso a paso para incidentes:
 
 ---
 
-## 🎥 Demo
-
-> **Demo en video (Loom)**: _[placeholder — se grabará y embebe acá antes de la defensa]_
->
-> **Audio Overview (NotebookLM)**: _[placeholder — se generará a partir de este README + ADRs antes de la defensa]_
-
-### Capturas representativas
-
-> _Capturas se agregarán antes de la defensa. Por ahora, el sistema deployado está disponible en el Preview/Production de Vercel para exploración en vivo._
-
-### Flujo end-to-end (descripción)
+## 🔄 Flujo end-to-end
 
 ```mermaid
 flowchart LR
@@ -926,11 +920,11 @@ Este proyecto es el **Trabajo Final de Máster en Desarrollo con IA** de Felipe 
 
 - **Aplicación real de IA** (embeddings + cosine + hybrid scoring + Strategy pattern para ATS)
 - **Arquitectura limpia y portable** (Clean Architecture dentro de Next.js)
-- **Calidad de código profesional** (1.126 tests, 7 ADRs, 0 vulns, OWASP audit completo)
+- **Calidad de código profesional** (1.336 tests, 7 ADRs, 0 vulns, OWASP audit completo)
 - **Visión de producto y negocio** (análisis competencia, pricing penetration, roadmap secuencial)
 - **Cumplimiento legal real** (Ley 21.719 chilena de datos personales)
 
-El código completo está en este repositorio bajo licencia MIT. Las decisiones técnicas se justifican en los ADRs. La estrategia de negocio está documentada acá (§6) basada en investigación real del mercado chileno mayo 2026.
+El código completo está en este repositorio, disponible para lectura y evaluación académica (ver [Licencia](#licencia)). Las decisiones técnicas se justifican en los ADRs. La estrategia de negocio está documentada acá (§6) basada en investigación real del mercado chileno mayo 2026.
 
 ---
 
